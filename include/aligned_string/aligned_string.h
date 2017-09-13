@@ -317,108 +317,60 @@ public:
     template<size_t alignment = AlignedStringBuffer_t::alignment, std::enable_if_t<alignment == 64, int> = 0>
     bool operator<(AlignedString<AlignedStringBuffer_t> const & other) const {
 
-        if (this->length() != other.length()) {
-            return this->length() < other.length() ? true : false;
-        }
-
         size_t offset = 0;
 //        std::cerr << "comparing: " << this->buffer() << std::endl;
 //        std::cerr << "and:       " << other.buffer() << std::endl;
 //        std::cerr << "Length: " << this->length() << " : " << other.length() << std::endl;
+
+        auto buffer1 = this->buffer();
+        auto buffer2 = other.buffer();
+
+        auto min_length = std::min(this->length(), other.length());
+
         while(offset < this->length()) {
 
-            auto str1_0 = _mm_load_si128((__m128i *) (this->buffer() + offset));
-            auto str1_1 = _mm_load_si128((__m128i *) (this->buffer() + 16 + offset));
-            auto str1_2 = _mm_load_si128((__m128i *) (this->buffer() + 32 + offset));
-            auto str1_3 = _mm_load_si128((__m128i *) (this->buffer() + 48 + offset));
+            __m128i str1[4];
+            str1[0] = _mm_load_si128((__m128i *) (this->buffer() + offset));
+            str1[1] = _mm_load_si128((__m128i *) (this->buffer() + 16 + offset));
+            str1[2] = _mm_load_si128((__m128i *) (this->buffer() + 32 + offset));
+            str1[3] = _mm_load_si128((__m128i *) (this->buffer() + 48 + offset));
 
-            auto str2_0 = _mm_load_si128((__m128i *) (other.buffer() + offset));
-            auto str2_1 = _mm_load_si128((__m128i *) (other.buffer() + 16 + offset));
-            auto str2_2 = _mm_load_si128((__m128i *) (other.buffer() + 32 + offset));
-            auto str2_3 = _mm_load_si128((__m128i *) (other.buffer() + 48 + offset));
+            __m128i str2[4];
+            str2[0] = _mm_load_si128((__m128i *) (other.buffer() + offset));
+            str2[1] = _mm_load_si128((__m128i *) (other.buffer() + 16 + offset));
+            str2[2] = _mm_load_si128((__m128i *) (other.buffer() + 32 + offset));
+            str2[3] = _mm_load_si128((__m128i *) (other.buffer() + 48 + offset));
 
-            size_t test_offset = 0;
-            auto result0 = _mm_xor_si128(str1_0, str2_0);
-            auto buffer1 = this->buffer();
-            auto buffer2 = other.buffer();
-            if (!_mm_test_all_zeros(result0, result0)) {
-                for (int i = 0; i < 16; i++) {
-                    char c1 = *(buffer1 + test_offset + offset + i);
-                    char c2 = *(buffer2 + test_offset + offset + i);
-//                    std::cerr << "comparing: " << c1 << " : " << c2 << " at: " << i << std::endl;
-                    if (c1 == c2) {
-                        continue;
-                    } else {
-                        if (c1 < c2) {
-                            return true;
+
+            // go through each of the 4 16-byte chunks
+            for (int i = 0; i < 4; i++) {
+
+                auto result = _mm_xor_si128(str1[i], str2[i]);
+                if (!_mm_test_all_zeros(result, result)) {
+
+                    // go through each byte of the chunk
+                    for (int j = 0; j < 16 && offset + j < min_length; j++) {
+                        char c1 = *(buffer1 + offset + j);
+                        char c2 = *(buffer2 + offset + j);
+//                        std::cerr << "comparing: " << c1 << " : " << c2 << " at: " << j << std::endl;
+                        if (c1 == c2) {
+                            continue;
                         } else {
-                            return false;
+                            if (c1 < c2) {
+                                return true;
+                            } else {
+                                return false;
+                            }
                         }
-                    }
-                }
-                assert(false); // a difference was detected, but not subsequently found
-            }
-            test_offset += 16;
-            auto result1 = _mm_xor_si128(str1_1, str2_1);
-            if (!_mm_test_all_zeros(result1, result1)) {
-                for (int i = 0; i < 16; i++) {
-                    char c1 = *(buffer1 + test_offset + offset + i);
-                    char c2 = *(buffer2 + test_offset + offset + i);
-//                    std::cerr << "comparing: " << c1 << " : " << c2 << " at: " << i << std::endl;
-                    if (c1 == c2) {
-                        continue;
-                    } else {
-                        if (c1 < c2) {
-                            return true;
-                        } else {
-                            return false;
-                        }
-                    }
-                }
-                assert(false); // a difference was detected, but not subsequently found
-            }
+                    } // each byte in 16-byte block
+                    assert(false); // a difference was detected, but not subsequently found
 
-            test_offset += 16;
-            auto result2 = _mm_xor_si128(str1_2, str2_2);
-            if (!_mm_test_all_zeros(result2, result2)) {
-                for (int i = 0; i < 16; i++) {
-                    char c1 = *(buffer1 + test_offset + offset + i);
-                    char c2 = *(buffer2 + test_offset + offset + i);
-//                    std::cerr << "comparing: " << c1 << " : " << c2 << " at: " << i << std::endl;
-                    if (c1 == c2) {
-                        continue;
-                    } else {
-                        if (c1 < c2) {
-                            return true;
-                        } else {
-                            return false;
-                        }
-                    }
+                } else {
+//                    std::cerr << "No difference, block: " << i << std::endl;
                 }
-                assert(false); // a difference was detected, but not subsequently found
-            }
 
-            test_offset += 16;
-            auto result3 = _mm_xor_si128(str1_3, str2_3);
-            if (!_mm_test_all_zeros(result3, result3)) {
-                for (int i = 0; i < 16; i++) {
-                    char c1 = *(buffer1 + test_offset + offset + i);
-                    char c2 = *(buffer2 + test_offset + offset + i);
-//                    std::cerr << "comparing: " << c1 << " : " << c2 << " at: " << i << std::endl;
-                    if (c1 == c2) {
-                        continue;
-                    } else {
-                        if (c1 < c2) {
-                            return true;
-                        } else {
-                            return false;
-                        }
-                    }
-                }
-                assert(false); // a difference was detected, but not subsequently found
-            }
-            offset += 64;
-
+                offset += 16;
+            } // each 16-byte block
         }
         return false;
     }
