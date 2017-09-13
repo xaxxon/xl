@@ -85,8 +85,7 @@ TEST(AlignedString_Static64, EmptyString) {
     EXPECT_EQ(string.alignment, 64);
     EXPECT_TRUE(string == "");
     EXPECT_FALSE(string == "aligned string");
-
-
+    EXPECT_EQ(string.strchr('a'), nullptr);
 }
 
 TEST(AlignedString_Static64, SimpleString) {
@@ -94,6 +93,10 @@ TEST(AlignedString_Static64, SimpleString) {
     EXPECT_EQ(string.length(), 14);
     EXPECT_TRUE(string == "aligned string");
     EXPECT_FALSE(string == "other string");
+    EXPECT_EQ(string.strchr('a'), string.buffer());
+    EXPECT_EQ(string.strchr('l'), string.buffer() + 1);
+    EXPECT_EQ(string.strchr('r'), string.buffer() + 10);
+
 }
 
 
@@ -102,11 +105,12 @@ TEST(AlignedString_Static64, OverfullString) {
     // 62-character string (fits)
     AlignedString<AlignedStringBuffer_Static<64>> string1(
                      "012345678901234567890123456789012345678901234567890123456789--");
-
+    EXPECT_EQ(string1.strchr('-'), string1.buffer() + 60);
 
     // 63-character string (too big)
     EXPECT_THROW(AlignedString<AlignedStringBuffer_Static<64>> string2(
-                     "012345678901234567890123456789012345678901234567890123456789---"), AlignedStringException);
+                     "012345678901234567890123456789012345678901234567890123456789--+"), AlignedStringException);
+
 }
 
 

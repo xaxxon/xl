@@ -142,8 +142,8 @@ public:
             auto str2 = _mm_load_si128((__m128i *) (other.buffer() + offset));
 
             auto result = _mm_cmpeq_epi8(str1, str2);
-            uint16_t mask = _mm_movemask_epi8(result);
-            if (mask != 0xffff) {
+            auto all_ones = _mm_test_all_ones(result);
+            if (!all_ones) {
 //            std::cerr << fmt::format("NOT EQUAL") << std::endl;
                 return false;
             }
@@ -157,7 +157,7 @@ public:
     char const * strchr(char c) const {
         auto needles = _mm_set_epi8(c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c);
 
-        std::cerr << "strchr on string: " << this->buffer() << " and length: " << this->length() << std::endl;
+//        std::cerr << "strchr on string: " << this->buffer() << " and length: " << (int)this->length() << " looking for " << c <<  std::endl;
         size_t offset = 0;
         auto buffer = this->buffer();
         while (offset < this->length()) {
@@ -167,10 +167,15 @@ public:
 
             auto mask_results = _mm_movemask_epi8(results);
 
-            auto position = __builtin_ctz(mask_results);
+            if (mask_results) {
 
-            if (position < 16 && offset + position < this->length()) {
-                return buffer + offset + position;
+                auto position = __builtin_ctz(mask_results);
+
+                if (position < 16 && offset + position < this->length()) {
+//                    std::cerr << "Position is: " << position << std::endl;
+//                    std::cerr << "found match at " << offset + position << " for " << c << std::endl;
+                    return buffer + offset + position;
+                }
             }
             offset += 16;
         }
@@ -178,7 +183,7 @@ public:
     };
 
 
-        template<auto alignment = AlignedStringBuffer_t::alignment, std::enable_if_t<alignment == 64, int> = 0>
+    template<auto alignment = AlignedStringBuffer_t::alignment, std::enable_if_t<alignment == 64, int> = 0>
     char const * strchr(char c) const {
 
         auto needles = _mm_set_epi8(c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c);
@@ -224,10 +229,10 @@ public:
 
                 offset += 16;
             }
-
-            assert(false);
         }
+        return nullptr;
     }
+
 
 
     AlignedString<AlignedStringBuffer_t> operator+(AlignedString<AlignedStringBuffer_t> const & other) const {
