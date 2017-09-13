@@ -322,6 +322,9 @@ public:
         }
 
         size_t offset = 0;
+//        std::cerr << "comparing: " << this->buffer() << std::endl;
+//        std::cerr << "and:       " << other.buffer() << std::endl;
+//        std::cerr << "Length: " << this->length() << " : " << other.length() << std::endl;
         while(offset < this->length()) {
 
             auto str1_0 = _mm_load_si128((__m128i *) (this->buffer() + offset));
@@ -336,10 +339,13 @@ public:
 
             size_t test_offset = 0;
             auto result0 = _mm_xor_si128(str1_0, str2_0);
+            auto buffer1 = this->buffer();
+            auto buffer2 = other.buffer();
             if (!_mm_test_all_zeros(result0, result0)) {
                 for (int i = 0; i < 16; i++) {
-                    auto c1 = this->buffer() + test_offset + offset;
-                    auto c2 = other.buffer() + test_offset + offset;
+                    char c1 = *(buffer1 + test_offset + offset + i);
+                    char c2 = *(buffer2 + test_offset + offset + i);
+//                    std::cerr << "comparing: " << c1 << " : " << c2 << " at: " << i << std::endl;
                     if (c1 == c2) {
                         continue;
                     } else {
@@ -354,10 +360,11 @@ public:
             }
             test_offset += 16;
             auto result1 = _mm_xor_si128(str1_1, str2_1);
-            if (!_mm_test_all_zeros(result0, result0)) {
+            if (!_mm_test_all_zeros(result1, result1)) {
                 for (int i = 0; i < 16; i++) {
-                    auto c1 = this->buffer() + test_offset + offset;
-                    auto c2 = other.buffer() + test_offset + offset;
+                    char c1 = *(buffer1 + test_offset + offset + i);
+                    char c2 = *(buffer2 + test_offset + offset + i);
+//                    std::cerr << "comparing: " << c1 << " : " << c2 << " at: " << i << std::endl;
                     if (c1 == c2) {
                         continue;
                     } else {
@@ -373,10 +380,11 @@ public:
 
             test_offset += 16;
             auto result2 = _mm_xor_si128(str1_2, str2_2);
-            if (!_mm_test_all_zeros(result0, result0)) {
+            if (!_mm_test_all_zeros(result2, result2)) {
                 for (int i = 0; i < 16; i++) {
-                    auto c1 = this->buffer() + test_offset + offset;
-                    auto c2 = other.buffer() + test_offset + offset;
+                    char c1 = *(buffer1 + test_offset + offset + i);
+                    char c2 = *(buffer2 + test_offset + offset + i);
+//                    std::cerr << "comparing: " << c1 << " : " << c2 << " at: " << i << std::endl;
                     if (c1 == c2) {
                         continue;
                     } else {
@@ -392,10 +400,11 @@ public:
 
             test_offset += 16;
             auto result3 = _mm_xor_si128(str1_3, str2_3);
-            if (!_mm_test_all_zeros(result0, result0)) {
+            if (!_mm_test_all_zeros(result3, result3)) {
                 for (int i = 0; i < 16; i++) {
-                    auto c1 = this->buffer() + test_offset + offset;
-                    auto c2 = other.buffer() + test_offset + offset;
+                    char c1 = *(buffer1 + test_offset + offset + i);
+                    char c2 = *(buffer2 + test_offset + offset + i);
+//                    std::cerr << "comparing: " << c1 << " : " << c2 << " at: " << i << std::endl;
                     if (c1 == c2) {
                         continue;
                     } else {

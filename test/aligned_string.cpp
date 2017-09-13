@@ -112,25 +112,12 @@ TEST(AlignedString_Static64, OverfullString) {
 TEST(AlignedString_Dynamic16, EmptyString) {
     {
         AlignedString<AlignedStringBuffer_Dynamic<16>> string;
-        EXPECT_EQ(sizeof(string), 16);
-        EXPECT_EQ(string.capacity(), 14);
+        EXPECT_EQ(string.capacity(), 0);
         EXPECT_EQ(string.length(), 0);
         EXPECT_EQ(string.alignment, 16);
         EXPECT_TRUE(string == "");
         EXPECT_FALSE(string == "aligned string");
     }
-
-    {
-        AlignedString<AlignedStringBuffer_Dynamic<16>> string;
-        EXPECT_EQ(sizeof(string), 32);
-        EXPECT_EQ(string.capacity(), 30);
-        EXPECT_EQ(string.length(), 0);
-        EXPECT_EQ(string.alignment, 16);
-        EXPECT_TRUE(string == "");
-        EXPECT_FALSE(string == "aligned string");
-    }
-
-
 }
 
 TEST(AlignedString_Dynamic16, SimpleString) {
@@ -141,14 +128,11 @@ TEST(AlignedString_Dynamic16, SimpleString) {
 }
 
 
-TEST(AlignedString_Dynamic16, OverfullString) {
-    EXPECT_THROW(AlignedString<AlignedStringBuffer_Dynamic<16>> string("aligned string too long"), AlignedStringException);
-}
-
 TEST(AlignedString_Dynamic16, DoubleAlignmentLengthString) {
     {
-        AlignedString<AlignedStringBuffer_Dynamic<16>> string1("0123456789abcdefBBBBBB");
+        AlignedString<AlignedStringBuffer_Dynamic<16>> string1("0123456789abcdefBBBBBC");
         AlignedString<AlignedStringBuffer_Dynamic<16>> string2("0123456789abcdefCABBBB");
+        EXPECT_FALSE(string1 == string2);
         EXPECT_TRUE(string1 < string2);
         EXPECT_FALSE(string2 < string1);
     }
@@ -168,8 +152,7 @@ TEST(AlignedString_Dynamic16, DoubleAlignmentLengthString) {
 
 TEST(AlignedString_Dynamic64, EmptyString) {
     AlignedString<AlignedStringBuffer_Dynamic<64>> string;
-    EXPECT_EQ(sizeof(string), 64);
-    EXPECT_EQ(string.capacity(), 62);
+    EXPECT_EQ(string.capacity(), 0);
     EXPECT_EQ(string.length(), 0);
     EXPECT_EQ(string.alignment, 64);
     EXPECT_TRUE(string == "");
@@ -186,15 +169,28 @@ TEST(AlignedString_Dynamic64, SimpleString) {
 }
 
 
-TEST(AlignedString_Dynamic64, OverfullString) {
+TEST(AlignedString_Dynamic64, BlockOverflow) {
 
-    // 62-character string (fits)
-    AlignedString<AlignedStringBuffer_Dynamic<64>> string1(
-        "012345678901234567890123456789012345678901234567890123456789--");
+    {
+        AlignedString<AlignedStringBuffer_Dynamic<64>> string1(
+            "012345678901234567890123456789012345678901234567890123456789012");
+        EXPECT_EQ(string1.capacity(), 63);
 
+        EXPECT_EQ(string1, "012345678901234567890123456789012345678901234567890123456789012");
 
-    // 63-character string (too big)
-    EXPECT_THROW(AlignedString<AlignedStringBuffer_Dynamic<64>> string2(
-                     "012345678901234567890123456789012345678901234567890123456789---"), AlignedStringException);
+        //                     * <== difference
+        EXPECT_TRUE(string1 <"022345678901234567890123456789012345678901234567890123456789012");
+
+        //                                                                    ===> *    * <== differences
+        EXPECT_TRUE(string1 < "012345678901234567890123456789012345678901234567890133456689012");
+    }
+
+    {
+        AlignedString<AlignedStringBuffer_Dynamic<64>> string1(
+            "0123456789012345678901234567890123456789012345678901234567890123");
+        EXPECT_EQ(string1.capacity(), 127);
+        EXPECT_EQ(string1, "0123456789012345678901234567890123456789012345678901234567890123");
+    }
+
 }
 

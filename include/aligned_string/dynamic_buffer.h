@@ -7,10 +7,16 @@
 namespace xl {
 
 
+/**
+ * Allocates an aligned block of at least the requested size
+ * @tparam alignment required alignment of allocated block
+ * @param minimum_bytes in: minimum size out: actual size
+ * @return newly allocated buffer
+ */
 template<size_t alignment>
-inline std::unique_ptr<char[]> allocate_aligned_blocks(size_t minimum_bytes) {
+inline std::unique_ptr<char[]> allocate_aligned_blocks(size_t & minimum_bytes) {
 
-    // get the size >= minimum size that is a multiple of the alignment 0 => 0, 1 => alignment, alignment => alignmnet, alignment + 1 => 2*alignment
+    // get the size >= minimum size that is a multiple of the alignment 0 => 0, 1 => alignment, alignment => alignment, alignment + 1 => 2*alignment
     size_t actual_bytes = (minimum_bytes + (alignment - 1)) & ~(alignment-1);
 
     auto buffer = new(static_cast<std::align_val_t>(alignment)) char[actual_bytes]();
@@ -18,6 +24,7 @@ inline std::unique_ptr<char[]> allocate_aligned_blocks(size_t minimum_bytes) {
     assert(buffer[actual_bytes-1] == '\0');
     assert(((intptr_t)buffer & alignment-1) == 0);
 
+    minimum_bytes = actual_bytes;
     return std::unique_ptr<char[]>(buffer);
 }
 
@@ -57,6 +64,10 @@ public:
 
     auto const buffer() const { return this->_buffer.get(); }
 
+    /**
+     * Maximum string length which can be held in the current buffer
+     * @return Maximum string length which can be held in the current buffer
+     */
     auto capacity() const { return this->_capacity; }
 
     auto length() const { return this->_length; }

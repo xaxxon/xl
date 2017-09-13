@@ -13,7 +13,7 @@ include_directories(${gmock_SOURCE_DIR}/include)
 file(GLOB TEST_SRC
         aligned_string.cpp)
 
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -Wno-aligned-allocation-unavailable)
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wno-aligned-allocation-unavailable -stdlib=libc++ -msse4.1")
 
 
 include_directories(../include)
