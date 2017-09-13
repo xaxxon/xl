@@ -153,44 +153,56 @@ public:
     }
 
 
+    template<auto alignment = AlignedStringBuffer_t::alignment, std::enable_if_t<alignment == 64, int> = 0>
     char const * strchr(char c) const {
 
         auto needles = _mm_set_epi8(c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c);
 
-        // handle 16 bytes at a time
-        if constexpr(AlignedStringBuffer_t::alignment == 16) {
-            return nullptr;
-        }
-        // handle 64 bytes at a time
-        else if (AlignedStringBuffer_t::alignment == 64) {
-            size_t offset = 0;
+        int offset = 0;
+        auto buffer = this->buffer();
 
-            auto str1_0 = _mm_load_si128((__m128i *) (this->buffer() + offset));
-            auto str1_1 = _mm_load_si128((__m128i *) (this->buffer() + 16 + offset));
-            auto str1_2 = _mm_load_si128((__m128i *) (this->buffer() + 32 + offset));
-            auto str1_3 = _mm_load_si128((__m128i *) (this->buffer() + 48 + offset));
+        while (offset < this->length()) {
 
+            __m128i data[4];
 
-            auto result0 = _mm_cmpeq_epi8(needles, str1_0);
-            auto result1 = _mm_cmpeq_epi8(needles, str1_1);
-            auto result2 = _mm_cmpeq_epi8(needles, str1_2);
-            auto result3 = _mm_cmpeq_epi8(needles, str1_3);
+            data[0] = _mm_load_si128((__m128i *) (buffer + offset));
+            data[1] = _mm_load_si128((__m128i *) (buffer + 16 + offset));
+            data[2] = _mm_load_si128((__m128i *) (buffer + 32 + offset));
+            data[3] = _mm_load_si128((__m128i *) (buffer + 48 + offset));
 
-            // or all the results together to easily find out if any of them have a matach
-            auto combined_result = _mm_or_si128(_mm_or_si128(result0, result1), _mm_or_si128(result2, result3));
+            __m128i results[4];
+            results[0] = _mm_cmpeq_epi8(needles, data[0]);
+            results[1] = _mm_cmpeq_epi8(needles, data[1]);
+            results[2] = _mm_cmpeq_epi8(needles, data[2]);
+            results[3] = _mm_cmpeq_epi8(needles, data[3]);
 
-            auto match_locations = _mm_movemask_epi8(combined_result);
+            auto combined = _mm_or_si128(_mm_or_si128(results[0], results[1]),
+                                         _mm_or_si128(results[2], results[3]));
 
-            // if anything isn't 0, then check and see where the match was
-            if (match_locations) {
-                auto position_of_first_set_bit = __builtin_ctz(match_locations);
+            // if no match was found anywhere
+            if (_mm_test_all_zeros(combined, combined)) {
+                return nullptr;
+            }
 
+            for (int i = 0; i < 4; i++) {
+                if (!_mm_test_all_zeros(results[i], results[i])) {
+                    for (int j = 0; j < 16; j++) {
+                        if (offset + j >= this->length()) {
+                            return nullptr;
+                        }
+                        if (buffer[offset + j] == c) {
+                            return &buffer[offset + j];
+                        }
+                    }
+                    assert(false); // found difference in chunk, but not the specific byte
+                }
+
+                offset += 16;
             }
 
             assert(false);
-            return nullptr;
         }
-    };
+    }
 
 
     AlignedString<AlignedStringBuffer_t> operator+(AlignedString<AlignedStringBuffer_t> const & other) const {
@@ -211,7 +223,6 @@ public:
 
 
         if (this->length() != other.length()) {
-
             return false;
         }
 
@@ -233,15 +244,13 @@ public:
             auto result2 = _mm_cmpeq_epi8(str1_2, str2_2);
             auto result3 = _mm_cmpeq_epi8(str1_3, str2_3);
 
+            // it's ok to include length in here since they must have the same length to be equal
             auto mask = _mm_movemask_epi8(_mm_and_si128(_mm_and_si128(result0, result1), _mm_and_si128(result2, result3)));
-
-
 
             if (mask != 0xffff) {
                 return false;
             }
             offset += 64;
-
         }
         return true;
     }
