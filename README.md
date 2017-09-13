@@ -1,3 +1,3 @@
-Sample README.md
+## XL (xaxxon's library)
 
-## TITLE
+A bunch of general-purpose C++ utilities used across my different projects.
