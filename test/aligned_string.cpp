@@ -22,6 +22,7 @@ TEST(AlignedString_Static16, EmptyString) {
         EXPECT_EQ(string.alignment, 16);
         EXPECT_TRUE(string == "");
         EXPECT_FALSE(string == "aligned string");
+        EXPECT_EQ(string.strchr('a'), nullptr);
     }
 
     {
@@ -32,6 +33,8 @@ TEST(AlignedString_Static16, EmptyString) {
         EXPECT_EQ(string.alignment, 16);
         EXPECT_TRUE(string == "");
         EXPECT_FALSE(string == "aligned string");
+        EXPECT_EQ(string.strchr('a'), nullptr);
+
     }
 
 
@@ -42,6 +45,10 @@ TEST(AlignedString_Static16, SimpleString) {
     EXPECT_EQ(string.length(), 14);
     EXPECT_TRUE(string == "aligned string");
     EXPECT_FALSE(string == "other string");
+    EXPECT_EQ(string.strchr('a'), string.buffer());
+    EXPECT_EQ(string.strchr('l'), string.buffer() + 1);
+    EXPECT_EQ(string.strchr('r'), string.buffer() + 10);
+
 }
 
 

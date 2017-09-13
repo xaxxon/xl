@@ -153,7 +153,32 @@ public:
     }
 
 
-    template<auto alignment = AlignedStringBuffer_t::alignment, std::enable_if_t<alignment == 64, int> = 0>
+    template<auto alignment = AlignedStringBuffer_t::alignment, std::enable_if_t<alignment == 16, int> = 0>
+    char const * strchr(char c) const {
+        auto needles = _mm_set_epi8(c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c);
+
+        std::cerr << "strchr on string: " << this->buffer() << " and length: " << this->length() << std::endl;
+        size_t offset = 0;
+        auto buffer = this->buffer();
+        while (offset < this->length()) {
+            auto data = _mm_load_si128((__m128i *) (buffer + offset));
+
+            auto results = _mm_cmpeq_epi8(needles, data);
+
+            auto mask_results = _mm_movemask_epi8(results);
+
+            auto position = __builtin_ctz(mask_results);
+
+            if (position < 16 && offset + position < this->length()) {
+                return buffer + offset + position;
+            }
+            offset += 16;
+        }
+        return nullptr;
+    };
+
+
+        template<auto alignment = AlignedStringBuffer_t::alignment, std::enable_if_t<alignment == 64, int> = 0>
     char const * strchr(char c) const {
 
         auto needles = _mm_set_epi8(c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c);
