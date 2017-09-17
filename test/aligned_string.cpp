@@ -155,7 +155,10 @@ TEST(AlignedString_Dynamic16, DoubleAlignmentLengthString) {
         EXPECT_FALSE(string1 < string2);
         EXPECT_FALSE(string2 < string1);
 
+        // make sure it finds it on the second group of 16, not the first
+        EXPECT_EQ(string1.strchr('B'), string1.buffer() + 16);
     }
+
 
 }
 
@@ -204,6 +207,28 @@ TEST(AlignedString_Dynamic64, BlockOverflow) {
         EXPECT_EQ(string1.capacity(), 127);
         EXPECT_FALSE(string1 < "0123456789012345678901234567890123456789012345678901234567890123");
         EXPECT_TRUE(string1 == "0123456789012345678901234567890123456789012345678901234567890123");
+    }
+
+
+    // find char in second 16-byte chunk in first 64-byte block
+    {
+        auto long_std_string = std::string(17, 'a');
+        long_std_string += 'b';
+
+        AlignedString<AlignedStringBuffer_Dynamic<64>> s(long_std_string);
+        EXPECT_EQ(s.strchr('b'), s.buffer() + 17);
+        EXPECT_EQ(s.strchr<false>('b'), s.buffer() + 17);
+
+
+    }
+
+    // find char in subsequent 64-byte block
+    {
+        auto long_std_string = std::string(65, 'a');
+        long_std_string += 'b';
+
+        AlignedString<AlignedStringBuffer_Dynamic<64>> s(long_std_string);
+        EXPECT_EQ(s.strchr('b'), s.buffer() + 65);
     }
 
 }

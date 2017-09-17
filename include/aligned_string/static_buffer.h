@@ -47,7 +47,7 @@ public:
         assert(((size_t)this) % 16 == 0);
     }
 
-    AlignedStringBuffer_Static(AlignedStringBuffer_Static && other) : _length(other.length) {
+    AlignedStringBuffer_Static(AlignedStringBuffer_Static && other) : _length(other._length) {
         memcpy(&this->_buffer, &other._buffer, sizeof(_buffer));
     }
 

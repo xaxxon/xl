@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 
 project ("XL Test")
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 
 set(CLANG_HOME $ENV{CLANG_HOME})
 link_directories(. ${CLANG_HOME}/lib)
@@ -11,17 +11,18 @@ include_directories(${gtest_SOURCE_DIR}/include)
 include_directories(${gmock_SOURCE_DIR}/include)
 
 file(GLOB TEST_SRC
-        aligned_string.cpp)
+        *.cpp)
 
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wno-aligned-allocation-unavailable -stdlib=libc++ -msse4.1")
 
 
 include_directories(../include)
 
-add_executable(test-xl aligned_string.cpp)
+add_executable(test-xl ${TEST_SRC})
 set_property(TARGET test-xl PROPERTY CXX_STANDARD 17)
 
 add_definitions(-DGOOGLE_TEST )
+
 
 add_subdirectory(./googletest)
 

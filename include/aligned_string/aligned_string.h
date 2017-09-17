@@ -153,8 +153,10 @@ public:
     }
 
 
-    template<auto alignment = AlignedStringBuffer_t::alignment, std::enable_if_t<alignment == 16, int> = 0>
+
+    template<bool expect_match_v = true, auto alignment = AlignedStringBuffer_t::alignment, std::enable_if_t<alignment == 16, int> = 0>
     char const * strchr(char c) const {
+
         auto needles = _mm_set_epi8(c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c);
 
 //        std::cerr << "strchr on string: " << this->buffer() << " and length: " << (int)this->length() << " looking for " << c <<  std::endl;
@@ -183,8 +185,11 @@ public:
     };
 
 
-    template<auto alignment = AlignedStringBuffer_t::alignment, std::enable_if_t<alignment == 64, int> = 0>
+    template<bool expect_match_v = true, auto alignment = AlignedStringBuffer_t::alignment, std::enable_if_t<alignment == 64, int> = 0>
     char const * strchr(char c) const {
+        if constexpr(expect_match_v) {
+            return this->strchr<true, 16>(c);
+        }
 
         auto needles = _mm_set_epi8(c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c);
 
