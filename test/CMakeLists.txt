@@ -3,8 +3,11 @@ cmake_minimum_required(VERSION 3.8)
 project ("XL Test")
 set(CMAKE_CXX_STANDARD 14)
 
+# Need to pick up recent versions of core language features like aligned allocations
 set(CLANG_HOME $ENV{CLANG_HOME})
 link_directories(. ${CLANG_HOME}/lib)
+
+find_package(fmt)
 
 
 include_directories(${gtest_SOURCE_DIR}/include)
@@ -21,7 +24,7 @@ include_directories(../include)
 add_executable(test-xl ${TEST_SRC})
 set_property(TARGET test-xl PROPERTY CXX_STANDARD 17)
 
-add_definitions(-DGOOGLE_TEST )
+add_definitions(-DGOOGLE_TEST)
 
 
 add_subdirectory(./googletest)

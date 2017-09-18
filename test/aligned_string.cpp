@@ -7,9 +7,6 @@
 #include <gmock/gmock.h>
 #include <new>
 
-void run_tests() {
-
-}
 
 using namespace xl;
 
