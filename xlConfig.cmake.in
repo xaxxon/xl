@@ -1,12 +1,11 @@
 set(FOO_VERSION @XL_VERSION@)
 
 get_filename_component(
-        EGGS_VARIANT_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}" ABSOLUTE)
+        TARGETS_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}" ABSOLUTE)
 
-include("${EGGS_VARIANT_CMAKE_DIR}/xlTargets.cmake")
+include("${TARGETS_CMAKE_DIR}/xlTargets.cmake")
 
 
-#include(xlTargets.cmake)
 
 @PACKAGE_INIT@
 
