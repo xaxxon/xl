@@ -3,10 +3,6 @@ project(xl)
 
 set(XL_VERSION 0.1.0)
 
-find_package(fmt)
-if(fmt_FOUND)
-    add_definitions(-DXL_FMT_FOUND)
-endif()
 
 set(CMAKE_VERBOSE_MAKEFILE on )
 
@@ -17,11 +13,12 @@ include(clang-build-triple)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
 
+file(GLOB XL_HEADER_FILES "include/*.h" "include/aligned_string/*.h")
 
-file(GLOB XL_HEADER_FILES RELATIVE "include/*.h" "include/aligned_string/*.h")
+message("${XL_HEADER_FILES}")
 
 add_library(xl INTERFACE)
-target_sources(xl INTERFACE ${XL_HEADER_FILES})
+#target_sources(xl INTERFACE ${XL_HEADER_FILES})
 
 
 add_subdirectory(test)

@@ -77,7 +77,7 @@ public:
         }
     }
 
-#if XL_FMT_FOUND
+#ifdef XL_USE_LIB_FMT
     template<class... Ts>
     void log(typename Levels::Levels level, typename Subjects::Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
         log(level, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
