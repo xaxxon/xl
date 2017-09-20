@@ -37,6 +37,13 @@ public:
 };
 }
 
+
+
+/**
+ * Objects of this type take messages to be logged and route them to the registered callback.
+ * @tparam Levels must provide an enum named Levels and static std::string const & get_level_name(Levels)
+ * @tparam Subjects must provide an enum named Subjects and static std::string const & get_subject_name(Subjects)
+ */
 template<class Levels = log::DefaultLevels, class Subjects = log::DefaultSubjects>
 class Log {
 public:
@@ -76,6 +83,29 @@ public:
             this->log_callback(*this, LogMessage(level, subject, string));
         }
     }
+
+    void info(typename Subjects::Subjects subject, xl::zstring_view message) {
+        log(Levels::Levels::Info, subject, message);
+    }
+
+
+    void warn(typename Subjects::Subjects subject, xl::zstring_view message) {
+        log(Levels::Levels::Warn, subject, message);
+    }
+
+
+    void error(typename Subjects::Subjects subject, xl::zstring_view message) {
+        log(Levels::Levels::Error, subject, message);
+    }
+
+    std::string const & get_subject_name(typename Subjects::Subjects subject) const {
+        return Subjects::get_subject_name(subject);
+    }
+
+    std::string const & get_level_name(typename Levels::Levels level) const {
+        return Subjects::get_level_name(level);
+    }
+
 
 #ifdef XL_USE_LIB_FMT
     template<class... Ts>
