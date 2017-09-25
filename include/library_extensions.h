@@ -53,13 +53,11 @@ ContainerT<ValueT, Rest...> remove_copy_if(ContainerT<ValueT, Rest...> const & c
  * @return vector containing result of sending each element of the source container to the callback
  */
 template<class ValueT, class... Rest, template<class, class...> class ContainerT, class Callable>
-ContainerT<std::invoke_result_t<Callable(ValueT)>> map(ContainerT<ValueT, Rest...> const & container, Callable callable) {
+ContainerT<std::invoke_result_t<Callable(ValueT)>> transform(ContainerT<ValueT, Rest...> const & container, Callable callable) {
 
     ContainerT<std::invoke_result_t<Callable(ValueT)>> result;
 
-    for (auto const & element : container) {
-        result.push_back(callable(element));
-    }
+    std::transform(std::begin(container), std::end(container), std::back_inserter(result), callable);
 
     return result;
 }
