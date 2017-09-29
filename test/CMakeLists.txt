@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
 project ("XL Test")
-set(CMAKE_CXX_STANDARD 14)
 
 # Need to pick up recent versions of core language features like aligned allocations
 set(CLANG_HOME $ENV{CLANG_HOME})
@@ -20,8 +19,10 @@ set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wno-aligned-allocation-unavailable -std
 
 
 include_directories(../include)
+add_definitions(-DXL_USE_LIB_FMT)
 
 add_executable(test-xl ${TEST_SRC})
+
 set_property(TARGET test-xl PROPERTY CXX_STANDARD 17)
 
 add_definitions(-DGOOGLE_TEST)

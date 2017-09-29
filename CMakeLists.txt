@@ -24,6 +24,8 @@ add_library(xl INTERFACE)
 add_subdirectory(test)
 add_subdirectory(benchmark)
 
+add_definitions(-DXL_USE_LIB_FMT)
+
 
 set(INCLUDE_INSTALL_DIR "include/xl" CACHE PATH "Installation directory for header files")
 

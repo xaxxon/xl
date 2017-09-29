@@ -25,6 +25,14 @@ bool contains(ContainerT<ValueT, Rest...> const & container, Callable callback) 
 };
 
 
+template<class ValueT, class... Rest, template<class, class...> class ContainerT>
+auto find(ContainerT<ValueT, Rest...> const & container, ValueT const & value) {
+    return std::find(std::begin(container), std::end(container), value);
+};
+
+
+
+
 
 /**
  * Returns a container only containing elements of the original array which return false when sent to the callback
@@ -53,9 +61,9 @@ ContainerT<ValueT, Rest...> remove_copy_if(ContainerT<ValueT, Rest...> const & c
  * @return vector containing result of sending each element of the source container to the callback
  */
 template<class ValueT, class... Rest, template<class, class...> class ContainerT, class Callable>
-ContainerT<std::invoke_result_t<Callable(ValueT)>> transform(ContainerT<ValueT, Rest...> const & container, Callable callable) {
+ContainerT<std::result_of_t<Callable(ValueT)>> transform(ContainerT<ValueT, Rest...> const & container, Callable callable) {
 
-    ContainerT<std::invoke_result_t<Callable(ValueT)>> result;
+    ContainerT<std::result_of_t<Callable(ValueT)>> result;
 
     std::transform(std::begin(container), std::end(container), std::back_inserter(result), callable);
 
@@ -64,4 +72,4 @@ ContainerT<std::invoke_result_t<Callable(ValueT)>> transform(ContainerT<ValueT, 
 
 
 
-}
+} // end namespace xl
