@@ -15,7 +15,7 @@ include_directories(${gmock_SOURCE_DIR}/include)
 file(GLOB TEST_SRC
         *.cpp)
 
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wno-aligned-allocation-unavailable -stdlib=libc++ -msse4.1")
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wno-aligned-allocation-unavailable -stdlib=libc++ -msse4.1 -fsanitize=address")
 
 
 include_directories(../include)
@@ -30,7 +30,7 @@ add_definitions(-DGOOGLE_TEST)
 
 add_subdirectory(./googletest)
 
-target_link_libraries(test-xl c++experimental)
+target_link_libraries(test-xl c++experimental fmt)
 
 add_dependencies(test-xl gmock)
 add_dependencies(test-xl gtest)

@@ -16,7 +16,12 @@ TEST(template, NoSubstitutionTemplate) {
 }
 TEST(template, SimpleSubstitutionTemplate) {
     EXPECT_EQ(Template("replace: {TEST}").fill(Provider(Provider::MapT{{"TEST", "REPLACEMENT"}})), "replace: REPLACEMENT");
-}TEST(template, SimpleSubstitutionTemplateWithSuffix) {
+    EXPECT_EQ(Template("replace: { TEST}").fill(Provider(Provider::MapT{{"TEST", "REPLACEMENT"}})), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: {TEST }").fill(Provider(Provider::MapT{{"TEST", "REPLACEMENT"}})), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: { TEST }").fill(Provider(Provider::MapT{{"TEST", "REPLACEMENT"}})), "replace: REPLACEMENT");
+
+}
+TEST(template, SimpleSubstitutionTemplateWithSuffix) {
     EXPECT_EQ(Template("replace: {TEST} and more").fill(Provider(Provider::MapT{{"TEST", "REPLACEMENT"}})), "replace: REPLACEMENT and more");
 }
 TEST(template, MultipleSubstitutionsSameNameTemplate) {
@@ -28,10 +33,54 @@ TEST(template, MultipleSubstitutionsDifferentNameTemplate) {
               "replace: REPLACEMENT1 and: REPLACEMENT2" );
 }
 TEST(template, CallbackSubstitutionTemplate) {
-    Provider::MapT m{{"TEST", [](){return "REPLACEMENT-CALLBACK";}}};
+    Provider::MapT m{{"TEST", [](){return std::string("REPLACEMENT-CALLBACK");}}};
     EXPECT_EQ(Template("replace: {TEST}").fill(Provider(std::move(m))),
               "replace: REPLACEMENT-CALLBACK");
 }
+TEST(template, SubTemplateSubstitutionTemplate) {
+    EXPECT_EQ(Template("replace: {TEST}").fill(Provider(Provider::MapT{{"TEST", Template("{INNER-TEST}")}, {"INNER-TEST", "INNER-REPLACEMENT"}})), "replace: INNER-REPLACEMENT");
+}
 
+
+struct Finger {
+    enum class Name{Thumb = 0, Pointer, Middle, Ring, Pinky};
+    static inline std::vector<std::string> names{"thumb", "pointer", "middle", "ring", "pinky"};
+
+    Name name;
+    Finger(Name name) : name(name) {}
+    std::string & get_name(){
+        return Finger::names[(int)this->name];
+    }
+
+};
+
+struct Hand {
+private:
+    std::vector<Finger> fingers{Finger::Name::Thumb, Finger::Name::Pointer, Finger::Name::Middle, Finger::Name::Ring, Finger::Name::Pinky};
+
+public:
+    int get_finger_count(){return 5;}
+    std::vector<Finger> const & get_fingers() {return this->fingers;}
+
+    std::unique_ptr<xl::Provider> get_provider() {
+        return std::make_unique<xl::Provider>(xl::Provider::MapT{{"finger_count", [this]{return fmt::format("{}", this->get_finger_count());}}});
+    }
+};
+
+struct Arm {
+    enum class Side{Left = 0, Right};
+
+    Arm(Side side) : side(side) {}
+    Hand get_hand(){return Hand();}
+};
+struct Person {
+    std::vector<Arm> get_arms(){return {Arm(), Arm()};}
+};
+
+
+TEST(template, MakeProviderForUserDefinedType) {
+    Hand h{};
+    EXPECT_EQ(Template("{finger_count}").fill(h), "5");
+}
 
 
