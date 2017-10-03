@@ -59,15 +59,14 @@ TEST(template, SubTemplateSubstitutionTemplate) {
 
 TEST(template, ArraySubstitution) {
     Provider p(Provider::MapT{{std::string("TEST"), Stringable(std::vector<std::string>{"test1", "test2", "test3"})}});
-    EXPECT_EQ(Template("replace: {TEST:}").fill(std::move(p)), "replace: test1, test2, test3");
+    EXPECT_EQ(Template("replace: {TEST:}").fill(std::move(p)), "replace: test1test2test3");
 }
 
 
-// Not supported yet
-//TEST(template, ArraySubstitutionWithCustomSeparator) {
-//    Provider p(Provider::MapT{{std::string("TEST"), Stringable(std::vector<std::string>{"test1", "test2", "test3"})}});
-//    EXPECT_EQ(Template("replace: {TEST:,,}").fill(std::move(p)), "replace: test1,,test2,,test3");
-//}
+TEST(template, ArraySubstitutionWithCustomSeparator) {
+    Provider p(Provider::MapT{{std::string("TEST"), Stringable(std::vector<std::string>{"test1", "test2", "test3"})}});
+    EXPECT_EQ(Template("replace: {TEST:,,}").fill(std::move(p)), "replace: test1,,test2,,test3");
+}
 
 
 

@@ -61,9 +61,9 @@ struct MakeProvider;
 
 class Provider;
 
-class ProviderOptions {
+struct ProviderOptions {
     Provider & provider;
-    std::string parameters;
+    std::string const parameters;
 
     ProviderOptions(Provider & provider, std::string const & parameters) :
         provider(provider),
@@ -97,7 +97,7 @@ public:
     Stringable(std::function<std::string()> callback) : stringable(callback) {}
     Stringable(char const * string) : stringable(string) {}
 
-    std::string operator()(Provider & p) {
+    std::string operator()(ProviderOptions & provider_options) {
         if (auto string = std::get_if<std::string>(&stringable)) {
             return *string;
         } else if (auto callback = std::get_if<std::function<std::string()>>(&stringable)) {
@@ -106,16 +106,15 @@ public:
             std::stringstream result;
             bool first = true;
             for (auto const & element : *vector) {
-                std::cerr << fmt::format("looking at: {}", element) << std::endl;
                 if (!first) {
-                    result << ", ";
+                    result << provider_options.parameters;
                 }
                 first = false;
                 result << element;
             }
             return result.str();
         } else if (auto tmpl = std::get_if<Template>(&stringable)) {
-            return tmpl->fill(p);
+            return tmpl->fill(provider_options.provider);
         } else {
             throw TemplateException("Unhandled stringable variant type");
         }
@@ -144,11 +143,11 @@ public:
         return _providers.find(name) != _providers.end();
     }
 
-    virtual std::string operator()(std::string const & name, std::string const & vector_concatentation_string) {
+    virtual std::string operator()(std::string const & name, ProviderOptions && provider_options) {
         if (auto i = _providers.find(name); i == std::end(_providers)) {
             throw TemplateException("Unknown name made it to actual lookup time - should have called provides");
         } else {
-            return i->second(*this);
+            return i->second(provider_options);
         }
     }
 
@@ -283,7 +282,7 @@ std::string Template::fill(T && source) {
 //            std::cerr << fmt::format("GOT REPLACEMENT OPTIONS: {}", matches[REPLACEMENT_OPTIONS_INDEX].str()) << std::endl;
 
         }
-        std::string provider_data = provider(matches[REPLACEMENT_NAME_INDEX].str(), matches[REPLACEMENT_OPTIONS_INDEX].str());
+        std::string provider_data = provider(matches[REPLACEMENT_NAME_INDEX].str(), ProviderOptions(provider, matches[REPLACEMENT_OPTIONS_INDEX].str()));
         result << provider_data;
 
     }
