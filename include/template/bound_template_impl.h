@@ -13,8 +13,12 @@ BoundTemplate::BoundTemplate(Template tmpl, T && source) :
 }
 
 template<class T>
-BoundTemplate::BoundTemplate(Template tmpl, BoundTemplate::vector<T> const & source_vector) {
-
+BoundTemplate::BoundTemplate(Template tmpl, BoundTemplate::vector<T> const & source_vector) :
+    tmpl(tmpl)
+{
+    for (auto const & element : source_vector) {
+        this->providers.push_back(Provider(MakeProvider<T>()(element)));
+    }
 }
 
 
@@ -24,6 +28,7 @@ BoundTemplate::~BoundTemplate()
 
 
 /**
+ *
  * Fills out `this` template and returns the result
  *
  * @tparam T Source type - must either be a Provider or something convertible to a Provider
@@ -32,7 +37,7 @@ BoundTemplate::~BoundTemplate()
  */
 std::string BoundTemplate::operator()() {
     std::stringstream result;
-    std::cerr << fmt::format("providers vector size: {}", this->providers.size()) << std::endl;
+//    std::cerr << fmt::format("providers vector size: {}", this->providers.size()) << std::endl;
     for (auto & provider : this->providers) {
 
         // must match:
@@ -69,14 +74,14 @@ std::string BoundTemplate::operator()() {
 
         std::cmatch matches;
         char const * remaining_template = this->tmpl.c_str();
-        std::cerr << fmt::format("filling template: '{}'", this->tmpl.c_str()) << std::endl;
+//        std::cerr << fmt::format("filling template: '{}'", this->tmpl.c_str()) << std::endl;
 
         while (std::regex_search(remaining_template, matches, r)) {
 
-            std::cerr << fmt::format("matching against: '{}'", remaining_template) << std::endl;
-            for (int i = 0; i < matches.size(); i++) {
-                std::cerr << fmt::format("match[{}]: {}", i, matches[i].str()) << std::endl;
-            }
+//            std::cerr << fmt::format("matching against: '{}'", remaining_template) << std::endl;
+//            for (int i = 0; i < matches.size(); i++) {
+//                std::cerr << fmt::format("match[{}]: {}", i, matches[i].str()) << std::endl;
+//            }
 
             // if no substitution found, everything was a literal and is handled as a "trailing literal" outside
             //   this loop
@@ -99,8 +104,7 @@ std::string BoundTemplate::operator()() {
             }
 
             if (matches[REPLACEMENT_OPTIONS_INDEX].str() != "") {
-                std::cerr << fmt::format("GOT REPLACEMENT OPTIONS: {}", matches[REPLACEMENT_OPTIONS_INDEX].str())
-                          << std::endl;
+//                std::cerr << fmt::format("GOT REPLACEMENT OPTIONS: {}", matches[REPLACEMENT_OPTIONS_INDEX].str()) << std::endl;
 
             }
             std::string provider_data = provider(matches[REPLACEMENT_NAME_INDEX].str(),
@@ -108,10 +112,10 @@ std::string BoundTemplate::operator()() {
             result << provider_data;
 
         }
-        std::cerr << fmt::format("putting on remaining template after loop exits: {}", remaining_template) << std::endl;
+//        std::cerr << fmt::format("putting on remaining template after loop exits: {}", remaining_template) << std::endl;
         result << remaining_template;
 
-        std::cerr << fmt::format("fill result: '{}'", result.str()) << std::endl;
+//        std::cerr << fmt::format("fill result: '{}'", result.str()) << std::endl;
     }
 
     return result.str();

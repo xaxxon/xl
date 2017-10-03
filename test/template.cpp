@@ -52,16 +52,16 @@ TEST(template, CallbackSubstitutionTemplate) {
 }
 
 
-
 struct A {
     int i;
 
     A(int i) : i(i) {}
 
     std::unique_ptr<xl::Provider> get_provider() const {
-        return std::make_unique<xl::Provider>(std::pair("asdf", "asdf"));
+        return std::make_unique<xl::Provider>(std::pair{"I", "5"}, std::pair{"J", "6"});
     }
 };
+
 
 struct B {
     std::string name = "B name";
@@ -70,14 +70,17 @@ struct B {
     std::vector<A> const & get_vec_a(){return this->vec_a;};
     std::unique_ptr<xl::Provider> get_provider() {
         return std::make_unique<xl::Provider>(std::pair{"NAME", this->name},
-                                          std::pair("GET_VEC_A", BoundTemplate(Template("{GET_VEC_A}"), static_cast<BoundTemplate::vector<A> const &>(this->get_vec_a()))));
+                                          std::pair("GET_VEC_A", BoundTemplate(
+                                              Template("i: {I} j: {J}"),
+                                              static_cast<BoundTemplate::vector<A> const &>(this->get_vec_a()))));
     }
 };
 
 
 TEST(template, UserDefinedTypeArray) {
     B b;
-    EXPECT_EQ(BoundTemplate(Template("B: {B_NAME}  As: {GET_VEC_A}"), b)(), "THIS IS WRONG");
+    EXPECT_EQ(BoundTemplate(Template("B: '{NAME}' As: {GET_VEC_A}"), b)(),
+              "B: 'B name' As: i: 5 j: 6i: 5 j: 6i: 5 j: 6i: 5 j: 6i: 5 j: 6");
 }
 
 

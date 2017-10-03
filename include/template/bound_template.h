@@ -20,6 +20,9 @@ private:
 
 public:
 
+    // just like a normal vector except this is assumed to not
+    //   be specialized in MakeProvider and as such is used to
+    //   represent a list of Provider objects
     template<class T>
     class vector : public std::vector<T> {
         using std::vector<T>::vector;
