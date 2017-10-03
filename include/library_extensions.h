@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include <type_traits>
 
 namespace xl {
@@ -71,5 +72,23 @@ ContainerT<std::result_of_t<Callable(ValueT)>> transform(ContainerT<ValueT, Rest
 }
 
 
+template<class T1, class T2>
+class pair : public std::pair<T1, T2> {
+public:
+    pair(T1 && t1, T2 && t2) :
+        std::pair<T1, T2>(std::forward<T1>(t1), std::forward<T2>(t2))
+    {}
+
+
+};
+template<class T1, class T2>
+pair(T1 t1, T2 && t) -> pair<T1, T2>;
 
 } // end namespace xl
+
+namespace std {
+    inline namespace __1 {
+        template<class T1, class T2>
+        pair(T1 t1, T2 && t) -> pair<T1, T2>;
+    } // end namespace __1
+} // end namespace std

@@ -16,14 +16,13 @@ TEST(template, NoSubstitutionTemplate) {
     EXPECT_EQ(Template(template_string).fill(Provider()), template_string);
 }
 TEST(template, SimpleSubstitutionTemplate) {
-    EXPECT_EQ(Template("replace: {TEST}").fill(Provider{{{"TEST", "REPLACEMENT"}}}), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: { TEST}").fill(Provider{{{"TEST", "REPLACEMENT"}}}), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: {TEST }").fill(Provider{{{"TEST", "REPLACEMENT"}}}), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: { TEST }").fill(Provider{{{"TEST", "REPLACEMENT"}}}), "replace: REPLACEMENT");
-
+    EXPECT_EQ(Template("replace: {TEST}").fill(Provider(xl::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: { TEST}").fill(Provider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: {TEST }").fill(Provider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: { TEST }").fill(Provider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT");
 }
 TEST(template, MissingNameInProviderSubstitutionTemplate) {
-    EXPECT_THROW(Template("replace: {TEST}").fill(Provider{{{"XXX", "REPLACEMENT"}}}),
+    EXPECT_THROW(Template("replace: {TEST}").fill(Provider{xl::pair{"XXX", "REPLACEMENT"}}),
                  xl::TemplateException);
 }
 TEST(template, InvalidTemplateSyntax_OpenedButNotClosed_Template) {
@@ -36,37 +35,66 @@ TEST(template, InvalidTemplateSyntax_ClosedButNotOpened_Template) {
 }
 
 TEST(template, SimpleSubstitutionTemplateWithSuffix) {
-    EXPECT_EQ(Template("replace: {TEST} and more").fill(Provider{{{"TEST", "REPLACEMENT"}}}), "replace: REPLACEMENT and more");
+    EXPECT_EQ(Template("replace: {TEST} and more").fill(Provider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT and more");
 }
 TEST(template, MultipleSubstitutionsSameNameTemplate) {
-    EXPECT_EQ(Template("replace: {TEST} and: {TEST}").fill(Provider{{{"TEST", "REPLACEMENT"}}}),
+    EXPECT_EQ(Template("replace: {TEST} and: {TEST}").fill(Provider{xl::pair{"TEST", "REPLACEMENT"}}),
               "replace: REPLACEMENT and: REPLACEMENT");
 }
 TEST(template, MultipleSubstitutionsDifferentNameTemplate) {
-    EXPECT_EQ(Template("replace: {TEST1} and: {TEST2}").fill(Provider{{{"TEST1", "REPLACEMENT1"},{"TEST2", "REPLACEMENT2"}}}),
+    EXPECT_EQ(Template("replace: {TEST1} and: {TEST2}").fill(Provider{std::pair{"TEST1", "REPLACEMENT1"},std::pair{"TEST2", "REPLACEMENT2"}}),
               "replace: REPLACEMENT1 and: REPLACEMENT2" );
 }
 TEST(template, CallbackSubstitutionTemplate) {
-    Provider m{{{"TEST", std::function<std::string()>([](){return std::string("REPLACEMENT-CALLBACK");})}}};
+    Provider m{std::pair{"TEST", std::function<std::string()>([](){return std::string("REPLACEMENT-CALLBACK");})}};
     EXPECT_EQ(Template("replace: {TEST}").fill(Provider(std::move(m))),
               "replace: REPLACEMENT-CALLBACK");
 }
-TEST(template, SubTemplateSubstitutionTemplate) {
-//    Provider p{Provider::MapT{{"TEST", Stringable(Template("{INNER-TEST}"))}, {"INNER-TEST", Stringable("INNER-REPLACEMENT")}}};
-    Provider p{Provider::MapT{{{"TEST", Stringable(Template("{INNER-TEST}"))}, {"INNER-TEST", "INNER-REPLACEMENT"}}}};
-    EXPECT_EQ(Template("replace: {TEST}").fill(std::move(p)), "replace: INNER-REPLACEMENT");
-}
-
-TEST(template, ArraySubstitution) {
-    Provider p(Provider::MapT{{std::string("TEST"), Stringable(std::vector<std::string>{"test1", "test2", "test3"})}});
-    EXPECT_EQ(Template("replace: {TEST:}").fill(std::move(p)), "replace: test1test2test3");
-}
 
 
-TEST(template, ArraySubstitutionWithCustomSeparator) {
-    Provider p(Provider::MapT{{std::string("TEST"), Stringable(std::vector<std::string>{"test1", "test2", "test3"})}});
-    EXPECT_EQ(Template("replace: {TEST:,,}").fill(std::move(p)), "replace: test1,,test2,,test3");
+
+struct A {
+    int i;
+    A(int i) : i(i){}
+};
+
+struct B {
+    std::string name = "B name";
+    std::vector<A> vec_a{1,2,3,4,5};
+
+    std::vector<A> const & get_vec_a(){return this->vec_a;};
+    std::unique_ptr<Provider> get_provider() {
+        return std::make_unique<Provider>(std::pair{"NAME", this->name},
+                                          std::pair("GET_VEC_A", BoundTemplate(Template("{GET_VEC_A}"), this->get_vec_a())));
+    }
+};
+
+
+TEST(template, UserDefinedTypeArray) {
+    B b;
+    EXPECT_EQ(BoundTemplate(Template("B: {B_NAME}  As: {GET_VEC_A}"), b)(), "THIS IS WRONG");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -79,7 +107,12 @@ struct Finger {
     std::string & get_name(){
         return Finger::names[(int)this->name];
     }
-
+    static Template get_template() {
+        return Template("Finger: Name: {NAME}");
+    }
+    std::unique_ptr<xl::Provider> get_provider() {
+        return std::make_unique<xl::Provider>(std::pair{"NAME", this->get_name()});
+    }
 };
 
 struct Hand {
@@ -91,7 +124,11 @@ public:
     auto const & get_fingers() {return this->fingers;}
 
     std::unique_ptr<xl::Provider> get_provider() {
-        return std::make_unique<xl::Provider>(Provider::MapT{{"finger_count", Stringable([this]{return fmt::format("{}", this->get_finger_count());})}});
+        return std::make_unique<xl::Provider>(std::pair{"FINGERS", "BOGUS"});
+    }
+
+    static Template get_template() {
+        return Template("Hand: Fingers: {FINGERS:}");
     }
 };
 
@@ -103,6 +140,12 @@ private:
 public:
     Arm(Side side) : side(side) {}
     Hand get_hand() const {return Hand();}
+    static Template get_template() {
+        return Template("Arm: Hands: {HANDS:}");
+    }
+    std::unique_ptr<xl::Provider> get_provider() {
+        return std::make_unique<xl::Provider>(std::pair{"HANDS","BOGUS"});
+    }
 };
 
 
@@ -115,20 +158,25 @@ public:
 
     string const & get_name() const {return this->name;}
     std::vector<Arm> const & get_arms() const {return this->arms;}
+
     std::unique_ptr<xl::Provider> get_provider() {
-        return std::make_unique<xl::Provider>();
+        std::cerr << fmt::format("Getting Person provider") << std::endl;
+        return std::make_unique<xl::Provider>(
+                std::pair("NAME", this->name)//,
+                //std::pair("ARMS", Arm::get_template())
+            );
     }
 
 };
 
-//
-//TEST(template, MakeProviderForUserDefinedType) {
-//    Person p{"Joe"};
-//    EXPECT_EQ(Template(R"(
-//Person {{
-//    name: {NAME},
-//    Arms: {ARMS:,}
-//}})").fill(p), "5");
-//}
+
+TEST(template, MakeProviderForUserDefinedType) {
+    Person p{"Joe"};
+    EXPECT_EQ(Template(R"(
+Person {{
+    name: {NAME},
+    Arms: {ARMS:,}
+}})").fill(p), "5");
+}
 
 
