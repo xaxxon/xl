@@ -6,24 +6,15 @@
 namespace xl {
 
 template<class T>
-BoundTemplate::BoundTemplate(Template & tmpl, T && source = Provider{}) :
-    tmpl(&tmpl),
-    providers{MakeProvider<T>()(std::forward<T>(source))}
-{}
-
-
-~BoundTemplate::BoundTemplate()
-{}
-
-
-template<class T = Provider>
-BoundTemplate::BoundTemplate(Template & tmpl, std::vector <T> && source_vector) :
-    tmpl(&tmpl) {
-    for (auto const & source : source_vector) {
-        providers.push_back(MakeProvider<T>()(source));
-    }
+BoundTemplate::BoundTemplate(Template tmpl, T && source) :
+    tmpl(tmpl)
+{
+    this->providers.push_back(Provider(MakeProvider<T>()(std::forward<T>(source))));
 }
 
+
+BoundTemplate::~BoundTemplate()
+{}
 
 
 /**
@@ -35,9 +26,8 @@ BoundTemplate::BoundTemplate(Template & tmpl, std::vector <T> && source_vector) 
  */
 std::string BoundTemplate::operator()() {
     std::stringstream result;
-
-    for (auto & provider_ptr : this->providers) {
-        auto & provider = *provider_ptr;
+    std::cerr << fmt::format("providers vector size: {}", this->providers.size()) << std::endl;
+    for (auto & provider : this->providers) {
 
         // must match:
         //   a string with no replacement
@@ -72,8 +62,8 @@ std::string BoundTemplate::operator()() {
 
 
         std::cmatch matches;
-        char const * remaining_template = this->tmpl->c_str();
-        std::cerr << fmt::format("filling template: '{}'", this->tmpl->c_str()) << std::endl;
+        char const * remaining_template = this->tmpl.c_str();
+        std::cerr << fmt::format("filling template: '{}'", this->tmpl.c_str()) << std::endl;
 
         while (std::regex_search(remaining_template, matches, r)) {
 
