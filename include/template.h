@@ -58,15 +58,85 @@ template<class, class = void>
 struct MakeProvider;
 
 
+
+class Provider;
+
+class ProviderOptions {
+    Provider & provider;
+    std::string parameters;
+
+    ProviderOptions(Provider & provider, std::string const & parameters) :
+        provider(provider),
+        parameters(parameters)
+    {}
+};
+
+
+class Stringable {
+private:
+    using StringableTypes = std::variant<
+        std::string,
+        std::function<std::string()>,
+        std::vector<std::string>,
+        Template
+    >;
+
+
+
+    StringableTypes stringable;
+public:
+
+    template<class T, class... Rest, template<class, class...> class Container>
+    Stringable(Container<T, Rest...> && container) {
+        this->stringable = xl::transform(container, [](T const & t) { return std::string(t); });
+    }
+
+    Stringable(Template t) : stringable(t) {}
+    Stringable(std::string & string) : stringable(string) {}
+    Stringable(std::string && string) : stringable(std::move(string)) {}
+    Stringable(std::function<std::string()> callback) : stringable(callback) {}
+    Stringable(char const * string) : stringable(string) {}
+
+    std::string operator()(Provider & p) {
+        if (auto string = std::get_if<std::string>(&stringable)) {
+            return *string;
+        } else if (auto callback = std::get_if<std::function<std::string()>>(&stringable)) {
+            return (*callback)();
+        } else if (auto vector = std::get_if<std::vector<std::string>>(&stringable)) {
+            std::stringstream result;
+            bool first = true;
+            for (auto const & element : *vector) {
+                std::cerr << fmt::format("looking at: {}", element) << std::endl;
+                if (!first) {
+                    result << ", ";
+                }
+                first = false;
+                result << element;
+            }
+            return result.str();
+        } else if (auto tmpl = std::get_if<Template>(&stringable)) {
+            return tmpl->fill(p);
+        } else {
+            throw TemplateException("Unhandled stringable variant type");
+        }
+    }
+};
+
+
+
 class Provider {
 public:
-    using MapT = std::map<std::string, std::variant<std::function<std::string()>, std::string, Template>>;
+
+    // or any function that returns a FinalType
+    using MapT = std::map<std::string, Stringable>;
+
+
 
 private:
     MapT _providers;
 
 public:
-    Provider(MapT && providers = MapT()) :
+    Provider(MapT && providers = MapT{}) :
         _providers(std::move(providers))
     {}
 
@@ -74,29 +144,19 @@ public:
         return _providers.find(name) != _providers.end();
     }
 
-    virtual std::string operator()(std::string const & name) {
+    virtual std::string operator()(std::string const & name, std::string const & vector_concatentation_string) {
         if (auto i = _providers.find(name); i == std::end(_providers)) {
-            return std::string();
+            throw TemplateException("Unknown name made it to actual lookup time - should have called provides");
         } else {
-            if (auto callback = std::get_if<std::function<std::string()>>(&i->second)) {
-                // callback
-                auto callback_result = (*callback)();
-//                std::cerr << fmt::format("callback result: {}", callback_result) << std::endl;
-                return callback_result;
-            } else if (auto string = std::get_if<std::string>(&i->second)) {
-                // plain string
-                return *string;
-            } else if (auto tmpl = std::get_if<Template>(&i->second)) {
-                // template
-//                std::cerr << fmt::format("handling provider providing a nested template") << std::endl;
-                return tmpl->fill(*this);
-            } else {
-                // unhandled variant type
-                assert(false);
-            }
-            return std::string();
+            return i->second(*this);
         }
     }
+
+    Provider(Provider &&) = default;
+    Provider(Provider const &) = default;
+
+    Provider & operator=(Provider&&) = default;
+    Provider & operator=(Provider const &) = default;
 };
 
 
@@ -134,7 +194,22 @@ struct MakeProvider<Provider> {
     }
 };
 
+template<class T, class... Rest, template<class, class...> class Container>
+struct MakeProvider<Container<T, Rest...>> {
+    Provider p; // dummy
+    Provider & operator()(Container<T, Rest...> && ) {
+        return this->p;
+    }
+};
 
+
+/**
+ * Fills out `this` template and returns the result
+ *
+ * @tparam T Source type - must either be a Provider or something convertible to a Provider
+ * @param source object to be used to populate `this` template
+ * @return populated template result
+ */
 template<class T>
 std::string Template::fill(T && source) {
 
@@ -157,7 +232,7 @@ std::string Template::fill(T && source) {
         //   everything inside the braces excluding leading and trailing whitespace
         //   followed by a closing curly brace or potentially end-of-line in case of a no-closing-brace error
         // negative forward assertion to make sure the closing brace isn't escaped as }}
-        "(?:([{}]?)\\s*((?:[^}{]|[}]{2}|[{]{2})*?)\\s*([}]|$)(?!\\}))?",
+        "(?:([{}]?)\\s*((?:[^}{]|[}]{2}|[{]{2})*?)(?::((?:[^{}]|[}]{2}|[{]{2})*))?\\s*([}]|$)(?!\\}))?",
 
         std::regex::optimize
     );
@@ -168,6 +243,7 @@ std::string Template::fill(T && source) {
         LITERAL_STRING_INDEX,
         OPEN_BRACE_INDEX,
         REPLACEMENT_NAME_INDEX,
+        REPLACEMENT_OPTIONS_INDEX,
         CLOSE_BRACE_INDEX,
     };
 
@@ -178,7 +254,7 @@ std::string Template::fill(T && source) {
 //    std::cerr << fmt::format("filling template: '{}'", this->_tmpl) << std::endl;
 
     while(std::regex_search(remaining_template, matches, r)) {
-//
+
 //        std::cerr << fmt::format("matching against: '{}'", remaining_template) << std::endl;
 //        for(int i = 0; i < matches.size(); i++) {
 //            std::cerr << fmt::format("match[{}]: {}", i, matches[i].str()) << std::endl;
@@ -196,7 +272,6 @@ std::string Template::fill(T && source) {
         }
 
         remaining_template = matches.suffix().first;
-//        std::cerr << fmt::format("adding matches 1 '{}' and 2 '{}'", matches[1].str(), matches[2].str()) << std::endl;
         result << matches[1];
 
 
@@ -204,7 +279,11 @@ std::string Template::fill(T && source) {
             throw TemplateException(fmt::format("Provider doesn't provide value for name: '{}'", matches[REPLACEMENT_NAME_INDEX]));
         }
 
-        std::string provider_data = provider(matches[REPLACEMENT_NAME_INDEX].str());
+        if (matches[REPLACEMENT_OPTIONS_INDEX].str() != "") {
+//            std::cerr << fmt::format("GOT REPLACEMENT OPTIONS: {}", matches[REPLACEMENT_OPTIONS_INDEX].str()) << std::endl;
+
+        }
+        std::string provider_data = provider(matches[REPLACEMENT_NAME_INDEX].str(), matches[REPLACEMENT_OPTIONS_INDEX].str());
         result << provider_data;
 
     }
