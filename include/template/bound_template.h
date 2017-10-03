@@ -1,7 +1,10 @@
 #pragma once
 
-#include "provider.h"
+#include <vector>
+#include <cloneable_unique_pointer.h>
 
+#include "provider.h"
+#include "template.h"
 
 namespace xl {
 
@@ -12,25 +15,29 @@ class ProviderOptions;
 
 class BoundTemplate {
 private:
-    std::unique_ptr<Template> tmpl;
-    std::vector <std::unique_ptr<Provider_Interface>> providers;
+    Template tmpl;
+    std::vector<Provider> providers;
 
 public:
 
     template<class T>
-    BoundTemplate(Template && tmpl, T && source);
+    class vector : public std::vector<T> {
+        using std::vector<T>::vector;
+    };
 
     BoundTemplate(BoundTemplate &&) = default;
-    BoundTemplate(BoundTemplate const &);
+    BoundTemplate(BoundTemplate const &) = default;
 
     ~BoundTemplate();
 
-    template<class T>
-    BoundTemplate(Template & tmpl, std::vector <T> && source_vector = std::vector < T > {});
+    template<class T = Provider>
+    BoundTemplate(Template tmpl, BoundTemplate::vector<T> const & source_vector);
 
+    template<class T>
+    BoundTemplate(Template tmpl, T && source = T{});
 
     std::string operator()();
 };
 
-
 };
+

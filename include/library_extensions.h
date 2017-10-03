@@ -89,6 +89,6 @@ pair(T1 t1, T2 && t) -> pair<T1, T2>;
 namespace std {
     inline namespace __1 {
         template<class T1, class T2>
-        pair(T1 t1, T2 && t) -> pair<T1, T2>;
+        pair(T1 t1, T2 t) -> pair<T1, T2>;
     } // end namespace __1
 } // end namespace std

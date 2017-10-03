@@ -36,7 +36,13 @@ public:
 
 
     std::string operator()(ProviderOptions & options) {
-        return "BOGUS";
+        if (auto string = std::get_if<std::string>(&this->stringable)) {
+            return *string;
+        } else if (auto callback = std::get_if<std::function<std::string()>>(&this->stringable)) {
+            return (*callback)();
+        } else {
+            throw TemplateException("Unhandled variant type in Stringable");
+        }
     }
 };
 
@@ -48,9 +54,8 @@ class Provider;
 
 class Provider_Interface {
 public:
-    virtual std::string operator()(std::string const & name, ProviderOptions && provider_options);
-    virtual bool provides(std::string const & name);
-
+    virtual std::string operator()(std::string const & name, ProviderOptions && provider_options) = 0;
+    virtual bool provides(std::string const & name) = 0;
 };
 
 
@@ -119,6 +124,10 @@ private:
     std::unique_ptr<Provider> provider;
 
 public:
+    Provider & operator()(std::remove_reference_t<T> const & t) {
+        this->provider = t.get_provider();
+        return *this->provider;
+    }
     Provider & operator()(std::remove_reference_t<T> & t) {
         this->provider = t.get_provider();
         return *this->provider;
@@ -153,9 +162,10 @@ struct MakeProvider<Provider> {
 template<class T, class... Rest, template<class, class...> class Container>
 struct MakeProvider<Container<T, Rest...>> {
 
-
-    Provider & operator()(Container<T, Rest...> &&) {
-
+    Provider p;
+    Provider & operator()(Container<T, Rest...> &&) const {
+        assert(false);
+        return p;
     }
 };
 

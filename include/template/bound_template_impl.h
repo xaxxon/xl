@@ -12,6 +12,12 @@ BoundTemplate::BoundTemplate(Template tmpl, T && source) :
     this->providers.push_back(Provider(MakeProvider<T>()(std::forward<T>(source))));
 }
 
+template<class T>
+BoundTemplate::BoundTemplate(Template tmpl, BoundTemplate::vector<T> const & source_vector) {
+
+}
+
+
 
 BoundTemplate::~BoundTemplate()
 {}

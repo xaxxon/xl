@@ -13,7 +13,7 @@ include(clang-build-triple)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
 
-file(GLOB XL_HEADER_FILES "include/*.h" "include/aligned_string/*.h" "include/template/*.h")
+file(GLOB XL_HEADER_FILES include/*.h include/aligned_string/*.h include/template/*.h )
 
 message("${XL_HEADER_FILES}")
 

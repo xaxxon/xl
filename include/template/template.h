@@ -15,14 +15,8 @@
 #include "library_extensions.h"
 
 #include "provider.h"
-#include "bound_template.h"
 
 namespace xl {
-
-
-
-
-
 
 
 class Template {
@@ -33,16 +27,18 @@ public:
     Template(std::string const & tmpl = "") : _tmpl(tmpl) {}
     char const * c_str() const {return this->_tmpl.c_str();}
 
-
     template<class T>
-    BoundTemplate bind(T && t);
-
-
-    template<class T>
-    std::string fill(T && t) {
-        return this->bind(std::forward<T>(t))();
-    }
+    std::string fill(T && t);
 };
 
 
+} // end namespace xl
+
+#include "bound_template_impl.h"
+
+namespace xl {
+template<class T>
+std::string Template::fill(T && t) {
+    return BoundTemplate(*this, std::forward<T>(t))();
+}
 } // end namespace xl
