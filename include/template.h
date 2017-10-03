@@ -16,6 +16,20 @@
 
 namespace xl {
 
+class TemplateException : public std::exception {
+    std::string reason;
+
+public:
+
+    TemplateException(std::string const & reason) : reason(std::move(reason))
+    {}
+
+    const char* what() const noexcept {
+        return reason.c_str();
+    }
+};
+
+
 class Provider_Interface {
 public:
 
@@ -56,6 +70,10 @@ public:
         _providers(std::move(providers))
     {}
 
+    bool provides(std::string const & name) {
+        return _providers.find(name) != _providers.end();
+    }
+
     virtual std::string operator()(std::string const & name) {
         if (auto i = _providers.find(name); i == std::end(_providers)) {
             return std::string();
@@ -80,6 +98,7 @@ public:
         }
     }
 };
+
 
 template<class T>
 struct MakeProvider<T, std::enable_if_t<std::is_same_v<std::unique_ptr<xl::Provider>, decltype(std::declval<T>().get_provider())> > > {
@@ -126,8 +145,31 @@ std::string Template::fill(T && source) {
     //   a string with no replacement
     //   a replacement with no other string
     //   a string followed by a replacement
-    //   BUT NOT neither. -- CURRENT REGEX MATCHES NEITHER AND IT MUST BE DISQUALIFIED IN WHILE LOOP BODY
-    static std::regex r("^((?:[^{]|[{]{2}|[}]{2})*)[{]\\s*((?:[^}{]|[}]{2}|[{]{2})+?)\\s*[}](?!\\})");
+    //   BUT NOT neither. (leading positive lookahead assertion makes sure string isn't empty)
+    static std::regex r(
+        // forward lookahead that the string has at least one character (not empty)
+        "^(?=.)"
+
+        // grab everything up until a first lone curly brace
+        "((?:[^{}]|[{]{2}|[}]{2})*)"
+
+        // grab a brace (potentially the wrong one which will be checked for later) and then a submatch of
+        //   everything inside the braces excluding leading and trailing whitespace
+        //   followed by a closing curly brace or potentially end-of-line in case of a no-closing-brace error
+        // negative forward assertion to make sure the closing brace isn't escaped as }}
+        "(?:([{}]?)\\s*((?:[^}{]|[}]{2}|[{]{2})*?)\\s*([}]|$)(?!\\}))?",
+
+        std::regex::optimize
+    );
+
+    // submatch positions for the above regex
+    enum RegexMatchIndex{
+        WHOLE_STRiNG_INDEX = 0,
+        LITERAL_STRING_INDEX,
+        OPEN_BRACE_INDEX,
+        REPLACEMENT_NAME_INDEX,
+        CLOSE_BRACE_INDEX,
+    };
 
     std::stringstream result;
 
@@ -136,23 +178,41 @@ std::string Template::fill(T && source) {
 //    std::cerr << fmt::format("filling template: '{}'", this->_tmpl) << std::endl;
 
     while(std::regex_search(remaining_template, matches, r)) {
-        if (matches[1].first == matches[2].second) {
-//            std::cerr << fmt::format("breaking from loop because both submatches == \"\"") << std::endl;
+//
+//        std::cerr << fmt::format("matching against: '{}'", remaining_template) << std::endl;
+//        for(int i = 0; i < matches.size(); i++) {
+//            std::cerr << fmt::format("match[{}]: {}", i, matches[i].str()) << std::endl;
+//        }
+
+        // if no substitution found, everything was a literal and is handled as a "trailing literal" outside
+        //   this loop
+        if (matches[OPEN_BRACE_INDEX].str() == "" && matches[CLOSE_BRACE_INDEX].str() == "") {
             break;
         }
+
+        // check for open but no close or incorrect brace type
+        if (matches[OPEN_BRACE_INDEX].str() != "{" || matches[CLOSE_BRACE_INDEX].str() != "}") {
+            throw TemplateException("Found mismatched braces");
+        }
+
         remaining_template = matches.suffix().first;
 //        std::cerr << fmt::format("adding matches 1 '{}' and 2 '{}'", matches[1].str(), matches[2].str()) << std::endl;
         result << matches[1];
-        std::string provider_data = provider(matches[2].str());
-//        std::cerr << fmt::format("provider data: '{}'", provider_data) << std::endl;
+
+
+        if (!provider.provides(matches[REPLACEMENT_NAME_INDEX])) {
+            throw TemplateException(fmt::format("Provider doesn't provide value for name: '{}'", matches[REPLACEMENT_NAME_INDEX]));
+        }
+
+        std::string provider_data = provider(matches[REPLACEMENT_NAME_INDEX].str());
         result << provider_data;
-//        std::cerr << fmt::format("remaining template: '{}'", remaining_template) << std::endl;
-//        std::cerr << fmt::format("partial result: '{}'", result.str()) << std::endl;
 
     }
 //    std::cerr << fmt::format("putting on remaining template after loop exits: {}", remaining_template) << std::endl;
     result << remaining_template;
+
 //    std::cerr << fmt::format("fill result: '{}'", result.str()) << std::endl;
+
     return result.str();
 }
 

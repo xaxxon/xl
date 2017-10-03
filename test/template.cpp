@@ -5,6 +5,7 @@
 #include "template.h"
 
 using namespace xl;
+using namespace std;
 
 
 TEST(template, EmptyTemplate) {
@@ -21,6 +22,19 @@ TEST(template, SimpleSubstitutionTemplate) {
     EXPECT_EQ(Template("replace: { TEST }").fill(Provider(Provider::MapT{{"TEST", "REPLACEMENT"}})), "replace: REPLACEMENT");
 
 }
+TEST(template, MissingNameInProviderSubstitutionTemplate) {
+    EXPECT_THROW(Template("replace: {TEST}").fill(Provider(Provider::MapT{{"XXX", "REPLACEMENT"}})),
+                 xl::TemplateException);
+}
+TEST(template, InvalidTemplateSyntax_OpenedButNotClosed_Template) {
+    EXPECT_THROW(Template("replace: {TEST").fill(Provider(Provider::MapT{})),
+                 xl::TemplateException);
+}
+TEST(template, InvalidTemplateSyntax_ClosedButNotOpened_Template) {
+    EXPECT_THROW(Template("replace: TEST}").fill(Provider(Provider::MapT{})),
+                 xl::TemplateException);
+}
+
 TEST(template, SimpleSubstitutionTemplateWithSuffix) {
     EXPECT_EQ(Template("replace: {TEST} and more").fill(Provider(Provider::MapT{{"TEST", "REPLACEMENT"}})), "replace: REPLACEMENT and more");
 }
@@ -59,8 +73,8 @@ private:
     std::vector<Finger> fingers{Finger::Name::Thumb, Finger::Name::Pointer, Finger::Name::Middle, Finger::Name::Ring, Finger::Name::Pinky};
 
 public:
-    int get_finger_count(){return 5;}
-    std::vector<Finger> const & get_fingers() {return this->fingers;}
+    auto get_finger_count(){return fingers.size();}
+    auto const & get_fingers() {return this->fingers;}
 
     std::unique_ptr<xl::Provider> get_provider() {
         return std::make_unique<xl::Provider>(xl::Provider::MapT{{"finger_count", [this]{return fmt::format("{}", this->get_finger_count());}}});
@@ -69,18 +83,38 @@ public:
 
 struct Arm {
     enum class Side{Left = 0, Right};
-
+private:
+    Side side;
+    vector<string> const side_names{"left", "right"};
+public:
     Arm(Side side) : side(side) {}
-    Hand get_hand(){return Hand();}
+    Hand get_hand() const {return Hand();}
 };
+
+
 struct Person {
-    std::vector<Arm> get_arms(){return {Arm(), Arm()};}
+private:
+    std::vector<Arm> arms{Arm(Arm::Side::Left), Arm(Arm::Side::Right)};
+    string name;
+public:
+    Person(string const & name) : name(name) {}
+
+    string const & get_name() const {return this->name;}
+    std::vector<Arm> const & get_arms() const {return this->arms;}
+    std::unique_ptr<xl::Provider> get_provider() {
+        return std::make_unique<xl::Provider>(xl::Provider::MapT{});
+    }
+
 };
 
-
-TEST(template, MakeProviderForUserDefinedType) {
-    Hand h{};
-    EXPECT_EQ(Template("{finger_count}").fill(h), "5");
-}
+//
+//TEST(template, MakeProviderForUserDefinedType) {
+//    Person p{"Joe"};
+//    EXPECT_EQ(Template(R"(
+//Person {{
+//    name: {NAME},
+//    Arms: {ARMS:,}
+//}})").fill(p), "5");
+//}
 
 
