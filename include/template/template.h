@@ -14,7 +14,6 @@
 
 #include "library_extensions.h"
 
-#include "provider.h"
 
 namespace xl {
 
@@ -29,6 +28,19 @@ public:
 
     template<class T>
     std::string fill(T && t);
+
+};
+
+using TemplateMap = std::map<std::string, Template>;
+
+
+
+struct ProviderOptions {
+    std::string const parameters;
+    TemplateMap templates;
+
+    ProviderOptions(std::string const & parameters = "") :
+        parameters(parameters) {}
 };
 
 

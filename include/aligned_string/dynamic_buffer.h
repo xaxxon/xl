@@ -39,14 +39,14 @@ protected:
 
 private:
     mutable std::unique_ptr<char[]> _buffer;
-    mutable uint32_t _capacity = 0;
+    uint32_t _capacity = 0;
     uint32_t _length = 0;
 
 
 public:
     AlignedStringBuffer_Dynamic() = default;
 
-    void allocate(size_t initial_capacity) const {
+    void allocate(size_t initial_capacity) {
         if (initial_capacity <= this->capacity()) {
             throw AlignedStringException("New size isn't larger than old size");
         }
@@ -60,7 +60,12 @@ public:
     }
 
 
-    auto buffer() { return this->_buffer.get(); }
+    auto buffer() {
+        if (this->_buffer.get() == nullptr) {
+            return reinterpret_cast<char *>(&this->_buffer);
+        }
+        return this->_buffer.get();
+    }
 
     auto const buffer() const { return this->_buffer.get(); }
 

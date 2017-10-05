@@ -5,10 +5,12 @@
 #include "regexer.h"
 
 using namespace xl;
+#include "library_extensions.h"
 
 
 TEST(Regexer, EmptyRegex) {
     {
+        is_range_for_loop_able<int>::value;
         auto result = regex("", "");
         EXPECT_EQ(result.matches().size(), 1);
         EXPECT_EQ(result.size(), 1);
@@ -17,6 +19,7 @@ TEST(Regexer, EmptyRegex) {
 
 TEST(Regexer, EmptyString) {
     {
+
         auto result = regex("a", "");
         EXPECT_TRUE(result.matches().empty());
         EXPECT_TRUE(result.empty());

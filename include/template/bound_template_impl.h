@@ -56,7 +56,7 @@ std::string BoundTemplate::operator()() {
                 //   everything inside the braces excluding leading and trailing whitespace
                 //   followed by a closing curly brace or potentially end-of-line in case of a no-closing-brace error
                 // negative forward assertion to make sure the closing brace isn't escaped as }}
-                "(?:([{}]?)\\s*((?:[^}{]|[}]{2}|[{]{2})*?)(?::((?:[^{}]|[}]{2}|[{]{2})*))?\\s*([}]|$)(?!\\}))?",
+                "(?:([{}]?)\\s*((?:[^}{]|[}]{2}|[{]{2})*?)(?:[|]((?:[^{}]|[}]{2}|[{]{2})*))?\\s*([}]|$)(?!\\}))?",
 
             std::regex::optimize
         );
@@ -98,10 +98,10 @@ std::string BoundTemplate::operator()() {
             result << matches[1];
 
 
-            if (!provider.provides(matches[REPLACEMENT_NAME_INDEX])) {
-                throw TemplateException(
-                    fmt::format("Provider doesn't provide value for name: '{}'", matches[REPLACEMENT_NAME_INDEX]));
-            }
+//            if (!provider.provides(matches[REPLACEMENT_NAME_INDEX])) {
+//                throw TemplateException(
+//                    fmt::format("Provider doesn't provide value for name: '{}'", matches[REPLACEMENT_NAME_INDEX]));
+//            }
 
             if (matches[REPLACEMENT_OPTIONS_INDEX].str() != "") {
 //                std::cerr << fmt::format("GOT REPLACEMENT OPTIONS: {}", matches[REPLACEMENT_OPTIONS_INDEX].str()) << std::endl;

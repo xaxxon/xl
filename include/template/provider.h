@@ -3,21 +3,20 @@
 #include <string>
 #include <map>
 #include <type_traits>
+#include <experimental/coroutine>
+#include <library_extensions.h>
 
 #include "exceptions.h"
-
+#include "template.h"
 
 namespace xl {
 
-class Provider;
+
+class ProviderOptions;
 
 
-struct ProviderOptions {
-    std::string const parameters;
-
-    ProviderOptions(std::string const & parameters = "") :
-        parameters(parameters) {}
-};
+template<class, class = void>
+struct MakeProvider;
 
 
 
@@ -48,69 +47,65 @@ public:
 
 
 
+/**
+ * Three categories:
+ * list providing sublists
+ * list providing leaf providers
+ * leaf provider
+ */
 
+/**
+ * A provider either directly provides content to fill a template or it contains a set of providers to fill a
+ * template multiple times and concatenate the results
+ */
+class Provider_Internal {
+public:
+    virtual std::string operator()(Template const & tmpl, ProviderOptions const & provider_options) = 0;
+};
+
+class Provider_Leaf {
+public:
+    virtual std::string operator()(std::string const & name, ProviderOptions const & provider_options) = 0;
+};
+
+
+
+
+class EmptyProvider : public Provider_Leaf {
+    std::string operator()(std::string const & name, ProviderOptions const & provider_options) {
+        throw TemplateException("EmptyProvider tried to provide value, but cannot");
+    }
+
+};
+
+
+template<class T, class = void>
 class Provider;
 
 
-class Provider_Interface {
-public:
-    virtual std::string operator()(std::string const & name, ProviderOptions && provider_options) = 0;
-    virtual bool provides(std::string const & name) = 0;
-};
-
-
-class Provider : public Provider_Interface {
-public:
-
-    // or any function that returns a FinalType
-    using MapT = std::map<std::string, Stringable>;
-
+template<class T>
+class Provider<T, std::enable_if_t<xl::is_range_for_loop_able_v<T>>> : public Provider_Interface {
 
 private:
-    MapT _providers;
-
+    T t;
 public:
 
-    void set(std::string const & key, std::string const & value) {
-        _providers.emplace(key, value);
-    }
+    using ChildProviderT = MakeProvider<T>()
+    constexpr bool has_leafs = std::is_base_of<
 
-    void set(std::string const & key, std::function<std::string()> callback) {
-        _providers.emplace(key, callback);
-    }
+    Provider(T && t) : t(std::forward<T>(t)) {}
 
-
-    template<class... Keys, class... Values>
-    Provider(std::pair<Keys, Values>&&... pairs) {
-        (this->set(std::forward<Keys>(pairs.first), std::forward<Values>(pairs.second)),...);
-    }
-
-    bool provides(std::string const & name) override {
-        return _providers.find(name) != _providers.end();
-    }
-
-    std::string operator()(std::string const & name, ProviderOptions && provider_options) override {
-        if (auto i = _providers.find(name); i == std::end(_providers)) {
-            throw TemplateException("Unknown name made it to actual lookup time - should have called provides");
-        } else {
-            return i->second(provider_options);
+    std::string operator()(Template const & tmpl, ProviderOptions const & provider_options) override {
+        std::stringstream result;
+        for (auto const & element : t) {
+            Provider p = MakeProvider<std::decay_t<decltype(element)>>()(element);
+            result << p(tmpl, provider_options);
         }
+        return result.str();
     }
-
-    Provider(Provider &&) = default;
-
-    Provider(Provider const &) = default;
-
-    Provider & operator=(Provider &&) = default;
-
-    Provider & operator=(Provider const &) = default;
 };
 
 
-
-
-template<class, class = void>
-struct MakeProvider;
 
 
 
@@ -119,54 +114,43 @@ struct MakeProvider;
  * @tparam T Type to check for a get_provider method
  */
 template<class T>
-struct MakeProvider<T, std::enable_if_t<std::is_same_v<std::unique_ptr<xl::Provider>, decltype(std::declval<T>().get_provider())> > > {
+struct MakeProvider<T, std::enable_if_t<std::is_same_v<std::unique_ptr<xl::Provider_Interface>, decltype(std::declval<T>().get_provider())> > > {
 private:
-    std::unique_ptr<Provider> provider;
+    std::unique_ptr<Provider_Interface> provider;
 
 public:
-    Provider & operator()(std::remove_reference_t<T> const & t) {
+    static constexpr bool is_leaf = true;
+    Provider_Interface & operator()(std::remove_reference_t<T> const & t) {
         this->provider = t.get_provider();
         return *this->provider;
     }
-    Provider & operator()(std::remove_reference_t<T> & t) {
+    Provider_Interface & operator()(std::remove_reference_t<T> & t) {
         this->provider = t.get_provider();
         return *this->provider;
     }
 
-    Provider & operator()(std::remove_reference_t<T> && t) {
+    Provider_Interface & operator()(std::remove_reference_t<T> && t) {
         return this->operator()(t);
     }
 };
 
 
-template<>
-struct MakeProvider<Provider &> {
-    Provider stored_p;
+template<class T>
+struct MakeProvider<Provider<T>> : public Provider_Leaf {
+    Provider<T> stored_p;
 
-    Provider & operator()(Provider & p) {
+    static constexpr bool is_leaf = true;
+
+    Provider<T> & operator()(Provider<T> & p) {
         stored_p = p;
         return stored_p;
     }
-};
-
-template<>
-struct MakeProvider<Provider> {
-    Provider stored_p;
-
-    Provider & operator()(Provider && p) {
+    Provider<T> & operator()(Provider<T> && p) {
         this->stored_p = std::move(p);
         return this->stored_p;
     }
 };
 
-template<class T, class... Rest, template<class, class...> class Container>
-struct MakeProvider<Container<T, Rest...>> {
 
-    Provider p;
-    Provider & operator()(Container<T, Rest...> &&) const {
-        assert(false);
-        return p;
-    }
-};
 
 } // end namespace xl

@@ -55,4 +55,10 @@ TEST(log, CustomLog) {
     EXPECT_EQ(call_count, 1);
     log.log(xl::log::DefaultLevels::Levels::Warn, CustomSubjects::Subjects::CustomSubject2, "test");
     EXPECT_EQ(call_count, 2);
+
+
+    std::stringstream my_stringstream;
+    std::string s = "str";
+    const char *c = "str";
+    my_stringstream << c << s;
 }

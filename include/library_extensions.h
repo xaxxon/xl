@@ -3,6 +3,7 @@
 #include <utility>
 #include <type_traits>
 
+
 namespace xl {
 
 /**
@@ -32,6 +33,20 @@ auto find(ContainerT<ValueT, Rest...> const & container, ValueT const & value) {
 };
 
 
+template<class...>
+using int_t = int;
+
+template<class T, class = void>
+struct is_range_for_loop_able : public std::false_type {};
+
+template<class T>
+constexpr bool is_range_for_loop_able_v = is_range_for_loop_able<T>::value;
+
+template<class T>
+struct is_range_for_loop_able<T, std::void_t<
+    decltype(&std::begin(std::declval<T>())),
+    decltype(&std::end(std::declval<T>()))>
+> : public std::true_type {};
 
 
 
@@ -82,7 +97,7 @@ public:
 
 };
 template<class T1, class T2>
-pair(T1 t1, T2 && t) -> pair<T1, T2>;
+pair(T1 t1, T2 t) -> pair<T1, T2>;
 
 } // end namespace xl
 

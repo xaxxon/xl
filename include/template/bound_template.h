@@ -16,7 +16,7 @@ class ProviderOptions;
 class BoundTemplate {
 private:
     Template tmpl;
-    std::vector<Provider> providers;
+    std::vector<Provider_Interface> providers;
 
 public:
 
@@ -33,7 +33,7 @@ public:
 
     ~BoundTemplate();
 
-    template<class T = Provider>
+    template<class T = Provider_Interface>
     BoundTemplate(Template tmpl, BoundTemplate::vector<T> const & source_vector);
 
     template<class T>

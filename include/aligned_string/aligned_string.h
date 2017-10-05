@@ -101,11 +101,6 @@ public:
      * @return
      */
     char const * c_str() const {
-        // a moved-away-from string should still be valid, but since it will almost never
-        //   be used again, re-allocate lazily
-        if (!this->buffer()) {
-            this->allocate(1);
-        }
         return this->buffer();
     }
 
