@@ -38,7 +38,8 @@ public:
 protected:
 
 private:
-    mutable std::unique_ptr<char[]> _buffer;
+    std::unique_ptr<char[]> _buffer;
+
     uint32_t _capacity = 0;
     uint32_t _length = 0;
 
@@ -60,14 +61,19 @@ public:
     }
 
 
-    auto buffer() {
+    char * buffer() {
         if (this->_buffer.get() == nullptr) {
             return reinterpret_cast<char *>(&this->_buffer);
         }
         return this->_buffer.get();
     }
+    auto const buffer() const { return const_cast<AlignedStringBuffer_Dynamic<alignment> *>(this)->buffer(); }
 
-    auto const buffer() const { return this->_buffer.get(); }
+
+    char const * c_str() {
+        return this->buffer();
+    }
+
 
     /**
      * Maximum string length which can be held in the current buffer
@@ -90,7 +96,12 @@ public:
     }
 };
 
+// make sure the size is always at most 16 bytes and doesn't vary based on size
+static_assert(sizeof(AlignedStringBuffer_Dynamic<16>) <= 16);
+static_assert(sizeof(AlignedStringBuffer_Dynamic<64>) <= 16);
 
-
+// also AlignedString must not contribute anything to the size
+static_assert(sizeof(AlignedString<AlignedStringBuffer_Dynamic<16>>) == sizeof(AlignedStringBuffer_Dynamic<16>));
+static_assert(sizeof(AlignedString<AlignedStringBuffer_Dynamic<64>>) == sizeof(AlignedStringBuffer_Dynamic<64>));
 
 }

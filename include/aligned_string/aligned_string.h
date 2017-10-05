@@ -418,10 +418,6 @@ public:
 
 
 
-
-
-
-
 template<class AlignedStringBuffer_t>
 std::ostream & operator<<(std::ostream & os, AlignedString <AlignedStringBuffer_t> const & aligned_string) {
     os << aligned_string.c_str();

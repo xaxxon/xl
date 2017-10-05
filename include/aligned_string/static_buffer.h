@@ -4,12 +4,18 @@ namespace xl {
 
 /**
  * An inline storage buffer for AlignedString which uses a fixed-length array for storage
+ *
+ * Allows storage of a string of length size-1 and then a NUL terminator
+ *
+ * Uses the last byte to store a representation of the length in such a way that the value is
+ *   0 when the string is full and therefor doubles as the NUL terminator
  * @tparam size maximum amount of size the entire object can use, including any overhead
  */
 template<size_t size>
 class alignas(size % 64 == 0 ? 64 : 16) AlignedStringBuffer_Static {
-    // larger than this requires more bytes for _length and probably doesn't make sense anyhow
-    static_assert(size <= 256, "Aligned string static buffer max size is 255 bytes");
+
+    // The size is stored in the last byte, so the size can't exceed 256
+    static_assert(size <= 256, "Aligned string static buffer max size is 256 bytes");
     static_assert(size % 16 == 0, "Aligned string static buffer size must be a multiple of 16");
 
 public:
@@ -45,36 +51,37 @@ public:
         }
     }
 
+
     AlignedStringBuffer_Static() {
         this->set_length(0);
     }
+
 
     AlignedStringBuffer_Static(AlignedStringBuffer_Static && other) {
         // this copies the size along with the content
         memcpy(&this->_buffer, &other._buffer, sizeof(_buffer));
     }
 
-    char * c_str() {
-        return this->_buffer;
-    }
+
 
     /**
      * Returns the raw string buffer
      * @return the raw string buffer
      */
-    auto buffer() { return &this->_buffer[0]; }
+    char * buffer() { return &this->_buffer[0]; }
+    char const * buffer() const { return const_cast<AlignedStringBuffer_Static<size> *>(this)->buffer(); }
 
-    /**
-    * Returns the raw string buffer
-    * @return the raw string buffer
-    */
-    auto const buffer() const { return this->_buffer; }
+
+    char const * c_str() {
+        return this->buffer();
+    }
 
     /**
      * Returns the current maximum length of a string of the buffer
      * @return the current maximum length of a string of the buffer
      */
     auto capacity() const { return sizeof(_buffer) - 1; }
+
 
     /**
      * Adds the specified string to the current string
@@ -95,4 +102,13 @@ public:
     }
 };
 
-}
+// make sure the size is always exactly the templated size in bytes
+static_assert(sizeof(AlignedStringBuffer_Static<16>) == 16);
+static_assert(sizeof(AlignedStringBuffer_Static<64>) == 64);
+
+// also AlignedString must not contribute anything to the size
+static_assert(sizeof(AlignedString<AlignedStringBuffer_Static<16>>) == sizeof(AlignedStringBuffer_Static<16>));
+static_assert(sizeof(AlignedString<AlignedStringBuffer_Static<64>>) == sizeof(AlignedStringBuffer_Static<64>));
+
+
+} // end namespace xl
