@@ -1,8 +1,12 @@
-String template library.
+## String template library.
+
+### Simple use
 
 Template: I went to the {LOCATION} and saw {THING}
 
 Substitutions: {{"LOCATION", "store"}, {"THING", "my friend"}}
+
+### Array of values for the same template
 
 Supports taking a template string and filling it out for each value in a container (such as std::vector) and joining them
 with a custom string.
@@ -21,6 +25,8 @@ Color {
 vector<Color> colors{{"bright", "purple"}, {"dark", "green"}};
 
 => I looked at the painting and saw the following colors: bright purple, dark green
+
+### Performance
 
 Templates are 'compiled' into chunks for increased speed when used multiple times.  Compilation happens on first use
 if not requested earlier.
