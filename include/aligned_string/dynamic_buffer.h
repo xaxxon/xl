@@ -28,8 +28,11 @@ inline std::unique_ptr<char[]> allocate_aligned_blocks(size_t & minimum_bytes) {
     return std::unique_ptr<char[]>(buffer);
 }
 
-
-
+/**
+ * Dynamically-allocated buffer for AlignedString.  Buffer will be aligned to the specified alignment and grows in
+ * multiples of the alignment
+ * @tparam alignment_v alignment of the dynamically-allocated buffer  Must be 16 or 64
+ */
 template<size_t alignment_v>
 class AlignedStringBuffer_Dynamic {
 public:

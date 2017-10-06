@@ -40,13 +40,14 @@ template<class T, class = void>
 struct is_range_for_loop_able : public std::false_type {};
 
 template<class T>
-constexpr bool is_range_for_loop_able_v = is_range_for_loop_able<T>::value;
+struct is_range_for_loop_able<T, std::void_t<
+    decltype(std::begin(std::declval<T>())),
+    decltype(std::end(std::declval<T>()))>
+> : public std::true_type {};
+
 
 template<class T>
-struct is_range_for_loop_able<T, std::void_t<
-    decltype(&std::begin(std::declval<T>())),
-    decltype(&std::end(std::declval<T>()))>
-> : public std::true_type {};
+constexpr bool is_range_for_loop_able_v = is_range_for_loop_able<T>::value;
 
 
 
