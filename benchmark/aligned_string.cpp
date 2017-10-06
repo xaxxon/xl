@@ -31,12 +31,6 @@ std::string gen_random(const int len, char c = '\0') {
 }
 
 
-static void no_op(benchmark::State& state) {
-
-    while (state.KeepRunning()) {
-    }
-}
-BENCHMARK(no_op);
 
 
 
@@ -305,15 +299,3 @@ void register_equality_tests() {
 }
 
 
-
-//BENCHMARK_MAIN();
-int main(int argc, char** argv) {
-
-    std::unique_ptr<int> upi;
-
-    register_equality_tests();
-//    for (auto& test_input : { /* ... */ })
-//        benchmark::RegisterBenchmark(test_input.name(), BM_test, test_input);
-    benchmark::Initialize(&argc, argv);
-    benchmark::RunSpecifiedBenchmarks();
-}

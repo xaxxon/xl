@@ -15,10 +15,10 @@ using TemplateMap = std::map<std::string, Template>;
 
 struct ProviderData {
     std::string name;
-    TemplateMap const & templates;
+    TemplateMap const * templates;
     std::string const parameters;
 
-    ProviderData(std::string const & name, TemplateMap const & templates = TemplateMap{}, std::string parameters = "") :
+    ProviderData(std::string const & name, TemplateMap const * templates = nullptr, std::string parameters = "") :
         name(name),
         templates(templates),
         parameters(parameters) {}

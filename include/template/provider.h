@@ -51,9 +51,9 @@ public:
         std::string join_string = matches[JOIN_STRING_INDEX].str();
 //        std::cerr << fmt::format("looking up template named: '{}'", matches[TEMPLATE_NAME_INDEX].str()) << std::endl;
 //        std::cerr << fmt::format("join string: '{}'", join_string) << std::endl;
-        auto template_iterator = data.templates.find(matches[TEMPLATE_NAME_INDEX].str());
-        if ( template_iterator == data.templates.end()) {
-            if (data.templates.empty()) {
+        auto template_iterator = data.templates->find(matches[TEMPLATE_NAME_INDEX].str());
+        if ( template_iterator == data.templates->end()) {
+            if (data.templates->empty()) {
                 throw TemplateException("ContainerProvider received empty template map so it can't possibly find a template for its members");
             }
             throw TemplateException(fmt::format("ContainerProvider couldn't find template named: '{}'", data.parameters));
@@ -73,7 +73,7 @@ public:
 
             }
             first = false;
-            result << tmpl.fill(*p, data.templates);
+            result << tmpl.fill(*p, *data.templates);
 
         }
         return result.str();
