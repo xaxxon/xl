@@ -33,17 +33,48 @@ public:
 
     std::string operator()(ProviderData const & data) override {
         std::stringstream result;
+
+        static std::regex parameters_regex("^([^|]*)[|]?(.*)$");
+        enum ParameterRegexIndex { EVERYTHING = 0,   TEMPLATE_NAME_INDEX, JOIN_STRING_INDEX };
+
+        std::smatch matches;
+        if (!std::regex_match(data.parameters, matches, parameters_regex)) {
+            throw TemplateException(fmt::format("Unknown template parameters for ContainerProvider: '{}'", data.parameters));
+        }
+//        for(int i = 0; i < matches.size(); i++) {
+//            std::cerr << fmt::format("parameter regex[{}]: '{}'", i, matches[i].str()) << std::endl;
+//        }
+
+
+
+        bool first = true;
+        std::string join_string = matches[JOIN_STRING_INDEX].str();
+//        std::cerr << fmt::format("looking up template named: '{}'", matches[TEMPLATE_NAME_INDEX].str()) << std::endl;
+//        std::cerr << fmt::format("join string: '{}'", join_string) << std::endl;
+        auto template_iterator = data.templates.find(matches[TEMPLATE_NAME_INDEX].str());
+        if ( template_iterator == data.templates.end()) {
+            if (data.templates.empty()) {
+                throw TemplateException("ContainerProvider received empty template map so it can't possibly find a template for its members");
+            }
+            throw TemplateException(fmt::format("ContainerProvider couldn't find template named: '{}'", data.parameters));
+        }
+        Template const & tmpl = template_iterator->second;
+
+
         for (auto const & element : t) {
             auto p = MakeProvider<std::decay_t<decltype(element)>>()(element);
-            std::cerr << fmt::format("looking up template named: '{}'", data.parameters) << std::endl;
-            if (auto template_iterator = data.templates.find(data.parameters); template_iterator != data.templates.end()) {
-                result << template_iterator->second.fill(*p, data.templates);
+
+            if (!first) {
+                result << join_string;
+//                std::cerr << fmt::format("inserting join string '{}' on subsequent pass", join_string) << std::endl;
+
             } else {
-                    if (data.templates.empty()) {
-                    throw TemplateException("ContainerProvider received empty template map so it can't possibly find a template for its members");
-                }
-                throw TemplateException(fmt::format("ContainerProvider couldn't find template named: '{}'", data.parameters));
+//                std::cerr << fmt::format("skipping join string '{}' on first pass", join_string) << std::endl;
+
             }
+            first = false;
+            result << tmpl.fill(*p, data.templates);
+
         }
         return result.str();
     }
@@ -59,11 +90,11 @@ public:
     template<class... Keys, class... Values>
     MapProvider(std::pair<Keys, Values>&&... pairs) {
         (this->map.emplace(pairs.first, MakeProvider<Values>()(pairs.second)),...);
-        std::cerr << fmt::format("done adding pairs to map") << std::endl;
-        std::cerr << fmt::format("map size: {}", this->map.size()) << std::endl;
-        for(auto const & [a,b] : this->map) {
-            std::cerr << fmt::format("{}: {}", a, (void*)b.get()) << std::endl;
-        }
+//        std::cerr << fmt::format("done adding pairs to map") << std::endl;
+//        std::cerr << fmt::format("map size: {}", this->map.size()) << std::endl;
+//        for(auto const & [a,b] : this->map) {
+//            std::cerr << fmt::format("{}: {}", a, (void*)b.get()) << std::endl;
+//        }
     }
 
     std::string operator()(ProviderData const & data) override {

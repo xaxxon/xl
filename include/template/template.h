@@ -79,7 +79,7 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
                 //   everything inside the braces excluding leading and trailing whitespace
                 //   followed by a closing curly brace or potentially end-of-line in case of a no-closing-brace error
                 // negative forward assertion to make sure the closing brace isn't escaped as }}
-                "(?:([{}]?)\\s*((?:[^}{]|[}]{2}|[{]{2})*?)(?:[|]((?:[^{}]|[}]{2}|[{]{2})*?))?\\s*([}]|$)(?!\\}))?",
+                "(?:([{}]?)\\s*((?:[^}{]|[}]{2}|[{]{2})*?)(?:[|]((?:[^{}]|[}]{2}|[{]{2})*?\\s*))?\\s*([}]|$)(?!\\}))?",
 
             std::regex::optimize
         );
@@ -97,14 +97,14 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
 
         std::cmatch matches;
         char const * remaining_template = this->c_str();
-        std::cerr << fmt::format("filling template: '{}'", this->_tmpl.c_str()) << std::endl;
+//        std::cerr << fmt::format("filling template: '{}'", this->_tmpl.c_str()) << std::endl;
 
         while (std::regex_search(remaining_template, matches, r)) {
 
-            std::cerr << fmt::format("matching against: '{}'", remaining_template) << std::endl;
-            for (int i = 0; i < matches.size(); i++) {
-                std::cerr << fmt::format("match[{}]: '{}'", i, matches[i].str()) << std::endl;
-            }
+//            std::cerr << fmt::format("matching against: '{}'", remaining_template) << std::endl;
+//            for (int i = 0; i < matches.size(); i++) {
+//                std::cerr << fmt::format("match[{}]: '{}'", i, matches[i].str()) << std::endl;
+//            }
 
             // if no substitution found, everything was a literal and is handled as a "trailing literal" outside
             //   this loop
@@ -126,23 +126,23 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
 //                    fmt::format("Provider doesn't provide value for name: '{}'", matches[REPLACEMENT_NAME_INDEX]));
 //            }
 
-            if (matches[REPLACEMENT_OPTIONS_INDEX].str() != "") {
-                std::cerr << fmt::format("GOT REPLACEMENT OPTIONS: {}", matches[REPLACEMENT_OPTIONS_INDEX].str()) << std::endl;
-            }
+//            if (matches[REPLACEMENT_OPTIONS_INDEX].str() != "") {
+//                std::cerr << fmt::format("GOT REPLACEMENT OPTIONS: {}", matches[REPLACEMENT_OPTIONS_INDEX].str()) << std::endl;
+//            }
 
             // look up the template to use:
             ProviderData new_data(matches[REPLACEMENT_NAME_INDEX], templates, matches[REPLACEMENT_OPTIONS_INDEX]);
 
 
             std::string provider_data = provider(new_data);
-            std::cerr << fmt::format("replacement string for '{}' is '{}'", matches[REPLACEMENT_NAME_INDEX], provider_data) << std::endl;
+//            std::cerr << fmt::format("replacement string for '{}' is '{}'", matches[REPLACEMENT_NAME_INDEX], provider_data) << std::endl;
             result << provider_data;
 
         }
-        std::cerr << fmt::format("putting on remaining template after loop exits: {}", remaining_template) << std::endl;
+//        std::cerr << fmt::format("putting on remaining template after loop exits: {}", remaining_template) << std::endl;
         result << remaining_template;
 
-        std::cerr << fmt::format("fill result: '{}'", result.str()) << std::endl;
+//        std::cerr << fmt::format("fill result: '{}'", result.str()) << std::endl;
 
 
     return result.str();
