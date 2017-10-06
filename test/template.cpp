@@ -80,11 +80,11 @@ static_assert(xl::is_range_for_loop_able_v<vector<int>>);
 TEST(template, UserDefinedTypeArray) {
     B b;
 
-    TemplateMap templates{std::pair{"A1", Template("{{i: {I} j: {J} }}")},
-                          std::pair{"A2", Template("{{i2: {I} j2: {J} }}")}};
+    TemplateMap templates{std::pair{"A1", Template("{{i: {I} j: {J}\\}}")},
+                          std::pair{"A2", Template("{{i2: {I} j2: {J}\\}}")}};
 
     auto fill_result = Template("B: '{NAME}' A1: {GET_VEC_A|A1|, } A2: {GET_VEC_A|A2|, }").fill(b, templates);
-    EXPECT_EQ(fill_result, "B: 'B name' A1: {{i: 1 j: 6 }}, {{i: 2 j: 6 }}, {{i: 3 j: 6 }}, {{i: 4 j: 6 }}, {{i: 5 j: 6 }} A2: {{i2: 1 j2: 6 }}, {{i2: 2 j2: 6 }}, {{i2: 3 j2: 6 }}, {{i2: 4 j2: 6 }}, {{i2: 5 j2: 6 }}");
+    EXPECT_EQ(fill_result, "B: 'B name' A1: {i: 1 j: 6}, {i: 2 j: 6}, {i: 3 j: 6}, {i: 4 j: 6}, {i: 5 j: 6} A2: {i2: 1 j2: 6}, {i2: 2 j2: 6}, {i2: 3 j2: 6}, {i2: 4 j2: 6}, {i2: 5 j2: 6}");
 }
 
 

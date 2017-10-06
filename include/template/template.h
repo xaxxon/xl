@@ -122,7 +122,7 @@ void Template::compile() const {
             //   everything inside the braces excluding leading and trailing whitespace
             //   followed by a closing curly brace or potentially end-of-line in case of a no-closing-brace error
             // negative forward assertion to make sure the closing brace isn't escaped as }}
-            "(?:([{}]?)\\s*((?:[^}{]|[}]{2}|[{]{2})*?)(?:[|]((?:[^{}]|[}]{2}|[{]{2})*?\\s*))?\\s*([}]|$)(?!\\}))?",
+            "(?:([{}]?)\\s*((?:[^}{]|[}]{2}|[{]{2})*?)(?:[|]((?:[^{}]|[}]{2}|[{]{2})*?\\s*))?\\s*([}]|$)(?!\\})\\\\?)?",
 
         std::regex::optimize
     );
@@ -136,6 +136,8 @@ void Template::compile() const {
         REPLACEMENT_OPTIONS_INDEX,
         CLOSE_BRACE_INDEX,
     };
+
+    static std::regex post_process_regex("([{}])\\1");
 
 
     std::cmatch matches;
@@ -161,7 +163,13 @@ void Template::compile() const {
         }
 
         remaining_template = matches.suffix().first;
-        this->compiled_static_strings.push_back(matches[LITERAL_STRING_INDEX]);
+
+        std::string literal_string = matches[LITERAL_STRING_INDEX];
+//        std::cerr << fmt::format("postprocessing: '{}'", literal_string) << std::endl;
+        literal_string = std::regex_replace(literal_string, post_process_regex, "$1");
+//        std::cerr << fmt::format("into: '{}'", literal_string) << std::endl;
+
+        this->compiled_static_strings.push_back(literal_string);
         this->minimum_result_length += this->compiled_static_strings.back().size();
 
 
@@ -178,7 +186,9 @@ void Template::compile() const {
         this->compiled_substitutions.emplace_back(matches[REPLACEMENT_NAME_INDEX], nullptr, matches[REPLACEMENT_OPTIONS_INDEX]);
 
     }
-    this->compiled_static_strings.push_back(remaining_template);
+
+//    std::cerr << fmt::format("pushing on remaining template: '{}'", std::regex_replace(remaining_template, post_process_regex, "$1")) << std::endl;
+    this->compiled_static_strings.push_back(std::regex_replace(remaining_template, post_process_regex, "$1"));
 
 }
 

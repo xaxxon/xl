@@ -33,7 +33,6 @@ public:
     static std::string const & get_subject_name(Subjects subject) {
         return CustomSubjects::subject_names[static_cast<std::underlying_type_t<Subjects>>(subject)];
     }
-
 };
 
 TEST(log, CustomLog) {
