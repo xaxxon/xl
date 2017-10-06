@@ -8,7 +8,8 @@ class TemplateException : public std::exception {
 
 public:
 
-    TemplateException(std::string const & reason) : reason(std::move(reason)) {}
+    TemplateException(std::string const & reason) : reason(reason) {}
+    TemplateException(std::string && reason) : reason(std::move(reason)) {}
 
     const char * what() const noexcept {
         return reason.c_str();

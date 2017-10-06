@@ -112,6 +112,7 @@ private:
 
 public:
     StringProvider(std::string const & string) : string(string) {}
+    StringProvider(std::string && string) : string(std::move(string)) {}
 
     std::string operator()(ProviderData const & data) override {
         return this->string;

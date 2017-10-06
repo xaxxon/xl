@@ -4,7 +4,7 @@
 
 namespace xl {
 /**
- * string_view that is guaranteed to be null terminated.
+ * basic_zstring_view is a std::basic_string_view that is guaranteed to be null terminated.
  * adds c_str() as a synonym for std::string_view::data to make it clear that it is null terminated like it is
  *   in std::string::c_str()
  */
