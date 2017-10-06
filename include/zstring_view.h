@@ -8,38 +8,25 @@ namespace xl {
  * adds c_str() as a synonym for std::string_view::data to make it clear that it is null terminated like it is
  *   in std::string::c_str()
  */
-class zstring_view : public std::string_view {
+template<
+    class CharT,
+    class Traits = std::char_traits<CharT>>
+class basic_zstring_view : public std::basic_string_view<CharT, Traits> {
 
 public:
-    zstring_view();
+    using std::basic_string_view<CharT, Traits>::basic_string_view;
 
-    // must call strlen to compute length
-    zstring_view(char const * const source) :
-        zstring_view(source, strlen(source))
-    {}
+    // There is intentionally no constructor that takes a std::string_view because it's not guaranteed to be
+    //   NUL terminated and there's nowhere to store a memory allocation to store a copy of the string with a NUL
 
-    // more efficient if the length of the char* is already known
-    zstring_view(char const * const source, std::size_t length) :
-        std::string_view(source, length)
-    {}
+    CharT const * c_str() const {return this->data();}
 
-
-    zstring_view(std::string const & source) :
-        std::string_view(source)
-    {}
-
-    zstring_view(zstring_view const &) = default;
-
-    zstring_view(zstring_view &&) = default;
-
-    zstring_view & operator=(zstring_view const &) = default;
-
-    zstring_view & operator=(zstring_view &&) = default;
-
-    char const * c_str() const {return this->data();}
-
-    operator std::string() const {return std::string(*this);}
-    // no need to convert to std::string_view, it already is
+    operator std::basic_string<CharT>() const {return std::basic_string<CharT>(*this);}
 };
+
+using zstring_view = basic_zstring_view<char>;
+using wzstring_view = basic_zstring_view<wchar_t>;
+using u16zstring_view = basic_zstring_view<char16_t>;
+using u32zstring_view = basic_zstring_view<char32_t>;
 
 }
