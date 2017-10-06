@@ -2,7 +2,9 @@
 
 ### Simple use
 
-Template: I went to the {LOCATION} and saw {THING}
+Anything within double curly braces is looked up by name and replaced with the corresponding value
+
+Template: I went to the {{LOCATION}} and saw {{THING}}
 
 Substitutions: {{"LOCATION", "store"}, {"THING", "my friend"}}
 
@@ -13,9 +15,9 @@ with a custom string.
 
 Pseudo-code:
 
-I looked at the painting and saw the following colors: {COLORS|ColorTemplate|, }
+I looked at the painting and saw the following colors: {{COLORS|ColorTemplate|, }}
 
-ColorTemplate: "{ADJECTIVE} {COLOR}"
+ColorTemplate: "{{ADJECTIVE}} {{COLOR}}"
 
 Color {
   string adjective;

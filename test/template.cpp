@@ -16,38 +16,38 @@ TEST(template, NoSubstitutionTemplate) {
     EXPECT_EQ(Template(template_string).fill(), template_string);
 }
 TEST(template, SimpleSubstitutionTemplate) {
-    EXPECT_EQ(Template("replace: {TEST}").fill(MapProvider(xl::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: { TEST}").fill(MapProvider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: {TEST }").fill(MapProvider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: { TEST }").fill(MapProvider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: {{TEST}}").fill(MapProvider(xl::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: {{ TEST}}").fill(MapProvider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: {{TEST }}").fill(MapProvider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: {{ TEST }}").fill(MapProvider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT");
 }
 TEST(template, MissingNameInProviderSubstitutionTemplate) {
-    EXPECT_THROW(Template("replace: {TEST}").fill(MapProvider{xl::pair{"XXX", "REPLACEMENT"}}),
+    EXPECT_THROW(Template("replace: {{TEST}}").fill(MapProvider{xl::pair{"XXX", "REPLACEMENT"}}),
                  xl::TemplateException);
 }
 TEST(template, InvalidTemplateSyntax_OpenedButNotClosed_Template) {
-    EXPECT_THROW(Template("replace: {TEST").fill(),
+    EXPECT_THROW(Template("replace: {{TEST").fill(),
                  xl::TemplateException);
 }
 TEST(template, InvalidTemplateSyntax_ClosedButNotOpened_Template) {
-    EXPECT_THROW(Template("replace: TEST}").fill(),
+    EXPECT_THROW(Template("replace: TEST}}").fill(),
                  xl::TemplateException);
 }
 
 TEST(template, SimpleSubstitutionTemplateWithSuffix) {
-    EXPECT_EQ(Template("replace: {TEST} and more").fill(MapProvider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT and more");
+    EXPECT_EQ(Template("replace: {{TEST}} and more").fill(MapProvider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT and more");
 }
 TEST(template, MultipleSubstitutionsSameNameTemplate) {
-    EXPECT_EQ(Template("replace: {TEST} and: {TEST}").fill(MapProvider{xl::pair{"TEST", "REPLACEMENT"}}),
+    EXPECT_EQ(Template("replace: {{TEST}} and: {{TEST}}").fill(MapProvider{xl::pair{"TEST", "REPLACEMENT"}}),
               "replace: REPLACEMENT and: REPLACEMENT");
 }
 TEST(template, MultipleSubstitutionsDifferentNameTemplate) {
-    EXPECT_EQ(Template("replace: {TEST1} and: {TEST2}").fill(MapProvider{std::pair{"TEST1", "REPLACEMENT1"},std::pair{"TEST2", "REPLACEMENT2"}}),
+    EXPECT_EQ(Template("replace: {{TEST1}} and: {{TEST2}}").fill(MapProvider{std::pair{"TEST1", "REPLACEMENT1"},std::pair{"TEST2", "REPLACEMENT2"}}),
               "replace: REPLACEMENT1 and: REPLACEMENT2" );
 }
 TEST(template, CallbackSubstitutionTemplate) {
     MapProvider m{std::pair{"TEST", std::function<std::string()>([](){return std::string("REPLACEMENT-CALLBACK");})}};
-    EXPECT_EQ(Template("replace: {TEST}").fill(m),
+    EXPECT_EQ(Template("replace: {{TEST}}").fill(m),
               "replace: REPLACEMENT-CALLBACK");
 }
 
@@ -80,10 +80,10 @@ static_assert(xl::is_range_for_loop_able_v<vector<int>>);
 TEST(template, UserDefinedTypeArray) {
     B b;
 
-    TemplateMap templates{std::pair{"A1", Template("{{i: {I} j: {J}\\}}")},
-                          std::pair{"A2", Template("{{i2: {I} j2: {J}\\}}")}};
+    TemplateMap templates{std::pair{"A1", Template("{i: {{I}} j: {{J}}}")},
+                          std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
 
-    auto fill_result = Template("B: '{NAME}' A1: {GET_VEC_A|A1|, } A2: {GET_VEC_A|A2|, }").fill(b, templates);
+    auto fill_result = Template("B: '{{NAME}}' A1: {{GET_VEC_A|A1|, }} A2: {{GET_VEC_A|A2|, }}").fill(b, templates);
     EXPECT_EQ(fill_result, "B: 'B name' A1: {i: 1 j: 6}, {i: 2 j: 6}, {i: 3 j: 6}, {i: 4 j: 6}, {i: 5 j: 6} A2: {i2: 1 j2: 6}, {i2: 2 j2: 6}, {i2: 3 j2: 6}, {i2: 4 j2: 6}, {i2: 5 j2: 6}");
 }
 

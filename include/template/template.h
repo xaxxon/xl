@@ -113,23 +113,23 @@ void Template::compile() const {
     //   BUT NOT neither. (leading positive lookahead assertion makes sure string isn't empty)
     static std::regex r(
         // forward lookahead that the string has at least one character (not empty)
-        "^(?=(?:.|\\n))"
+        //"^(?=(?:.|\\n))"
 
             // grab everything up until a first lone curly brace
-            "((?:[^{}]|[{]{2}|[}]{2})*)"
+            //"((?:[^{}]|[{]{2}|[}]{2})*)"
 
             // grab a brace (potentially the wrong one which will be checked for later) and then a submatch of
             //   everything inside the braces excluding leading and trailing whitespace
             //   followed by a closing curly brace or potentially end-of-line in case of a no-closing-brace error
             // negative forward assertion to make sure the closing brace isn't escaped as }}
-            "(?:([{}]?)\\s*((?:[^}{]|[}]{2}|[{]{2})*?)(?:[|]((?:[^{}]|[}]{2}|[{]{2})*?\\s*))?\\s*([}]|$)(?!\\})\\\\?)?",
-
+            //"(?:([{}]?)\\s*((?:[^}{]|[}]{2}|[{]{2})*?)(?:[|]((?:[^{}]|[}]{2}|[{]{2})*?\\s*))?\\s*([}]|$)(?!\\})\\\\?)?",
+        "^(?=(?:.|\\n))((?:[^{}]|[{](?!\\{)|[}](?!\\}))*)(?:([{]{2})\\s*((?:[^{}|\\s]|\\s*(?!(?:[}][}]))|\\\\[}]|[^}|\\s]|[}](?!\\}))*)\\s*(?:[|]((?:\\\\[}]|[^}]|[}](?!\\}))*))?)?([}]{2})?",
         std::regex::optimize
     );
 
     // submatch positions for the above regex
     enum RegexMatchIndex {
-        WHOLE_STRiNG_INDEX = 0,
+        WHOLE_STRING_INDEX = 0,
         LITERAL_STRING_INDEX,
         OPEN_BRACE_INDEX,
         REPLACEMENT_NAME_INDEX,
@@ -142,7 +142,7 @@ void Template::compile() const {
 
     std::cmatch matches;
     char const * remaining_template = this->c_str();
-//        std::cerr << fmt::format("filling template: '{}'", this->_tmpl.c_str()) << std::endl;
+//    std::cerr << fmt::format("filling template: '{}'", this->_tmpl.c_str()) << std::endl;
 
     while (std::regex_search(remaining_template, matches, r)) {
 
@@ -158,7 +158,7 @@ void Template::compile() const {
         }
 
         // check for open but no close or incorrect brace type
-        if (matches[OPEN_BRACE_INDEX].str() != "{" || matches[CLOSE_BRACE_INDEX].str() != "}") {
+        if (matches[OPEN_BRACE_INDEX].str() != "{{" || matches[CLOSE_BRACE_INDEX].str() != "}}") {
             throw TemplateException("Found mismatched braces");
         }
 
