@@ -16,13 +16,17 @@ TEST(template, NoSubstitutionTemplate) {
     EXPECT_EQ(Template(template_string).fill(), template_string);
 }
 TEST(template, SimpleSubstitutionTemplate) {
-    EXPECT_EQ(Template("replace: {{TEST}}").fill(MapProvider(xl::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: {{ TEST}}").fill(MapProvider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: {{TEST }}").fill(MapProvider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: {{ TEST }}").fill(MapProvider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: {{TEST}}").fill(Provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: {{ TEST}}").fill(Provider{std::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: {{TEST }}").fill(Provider{std::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: {{ TEST }}").fill(Provider{std::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT");
+}
+TEST(template, EscapedCurlyBraceTemplate) {
+    EXPECT_EQ(Template("replace: \\{{{TEST}}").fill(Provider(std::pair{"TEST", "REPLACEMENT"})), "replace: {REPLACEMENT");
+    EXPECT_EQ(Template("replace: {{TEST}}\\}").fill(Provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT}");
 }
 TEST(template, MissingNameInProviderSubstitutionTemplate) {
-    EXPECT_THROW(Template("replace: {{TEST}}").fill(MapProvider{xl::pair{"XXX", "REPLACEMENT"}}),
+    EXPECT_THROW(Template("replace: {{TEST}}").fill(Provider{std::pair{"XXX", "REPLACEMENT"}}),
                  xl::TemplateException);
 }
 TEST(template, InvalidTemplateSyntax_OpenedButNotClosed_Template) {
@@ -35,21 +39,22 @@ TEST(template, InvalidTemplateSyntax_ClosedButNotOpened_Template) {
 }
 
 TEST(template, SimpleSubstitutionTemplateWithSuffix) {
-    EXPECT_EQ(Template("replace: {{TEST}} and more").fill(MapProvider{xl::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT and more");
+    EXPECT_EQ(Template("replace: {{TEST}} and more").fill(Provider{std::pair{"TEST", "REPLACEMENT"}}), "replace: REPLACEMENT and more");
 }
 TEST(template, MultipleSubstitutionsSameNameTemplate) {
-    EXPECT_EQ(Template("replace: {{TEST}} and: {{TEST}}").fill(MapProvider{xl::pair{"TEST", "REPLACEMENT"}}),
+    EXPECT_EQ(Template("replace: {{TEST}} and: {{TEST}}").fill(Provider{std::pair{"TEST", "REPLACEMENT"}}),
               "replace: REPLACEMENT and: REPLACEMENT");
 }
 TEST(template, MultipleSubstitutionsDifferentNameTemplate) {
-    EXPECT_EQ(Template("replace: {{TEST1}} and: {{TEST2}}").fill(MapProvider{std::pair{"TEST1", "REPLACEMENT1"},std::pair{"TEST2", "REPLACEMENT2"}}),
+    EXPECT_EQ(Template("replace: {{TEST1}} and: {{TEST2}}").fill(Provider{std::pair{"TEST1", "REPLACEMENT1"},std::pair{"TEST2", "REPLACEMENT2"}}),
               "replace: REPLACEMENT1 and: REPLACEMENT2" );
 }
 TEST(template, CallbackSubstitutionTemplate) {
-    MapProvider m{std::pair{"TEST", std::function<std::string()>([](){return std::string("REPLACEMENT-CALLBACK");})}};
+    Provider m{std::pair{"TEST", std::function<std::string()>([](){return std::string("REPLACEMENT-CALLBACK");})}};
     EXPECT_EQ(Template("replace: {{TEST}}").fill(m),
               "replace: REPLACEMENT-CALLBACK");
 }
+
 
 
 struct A {
@@ -58,7 +63,7 @@ struct A {
     A(int i) : i(i) {}
 
     std::unique_ptr<xl::Provider_Interface> get_provider() const {
-        return std::make_unique<xl::MapProvider>(std::pair{"I", [this]{return fmt::format("{}", this->i);}}, std::pair{"J", "6"});
+        return std::unique_ptr<xl::Provider_Interface>(new Provider(std::pair{"I", [this]{return fmt::format("{}", this->i);}}, std::pair{"J", "6"}));
     }
 };
 
@@ -69,8 +74,8 @@ struct B {
 
     std::vector<A> const & get_vec_a(){return this->vec_a;};
     std::unique_ptr<xl::Provider_Interface> get_provider() {
-        return std::make_unique<xl::MapProvider>(std::pair{"NAME", this->name},
-                                                 std::pair("GET_VEC_A", this->get_vec_a()));
+        return make_provider(std::pair{"NAME", this->name},
+                             std::pair("GET_VEC_A", this->get_vec_a()));
     }
 };
 
@@ -88,6 +93,14 @@ TEST(template, UserDefinedTypeArray) {
 }
 
 
+
+vector<A> vector_object_callback(){
+    return {10, 11, 12};
+}
+TEST(template, VectorCallbackTemplate) {
+    EXPECT_EQ(Template("replace: {{TEST1}}").fill(Provider{std::pair{"TEST1", make_provider(vector_object_callback)}}),
+    "B: 'B name' A1: {i: 1 j: 6}, {i: 2 j: 6}, {i: 3 j: 6}, {i: 4 j: 6}, {i: 5 j: 6} A2: {i2: 1 j2: 6}, {i2: 2 j2: 6}, {i2: 3 j2: 6}, {i2: 4 j2: 6}, {i2: 5 j2: 6}");
+}
 
 
 
@@ -121,7 +134,7 @@ struct Finger {
     }
 
     std::unique_ptr<xl::Provider_Interface> get_provider() {
-        return std::make_unique<xl::MapProvider>(std::pair{"NAME", this->get_name()});
+        return make_provider(std::pair{"NAME", this->get_name()});
     }
 };
 
@@ -135,7 +148,7 @@ public:
     auto const & get_fingers() {return this->fingers;}
 
     std::unique_ptr<xl::Provider_Interface> get_provider() {
-        return std::make_unique<xl::MapProvider>(std::pair{"FINGERS", "BOGUS"});
+        return make_provider(std::pair{"FINGERS", "BOGUS"});
     }
 
 };
@@ -152,7 +165,7 @@ public:
         return Template("Arm: Hands: {HANDS:}");
     }
     std::unique_ptr<xl::Provider_Interface> get_provider() {
-        return std::make_unique<xl::MapProvider>(std::pair{"HANDS","BOGUS"});
+        return make_provider(std::pair{"HANDS","BOGUS"});
     }
 };
 
@@ -169,7 +182,7 @@ public:
 
     std::unique_ptr<xl::Provider_Interface> get_provider() {
         std::cerr << fmt::format("Getting Person provider") << std::endl;
-        return std::make_unique<xl::MapProvider>(
+        return make_provider(
                 std::pair("NAME", this->name)//,
             );
     }

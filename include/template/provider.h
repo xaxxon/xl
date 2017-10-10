@@ -9,27 +9,164 @@
 #include "template.h"
 
 namespace xl {
+//
+//class Stringable {
+//private:
+//    std::variant<std::string, std::function<std::string()>> source;
+//public:
+//    Stringable(std::string source) : source(source) {}
+//    Stringable(std::function<std::string()> source) : source(source) {}
+//    operator std::string() {
+//        if (auto string = std::get_if<std::string>(&source)) {
+//            return *string;
+//        } else if (auto callback = std::get_if<std::function<std::string()>>(&source)) {
+//            return (*callback)();
+//        } else {
+//            assert(false);
+//        }
+//    }
+//
+//};
+
+
+
+template<class T, class=void>
+class Provider {
+public:
+    Provider(T && t); // intentionally not defined
+    Provider(T & t); // intentionally not defined
+};
 
 
 
 
 template<class, class = void>
-struct MakeProvider;
+class is_provider_type : public std::false_type {};
+
+template<class T>
+class is_provider_type<T, std::enable_if_t<std::is_same_v<
+    std::string,
+    std::result_of_t<Provider<T>(ProviderData const &)>
+> // is same
+> // enable_if
+
+> : public std::true_type {};
+
+template<class T>
+constexpr bool is_provider_type_v = is_provider_type<T>::value;
+
 
 
 
 template<class T, class = void>
-class ContainerProvider;
+class is_provider_callback_type : public std::false_type {};
+
+template<class T>
+class is_provider_callback_type<T, std::enable_if_t<
+    is_provider_type_v<
+        std::result_of_t<
+            T()
+                > // result_of
+            > // is_provider_type
+    > // enable_if
+> : public std::true_type {};
+
+template<class T>
+constexpr bool is_provider_callback_type_v = is_provider_callback_type<T>::value;
 
 
 template<class T>
-class ContainerProvider<T, std::enable_if_t<xl::is_range_for_loop_able_v<T>>> : public Provider_Interface {
+class Provider<T, std::enable_if_t<std::is_convertible_v<T, std::string>>> : public Provider_Interface {
+    std::string string;
+
+public:
+    Provider(T && string) : string(std::move(string))
+    {}
+    Provider(T & string) : string(string)
+    {}
+
+
+    std::string operator()(ProviderData const & data) override {
+        return this->string;
+    }
+};
+
+
+
+template<class... Keys, class... Values, std::enable_if_t<!(sizeof...(Keys) <= 1), int> = 0>
+std::unique_ptr<Provider_Interface> make_provider(std::pair<Keys, Values>&&... pairs) {
+    return std::unique_ptr<Provider_Interface>(new Provider(std::forward<std::pair<Keys, Values>&&>(pairs)...));
+}
+
+
+
+// Is T callable and returns a type which can be made into a Provider?
+template<class T>
+class Provider<T, std::enable_if_t<is_provider_callback_type_v<std::remove_reference_t<T>>>> : public Provider_Interface {
+
+    T callback;
+
+    using CallbackResultT = std::result_of_t<T()>;
+
+public:
+    Provider(std::remove_reference_t<T> && callback) : callback(std::move(callback))
+    {}
+    Provider(std::remove_reference_t<T> & callback) : callback(callback)
+    {}
+
+
+    std::string operator()(ProviderData const & data) override {
+        return Provider<CallbackResultT>(this->callback())(data);
+    }
+};
+
+
+
+template<class T>
+std::unique_ptr<Provider_Interface> make_provider(T && t) {
+    if constexpr(std::is_same_v<std::remove_reference_t<T>, std::unique_ptr<Provider_Interface>>) {
+        return std::move(t);
+    } else {
+        return std::unique_ptr<Provider_Interface>(new Provider(std::forward<T>(t)));
+    }
+}
+
+template<class R, class... Args, std::enable_if_t<is_provider_type_v<R>, int> = 0>
+std::unique_ptr<Provider_Interface> make_provider(R(*f)(Args...)) {
+    return std::unique_ptr<Provider_Interface>(new Provider(std::function<R(Args...)>(f)));
+};
+
+
+
+// Does T have a get_provider method on it?
+template<class T>
+class Provider<T, std::enable_if_t<
+    std::is_same_v<
+        std::unique_ptr<Provider_Interface>,
+        decltype(std::declval<T>().get_provider())>>> : public Provider_Interface {
+
+private:
+    T t;
+
+public:
+    Provider(T && t) : t(std::move(t)) {}
+    Provider(T & t) : t(t) {}
+    Provider(T const & t) : t(t) {}
+
+
+    std::string operator()(ProviderData const & data) override {
+        return t.get_provider()->operator()(data);
+    }
+};
+
+template<class T>
+class Provider<T, std::enable_if_t<xl::is_range_for_loop_able_v<T> && !std::is_convertible_v<T, std::string>>> : public Provider_Interface {
 
 private:
     T t;
 public:
 
-    ContainerProvider(T const & t) : t(t) {}
+    Provider(T const & t) : t(t) {}
 
     std::string operator()(ProviderData const & data) override {
         std::stringstream result;
@@ -62,7 +199,7 @@ public:
 
 
         for (auto const & element : t) {
-            auto p = MakeProvider<std::decay_t<decltype(element)>>()(element);
+            auto p = Provider<std::decay_t<decltype(element)>>(element);
 
             if (!first) {
                 result << join_string;
@@ -73,7 +210,7 @@ public:
 
             }
             first = false;
-            result << tmpl.fill(*p, *data.templates);
+            result << tmpl.fill(p, *data.templates);
 
         }
         return result.str();
@@ -82,14 +219,17 @@ public:
 
 
 
-class MapProvider : public Provider_Interface {
+
+
+template<>
+class Provider<std::map<std::string, std::unique_ptr<Provider_Interface>>> : public Provider_Interface {
 public:
 
     std::map<std::string, std::unique_ptr<Provider_Interface>> map;
 
     template<class... Keys, class... Values>
-    MapProvider(std::pair<Keys, Values>&&... pairs) {
-        (this->map.emplace(pairs.first, MakeProvider<Values>()(pairs.second)),...);
+    Provider(std::pair<Keys, Values> && ... pairs) {
+        (this->map.emplace(pairs.first, make_provider(pairs.second)),...);
 //        std::cerr << fmt::format("done adding pairs to map") << std::endl;
 //        std::cerr << fmt::format("map size: {}", this->map.size()) << std::endl;
 //        for(auto const & [a,b] : this->map) {
@@ -98,106 +238,26 @@ public:
     }
 
     std::string operator()(ProviderData const & data) override {
-        if (auto i = map.find(data.name); i != map.end()) {
-            return map[data.name]->operator()(data);
+        if (auto provider_iterator = this->map.find(data.name); provider_iterator != this->map.end()) {
+            return provider_iterator->second->operator()(data);
+        } else {
+            std::cerr << fmt::format("in map:") << std::endl;
+            for(auto const & [k,v] : this->map) {
+                std::cerr << fmt::format("key: {}", k) << std::endl;
+            }
+            throw TemplateException("unknown name: " + data.name);
         }
-        throw TemplateException(fmt::format("substitution name '{}' not found in map provider", data.name));
-    }
-};
-
-
-class StringProvider : public Provider_Interface {
-private:
-    std::string string;
-
-public:
-    StringProvider(std::string const & string) : string(string) {}
-    StringProvider(std::string && string) : string(std::move(string)) {}
-
-    std::string operator()(ProviderData const & data) override {
-        return this->string;
-    }
-};
-
-class StringCallbackProvider : public Provider_Interface {
-private:
-    std::function<std::string()> callback;
-
-public:
-    StringCallbackProvider(std::function<std::string()> callback) : callback(callback) {}
-
-    std::string operator()(ProviderData const & data) override {
-        return this->callback();
     }
 };
 
 
 
 
-template<class T>
-struct MakeProvider<T, std::enable_if_t<std::is_convertible_v<T, std::string>>> {
+template<class... Keys, class... Values>
+Provider(std::pair<Keys, Values>&&...) -> Provider<std::map<std::string, std::unique_ptr<Provider_Interface>>>;
 
-    std::unique_ptr<Provider_Interface> operator()(std::decay_t<T> t) {
-        return std::make_unique<StringProvider>(std::forward<T>(t));
-    }
-};
-
-
-
-/**
- * If the type has a method called get_provider that returns a unique_ptr<Provider>
- * @tparam T Type to check for a get_provider method
- */
-template<class T>
-struct MakeProvider<T, std::enable_if_t<std::is_same_v<std::unique_ptr<xl::Provider_Interface>, decltype(std::declval<T>().get_provider())> > > {
-private:
-
-public:
-    static constexpr bool is_leaf = true;
-    std::unique_ptr<Provider_Interface> operator()(std::remove_reference_t<T> const & t) {
-        return t.get_provider();
-    }
-    std::unique_ptr<Provider_Interface> operator()(std::remove_reference_t<T> & t) {
-        return t.get_provider();
-    }
-
-    std::unique_ptr<Provider_Interface> operator()(std::remove_reference_t<T> && t) {
-        return t.get_provider();
-    }
-};
-
-template<class T>
-struct MakeProvider<T, std::enable_if_t<std::is_convertible_v<T, std::function<std::string()>>>> {
-    std::unique_ptr<Provider_Interface> operator()(std::decay_t<T> t) {
-        return std::make_unique<StringCallbackProvider>(t);
-    }
-};
-
-
-template<class T>
-struct MakeProvider<T, std::enable_if_t<xl::is_range_for_loop_able_v<T> && !std::is_convertible_v<T, std::string>>> {
-    std::unique_ptr<Provider_Interface> operator()(std::decay_t<T> t) {
-        return std::make_unique<ContainerProvider<T>>(std::move(t));
-    }
-};
-
-
-//
-//
-//template<class T>
-//struct MakeProvider<T, std::enable_if_t<std::is_base_of_v<Provider_Interface, T>>> {
-//
-//    static constexpr bool is_leaf = true;
-//
-//    std::unique_ptr<Provider_Interface> operator()(T & p) {
-//        std::make_unique<
-//    }
-//    std::unique_ptr<Provider_Interface> operator()(T && p) {
-//        this->stored_p = std::move(p);
-//        return this->stored_p;
-//    }
-//};
-
+static_assert(is_provider_type_v<std::string>);
+static_assert(is_provider_callback_type_v<std::__1::function<std::__1::basic_string<char> ()> &>);
 
 
 } // end namespace xl

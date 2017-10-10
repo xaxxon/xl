@@ -76,7 +76,7 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
     if constexpr(std::is_base_of_v<Provider_Interface, std::decay_t<T>>) {
         provider_interface_pointer = & source;
     } else {
-        provider_interface_unique_pointer = MakeProvider<std::decay_t<T>>()(source);
+        provider_interface_unique_pointer = make_provider(source);
         provider_interface_pointer = provider_interface_unique_pointer.get();
     }
     Provider_Interface & provider = *provider_interface_pointer;
@@ -123,7 +123,7 @@ void Template::compile() const {
             //   followed by a closing curly brace or potentially end-of-line in case of a no-closing-brace error
             // negative forward assertion to make sure the closing brace isn't escaped as }}
             //"(?:([{}]?)\\s*((?:[^}{]|[}]{2}|[{]{2})*?)(?:[|]((?:[^{}]|[}]{2}|[{]{2})*?\\s*))?\\s*([}]|$)(?!\\})\\\\?)?",
-        "^(?=(?:.|\\n))((?:[^{}]|[{](?!\\{)|[}](?!\\}))*)(?:([{]{2})\\s*((?:[^{}|\\s]|\\s*(?!(?:[}][}]))|\\\\[}]|[^}|\\s]|[}](?!\\}))*)\\s*(?:[|]((?:\\\\[}]|[^}]|[}](?!\\}))*))?)?([}]{2})?",
+        "^(?=(?:.|\\n))((?:\\\\[{]|[^{}]|[{](?!\\{)|[}](?!\\}))*)(?:([{]{2})\\s*((?:[^{}|\\s]|\\s*(?!(?:[}][}]))|\\\\[}]|[^}|\\s]|[}](?!\\}))*)\\s*(?:[|]((?:\\\\[}]|[^}]|[}](?!\\}))*))?)?([}]{2})?",
         std::regex::optimize
     );
 
@@ -137,7 +137,10 @@ void Template::compile() const {
         CLOSE_BRACE_INDEX,
     };
 
-    static std::regex post_process_regex("([{}])\\1");
+    // turn double curlies {{ or }} into { or } and anything with a backslash before it into just the thing
+    //   after the backslash
+    static std::regex post_process_regex("(?:([{}])\\1|\\\\(.))");
+
 
 
     std::cmatch matches;
@@ -166,7 +169,8 @@ void Template::compile() const {
 
         std::string literal_string = matches[LITERAL_STRING_INDEX];
 //        std::cerr << fmt::format("postprocessing: '{}'", literal_string) << std::endl;
-        literal_string = std::regex_replace(literal_string, post_process_regex, "$1");
+
+        literal_string = std::regex_replace(literal_string, post_process_regex, "$1$2");
 //        std::cerr << fmt::format("into: '{}'", literal_string) << std::endl;
 
         this->compiled_static_strings.push_back(literal_string);
@@ -188,7 +192,7 @@ void Template::compile() const {
     }
 
 //    std::cerr << fmt::format("pushing on remaining template: '{}'", std::regex_replace(remaining_template, post_process_regex, "$1")) << std::endl;
-    this->compiled_static_strings.push_back(std::regex_replace(remaining_template, post_process_regex, "$1"));
+    this->compiled_static_strings.push_back(std::regex_replace(remaining_template, post_process_regex, "$1$2"));
 
 }
 

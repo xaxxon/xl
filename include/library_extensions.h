@@ -6,6 +6,7 @@
 
 namespace xl {
 
+
 /**
  * returns whether the container contains the specified value
  * @tparam ValueT
@@ -49,6 +50,8 @@ struct is_range_for_loop_able<T, std::void_t<
 template<class T>
 constexpr bool is_range_for_loop_able_v = is_range_for_loop_able<T>::value;
 
+static_assert(is_range_for_loop_able_v<std::vector<int>>);
+static_assert(!is_range_for_loop_able_v<int>);
 
 
 /**
@@ -94,9 +97,8 @@ public:
     pair(T1 && t1, T2 && t2) :
         std::pair<T1, T2>(std::forward<T1>(t1), std::forward<T2>(t2))
     {}
-
-
 };
+
 template<class T1, class T2>
 pair(T1 t1, T2 t) -> pair<T1, T2>;
 
