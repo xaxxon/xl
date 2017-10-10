@@ -241,10 +241,10 @@ public:
         if (auto provider_iterator = this->map.find(data.name); provider_iterator != this->map.end()) {
             return provider_iterator->second->operator()(data);
         } else {
-            std::cerr << fmt::format("in map:") << std::endl;
-            for(auto const & [k,v] : this->map) {
-                std::cerr << fmt::format("key: {}", k) << std::endl;
-            }
+//            std::cerr << fmt::format("in map:") << std::endl;
+//            for(auto const & [k,v] : this->map) {
+//                std::cerr << fmt::format("key: {}", k) << std::endl;
+//            }
             throw TemplateException("unknown name: " + data.name);
         }
     }
