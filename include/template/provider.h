@@ -16,8 +16,10 @@ class Provider {
 public:
     Provider(T && t); // intentionally not defined
     Provider(T & t); // intentionally not defined
+    Provider(T const & t); // intentionally not defined
     Provider() = delete;
 };
+
 
 
 template<class, class = void>
@@ -52,6 +54,46 @@ class is_provider_callback_type<T, std::enable_if_t<
 template<class T>
 constexpr bool is_provider_callback_type_v = is_provider_callback_type<T>::value;
 
+
+template<class, class = void>
+struct can_get_provider_for_type : public std::false_type {};
+
+template<class, class = void>
+struct has_get_provider_member : public std::false_type {};
+template<class T>
+struct has_get_provider_member<T, std::enable_if_t<std::is_same_v<
+    std::unique_ptr<Provider_Interface>,
+    decltype(std::declval<T>().get_provider())>>> : public std::true_type {};
+
+template<class T>
+constexpr bool has_get_provider_member_v = has_get_provider_member<T>::value;
+
+
+template<class, class = void>
+struct has_get_provider_free_function : public std::false_type {};
+
+template<class T>
+struct has_get_provider_free_function<T, std::enable_if_t<std::is_same_v<
+    std::unique_ptr<Provider_Interface>,
+    decltype(get_provider(std::declval<T>()))> // end is_same
+> // end enable_if
+> : public std::true_type {};
+
+template<class T>
+constexpr bool has_get_provider_free_function_v = has_get_provider_free_function<T>::value;
+
+template<class T>
+struct can_get_provider_for_type<T, std::enable_if_t<
+    std::disjunction_v< // logical OR
+        has_get_provider_member<T>,
+        has_get_provider_free_function<T>
+    > // end disjunction
+> // end enable_if
+        > : public std::true_type {};
+
+
+template<class T>
+constexpr bool can_get_provider_for_type_v = can_get_provider_for_type<T>::value;
 
 template<class T>
 class Provider<T, std::enable_if_t<std::is_convertible_v<T, std::string>>> : public Provider_Interface {
@@ -118,10 +160,7 @@ std::unique_ptr<Provider_Interface> make_provider(R(*f)(Args...)) {
 
 // Does T have a get_provider method on it?
 template<class T>
-class Provider<T, std::enable_if_t<
-    std::is_same_v<
-        std::unique_ptr<Provider_Interface>,
-        decltype(std::declval<T>().get_provider())>>> : public Provider_Interface {
+class Provider<T, std::enable_if_t<can_get_provider_for_type_v<T>>> : public Provider_Interface {
 
 private:
     T t;
@@ -133,7 +172,14 @@ public:
 
 
     std::string operator()(ProviderData const & data) override {
-        return t.get_provider()->operator()(data);
+        if constexpr(has_get_provider_member_v<T>)
+        {
+            return t.get_provider()->operator()(data);
+        } else if constexpr(has_get_provider_free_function_v<T>){
+            return get_provider(t)->operator()(data);
+        } else {
+            throw xl::TemplateException("this shouldn't happen");
+        }
     }
 };
 
@@ -234,6 +280,7 @@ public:
 template<class... Keys, class... Values>
 Provider(std::pair<Keys, Values>&&...) -> Provider<std::map<std::string, std::unique_ptr<Provider_Interface>>>;
 
+static_assert(!xl::can_get_provider_for_type_v<std::string>);
 static_assert(is_provider_type_v<std::string>);
 static_assert(is_provider_callback_type_v<std::__1::function<std::__1::basic_string<char> ()> &>);
 

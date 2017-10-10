@@ -62,12 +62,15 @@ struct A {
 
     A(int i) : i(i) {}
 
-    std::unique_ptr<xl::Provider_Interface> get_provider() const {
-        return std::unique_ptr<xl::Provider_Interface>(new Provider(std::pair{"I", [this]{return fmt::format("{}", this->i);}}, std::pair{"J", "6"}));
-    }
 };
 
 
+
+std::unique_ptr<xl::Provider_Interface> get_provider(A const & a) {
+    return std::unique_ptr<xl::Provider_Interface>(new Provider(std::pair{"I", [a]{return fmt::format("{}", a.i);}}, std::pair{"J", "6"}));
+}
+
+static_assert(can_get_provider_for_type_v<A>);
 struct B {
     std::string name = "B name";
     std::vector<A> vec_a{1,2,3,4,5};
@@ -75,9 +78,10 @@ struct B {
     std::vector<A> const & get_vec_a(){return this->vec_a;};
     std::unique_ptr<xl::Provider_Interface> get_provider() {
         return make_provider(std::pair{"NAME", this->name},
-                             std::pair("GET_VEC_A", this->get_vec_a()));
+                             std::pair("GET_VEC_A", std::bind(&B::get_vec_a, this)));
     }
 };
+static_assert(can_get_provider_for_type_v<B>);
 
 static_assert(xl::is_range_for_loop_able_v<vector<int>>);
 
