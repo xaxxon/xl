@@ -9,25 +9,6 @@
 #include "template.h"
 
 namespace xl {
-//
-//class Stringable {
-//private:
-//    std::variant<std::string, std::function<std::string()>> source;
-//public:
-//    Stringable(std::string source) : source(source) {}
-//    Stringable(std::function<std::string()> source) : source(source) {}
-//    operator std::string() {
-//        if (auto string = std::get_if<std::string>(&source)) {
-//            return *string;
-//        } else if (auto callback = std::get_if<std::function<std::string()>>(&source)) {
-//            return (*callback)();
-//        } else {
-//            assert(false);
-//        }
-//    }
-//
-//};
-
 
 
 template<class T, class=void>
@@ -35,9 +16,8 @@ class Provider {
 public:
     Provider(T && t); // intentionally not defined
     Provider(T & t); // intentionally not defined
+    Provider() = delete;
 };
-
-
 
 
 template<class, class = void>
@@ -54,8 +34,6 @@ class is_provider_type<T, std::enable_if_t<std::is_same_v<
 
 template<class T>
 constexpr bool is_provider_type_v = is_provider_type<T>::value;
-
-
 
 
 template<class T, class = void>
