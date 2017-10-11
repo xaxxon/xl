@@ -18,10 +18,10 @@ file(GLOB TEST_SRC
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wno-aligned-allocation-unavailable -stdlib=libc++ -msse4.1 -fsanitize=address")
 
 
-include_directories(../include)
+include_directories(../include/xl)
 add_definitions(-DXL_USE_LIB_FMT)
 
-add_executable(test-xl ${TEST_SRC} ${XL_HEADER_FILES})
+add_executable(test-xl ${TEST_SRC} EXCLUDE_FROM_ALL ${XL_HEADER_FILES})
 
 set_property(TARGET test-xl PROPERTY CXX_STANDARD 17)
 

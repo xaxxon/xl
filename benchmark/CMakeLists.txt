@@ -16,9 +16,10 @@ file(GLOB BENCH_SRC
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wno-aligned-allocation-unavailable -stdlib=libc++ -msse4.1 -O3")
 
 
-include_directories(../include)
+include_directories(../include/xl)
 
-add_executable(bench-xl ${BENCH_SRC})
+# EXCLUDE_FROM_ALL so it doesn't get built on make install
+add_executable(bench-xl EXCLUDE_FROM_ALL ${BENCH_SRC} )
 set_property(TARGET bench-xl PROPERTY CXX_STANDARD 17)
 
 

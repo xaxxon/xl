@@ -18,6 +18,7 @@ file(GLOB XL_HEADER_FILES include/*.h include/aligned_string/*.h include/templat
 message("${XL_HEADER_FILES}")
 
 add_library(xl INTERFACE)
+#target_include_directories(xl INTERFACE include/)
 #target_sources(xl INTERFACE ${XL_HEADER_FILES})
 
 
@@ -27,7 +28,7 @@ add_subdirectory(benchmark)
 add_definitions(-DXL_USE_LIB_FMT)
 
 
-set(INCLUDE_INSTALL_DIR "include/xl" CACHE PATH "Installation directory for header files")
+set(INCLUDE_INSTALL_DIR "include/" CACHE PATH "Installation directory for header files")
 
 install(TARGETS xl EXPORT XL_TARGETS
         LIBRARY DESTINATION lib
@@ -35,7 +36,7 @@ install(TARGETS xl EXPORT XL_TARGETS
         RUNTIME DESTINATION bin
         INCLUDES DESTINATION include)
 
-install(FILES ${XL_HEADER_FILES} DESTINATION ${INCLUDE_INSTALL_DIR})
+install(DIRECTORY include/xl DESTINATION ${INCLUDE_INSTALL_DIR})
 export(EXPORT XL_TARGETS
         FILE "${CMAKE_CURRENT_BINARY_DIR}/xlTargets.cmake"
         NAMESPACE xl::
