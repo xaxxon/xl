@@ -1,27 +1,21 @@
 cmake_minimum_required(VERSION 3.8)
 
 project ("XL Test")
-set(CMAKE_CXX_STANDARD 17)
 
 set(CLANG_HOME $ENV{CLANG_HOME})
+
+# need to pick up c++17-compatible core c++ libraries
 link_directories(. ${CLANG_HOME}/lib)
-
-
-include_directories(${gtest_SOURCE_DIR}/include)
-include_directories(${gmock_SOURCE_DIR}/include)
 
 file(GLOB BENCH_SRC
         *.cpp)
 
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wno-aligned-allocation-unavailable -stdlib=libc++ -msse4.1 -O3")
 
-
-include_directories(../include/xl)
-
 # EXCLUDE_FROM_ALL so it doesn't get built on make install
-add_executable(bench-xl EXCLUDE_FROM_ALL ${BENCH_SRC} )
-set_property(TARGET bench-xl PROPERTY CXX_STANDARD 17)
+add_executable(bench-xl EXCLUDE_FROM_ALL ${BENCH_SRC})
+target_include_directories(bench-xl PRIVATE ../include/xl ${gtest_SOURCE_DIR}/include ${gmock_SOURCE_DIR}/include)
 
+target_link_libraries(bench-xl c++experimental benchmark fmt xl)
 
-
-target_link_libraries(bench-xl c++experimental benchmark fmt)
+cotire(bench-xl)

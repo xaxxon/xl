@@ -18,19 +18,19 @@ namespace xl {
  */
 template<class ValueT, class... Rest, template<class, class...> class ContainerT>
 bool contains(ContainerT<ValueT, Rest...> const & container, ValueT const & value) {
-    return std::find(std::begin(container), std::end(container), value) != std::end(container);
+    return std::find(begin(container), end(container), value) != std::end(container);
 };
 
 
 template<class ValueT, class... Rest, template<class, class...> class ContainerT, class Callable>
 bool contains(ContainerT<ValueT, Rest...> const & container, Callable callback) {
-    return std::find_if(std::begin(container), std::end(container), callback) != std::end(container);
+    return std::find_if(begin(container), end(container), callback) != std::end(container);
 };
 
 
 template<class ValueT, class... Rest, template<class, class...> class ContainerT>
 auto find(ContainerT<ValueT, Rest...> const & container, ValueT const & value) {
-    return std::find(std::begin(container), std::end(container), value);
+    return std::find(begin(container), end(container), value);
 };
 
 
@@ -42,15 +42,14 @@ struct is_range_for_loop_able : public std::false_type {};
 
 template<class T>
 struct is_range_for_loop_able<T, std::void_t<
-    decltype(std::begin(std::declval<T>())),
-    decltype(std::end(std::declval<T>()))>
+    decltype(begin(std::declval<T>())),
+    decltype(end(std::declval<T>()))>
 > : public std::true_type {};
 
 
 template<class T>
 constexpr bool is_range_for_loop_able_v = is_range_for_loop_able<T>::value;
 
-static_assert(is_range_for_loop_able_v<std::vector<int>>);
 static_assert(!is_range_for_loop_able_v<int>);
 
 
@@ -66,7 +65,7 @@ static_assert(!is_range_for_loop_able_v<int>);
  */
 template<class ValueT, class... Rest, template<class, class...> class ContainerT, class Callable>
 ContainerT<ValueT, Rest...> remove_copy_if(ContainerT<ValueT, Rest...> const & container, Callable callable) {
-    return std::remove_copy_if(std::begin(container), std::end(container), callable);
+    return std::remove_copy_if(begin(container), end(container), callable);
 };
 
 
@@ -85,7 +84,7 @@ ContainerT<std::result_of_t<Callable(ValueT)>> transform(ContainerT<ValueT, Rest
 
     ContainerT<std::result_of_t<Callable(ValueT)>> result;
 
-    std::transform(std::begin(container), std::end(container), std::back_inserter(result), callable);
+    std::transform(begin(container), end(container), std::back_inserter(result), callable);
 
     return result;
 }

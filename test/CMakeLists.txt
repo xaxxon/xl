@@ -21,7 +21,7 @@ set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wno-aligned-allocation-unavailable -std
 include_directories(../include/xl)
 add_definitions(-DXL_USE_LIB_FMT)
 
-add_executable(test-xl ${TEST_SRC} EXCLUDE_FROM_ALL ${XL_HEADER_FILES})
+add_executable(test-xl EXCLUDE_FROM_ALL ${TEST_SRC} ${XL_HEADER_FILES})
 
 set_property(TARGET test-xl PROPERTY CXX_STANDARD 17)
 
@@ -30,11 +30,5 @@ add_definitions(-DGOOGLE_TEST)
 
 add_subdirectory(./googletest)
 
-target_link_libraries(test-xl c++experimental fmt)
+target_link_libraries(test-xl c++experimental fmt gmock gtest gmock_main xl)
 
-add_dependencies(test-xl gmock)
-add_dependencies(test-xl gtest)
-
-
-
-target_link_libraries(test-xl gmock_main)

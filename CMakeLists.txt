@@ -1,39 +1,35 @@
 cmake_minimum_required(VERSION 3.8)
 project(xl)
 
-set(XL_VERSION 0.1.0)
-
-
 set(CMAKE_VERBOSE_MAKEFILE on )
 
-
-SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake-modules)
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
 include(clang-build-triple)
 
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
+set(XL_VERSION 0.1.0)
 
-file(GLOB XL_HEADER_FILES include/*.h include/aligned_string/*.h include/template/*.h )
 
-message("${XL_HEADER_FILES}")
+
+# Contains all the header files from the library itself
+file(GLOB_RECURSE XL_HEADER_FILES include/xl/*.h)
+
 
 add_library(xl INTERFACE)
-#target_include_directories(xl INTERFACE include/)
-#target_sources(xl INTERFACE ${XL_HEADER_FILES})
 
+# Requires C++17 support
+target_compile_features(xl INTERFACE cxx_std_17)
 
 add_subdirectory(test)
 add_subdirectory(benchmark)
-
-add_definitions(-DXL_USE_LIB_FMT)
 
 
 set(INCLUDE_INSTALL_DIR "include/" CACHE PATH "Installation directory for header files")
 
 install(TARGETS xl EXPORT XL_TARGETS
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        RUNTIME DESTINATION bin
+        LIBRARY  DESTINATION lib
+        ARCHIVE  DESTINATION lib
+        RUNTIME  DESTINATION bin
         INCLUDES DESTINATION include)
 
 install(DIRECTORY include/xl DESTINATION ${INCLUDE_INSTALL_DIR})
