@@ -182,7 +182,7 @@ public:
     }
 
     std::string const & get_level_name(typename Levels::Levels level) const {
-        return Subjects::get_level_name(level);
+        return Levels::get_level_name(level);
     }
 
 

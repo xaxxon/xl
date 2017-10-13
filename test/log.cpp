@@ -28,6 +28,9 @@ TEST(log, SimpleLog) {
         log.info(xl::log::DefaultSubjects::Subjects::Default, "Info");
         log.error(xl::log::DefaultSubjects::Subjects::Default, "Error");
         EXPECT_EQ(call_count, 7);
+
+        EXPECT_EQ(log.get_subject_name(xl::log::DefaultSubjects::Subjects::Default), "default");
+        EXPECT_EQ(log.get_level_name(xl::log::DefaultLevels::Levels::Warn), "warn");
     }
 }
 
@@ -88,11 +91,11 @@ TEST(log, LogCallbackGuard_ReUseCallbackObject) {
     EXPECT_EQ(log_callback.counter, 0);
 
     {
-        LogCallbackGuard<LogCallback, LogT> g(log, log_callback);
+        LogCallbackGuard g(log, log_callback);
         log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
         EXPECT_EQ(log_callback.counter, 1);
         {
-            LogCallbackGuard<LogCallback, LogT> g(log, log_callback);
+            LogCallbackGuard g(log, log_callback);
             log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
             EXPECT_EQ(log_callback.counter, 3);
 
