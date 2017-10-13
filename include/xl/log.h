@@ -206,20 +206,45 @@ public:
 #endif
 };
 
+
+/**
+ * Associates a log callback being active with a xl::Log object with its own lifetime.
+ * @tparam CallbackT the type of the log callback
+ * @tparam LogT the type of the log object
+ */
 template<class CallbackT, class LogT>
 class LogCallbackGuard {
 
-    CallbackT callback;
+    std::shared_ptr<CallbackT> callback;
     LogT & logger;
     typename LogT::CallbackT * registered_callback = nullptr;
 
 public:
-    template<class... Args>
-    LogCallbackGuard(LogT & logger, Args&&... args) :
-        callback(std::forward<Args>(args)...),
+
+    /**
+     * Uses a user-provided object as the callback.  Does not destroy it when this object is destroyed
+     * @param logger
+     * @param callback
+     */
+    LogCallbackGuard(LogT & logger, CallbackT & existing_callback_object) :
         logger(logger)
     {
-        this->registered_callback = &this->logger.add_callback(std::ref(callback));
+        this->callback = std::shared_ptr<CallbackT>(&existing_callback_object, [](CallbackT *){});
+        this->registered_callback = &this->logger.add_callback(std::ref(*callback));
+    }
+
+    /**
+     * Creates an object of the specified type.  Destroys it when this object is destroyed
+     * @tparam Args argument types of parameters for CallbackT's constructor
+     * @param logger
+     * @param args perfectly forwarded parameters to the constructor of CallbackT
+     */
+    template<class... Args>
+    LogCallbackGuard(LogT & logger, Args&&... args) :
+        callback(std::make_shared<CallbackT>(std::forward<Args>(args)...)),
+        logger(logger)
+    {
+        this->registered_callback = &this->logger.add_callback(std::ref(*callback));
     }
 
     ~LogCallbackGuard(){

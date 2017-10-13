@@ -67,6 +67,43 @@ TEST(log, LogCallbackGuard) {
     EXPECT_EQ(global_log_count, 4);
 }
 
+TEST(log, LogCallbackGuard_ReUseCallbackObject) {
+
+    using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+    struct LogCallback {
+        int counter = 0;
+
+        LogCallback() {}
+        void operator()(LogT::LogMessage const & message) {
+            this->counter++;
+        }
+        ~LogCallback() {
+//            std::cerr << fmt::format("log callback destructor") << std::endl;
+        }
+    };
+
+    LogT log;
+    LogCallback log_callback;
+    log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
+    EXPECT_EQ(log_callback.counter, 0);
+
+    {
+        LogCallbackGuard<LogCallback, LogT> g(log, log_callback);
+        log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
+        EXPECT_EQ(log_callback.counter, 1);
+        {
+            LogCallbackGuard<LogCallback, LogT> g(log, log_callback);
+            log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
+            EXPECT_EQ(log_callback.counter, 3);
+
+        }
+        log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
+        EXPECT_EQ(log_callback.counter, 4);
+    }
+    log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
+    EXPECT_EQ(log_callback.counter, 4);
+}
+
 
 TEST(log, MultipleCallbacks) {
     {
