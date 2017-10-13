@@ -18,6 +18,10 @@ TEST(log, SimpleLog) {
         EXPECT_EQ(call_count, 1);
         log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
         EXPECT_EQ(call_count, 2);
+        log.info(xl::log::DefaultSubjects::Subjects::Default, "Info");
+        log.warn(xl::log::DefaultSubjects::Subjects::Default, "Warning");
+        log.error(xl::log::DefaultSubjects::Subjects::Default, "Error");
+        EXPECT_EQ(call_count, 5);
     }
 }
 
@@ -35,8 +39,21 @@ public:
     }
 };
 
+class CustomLevels {
+
+    static inline std::string level_names[] = {"info", "warn"};
+
+public:
+    enum class Levels {Info, Warn};
+
+    static std::string const & get_subject_name(Levels level) {
+        return level_names[static_cast<std::underlying_type_t<Levels>>(level)];
+    }
+};
+
+
 TEST(log, CustomLog) {
-    using LogT = xl::Log<xl::log::DefaultLevels, CustomSubjects>;
+    using LogT = xl::Log<CustomLevels, CustomSubjects>;
     int call_count = 0;
 
     LogT log([&call_count](auto & logger, auto & message){
@@ -50,11 +67,13 @@ TEST(log, CustomLog) {
         }
     });
     EXPECT_EQ(call_count, 0);
-    log.log(xl::log::DefaultLevels::Levels::Warn, CustomSubjects::Subjects::CustomSubject1, "test");
+    log.log(CustomLevels::Levels::Warn, CustomSubjects::Subjects::CustomSubject1, "test");
     EXPECT_EQ(call_count, 1);
-    log.log(xl::log::DefaultLevels::Levels::Warn, CustomSubjects::Subjects::CustomSubject2, "test");
+    log.log(CustomLevels::Levels::Warn, CustomSubjects::Subjects::CustomSubject2, "test");
     EXPECT_EQ(call_count, 2);
 
+    // CustomLevels doesn't have Error, so the error method is removed
+//    log.error(CustomSubjects::Subjects::CustomSubject2, "this should fail");
 
     std::stringstream my_stringstream;
     std::string s = "str";
