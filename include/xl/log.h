@@ -49,11 +49,13 @@ class Log {
 public:
 
     struct LogMessage {
+        Log & log;
         typename Levels::Levels level;
         typename Subjects::Subjects subject;
         zstring_view string;
 
-        LogMessage(typename Levels::Levels level, typename Subjects::Subjects subject, zstring_view string) :
+        LogMessage(Log & log, typename Levels::Levels level, typename Subjects::Subjects subject, zstring_view string) :
+            log(log),
             level(level),
             subject(subject),
             string(string)
@@ -61,7 +63,7 @@ public:
     };
 
 
-    using LogCallback = std::function<void(Log const &, LogMessage const & message)>;
+    using LogCallback = std::function<void(LogMessage const & message)>;
 
     // if false, logs of this level will be ignored
     std::vector<char> level_status;
@@ -70,7 +72,7 @@ public:
     std::vector<char> subject_status;
 
 private:
-    LogCallback log_callback;
+    std::vector<LogCallback> callbacks;
 
 public:
 
@@ -113,21 +115,51 @@ public:
             return subject_status[(int)subject];
         }
     }
+    Log() = default;
 
-
-    Log(LogCallback log_callback = LogCallback()) :
-        log_callback(log_callback)
+    Log(LogCallback log_callback) :
+        callbacks{log_callback}
     {}
 
     void set_log_callback(LogCallback log_callback) {
         this->log_callback = log_callback;
     }
 
+    void clear_callbacks() {
+        this->callbacks.clear();
+    }
+
+    void add_callback(LogCallback callback) {
+        this->callbacks.push_back(callback);
+    }
+
+    /**
+     * If the callback was passed in as a reference wrapper, this can find any corresponding entries and remove them
+     * @param t pass in the object to find (not as a reference wrapper)
+     */
+    template<class T>
+    void remove_callback(T const & t) {
+
+        auto i = this->callbacks.begin();
+        while(i != this->callbacks.end()) {
+            auto & callback = *i;
+            if (std::reference_wrapper<T> const * ref = callback.template target<std::reference_wrapper<T>>()) {
+                if (&ref->get() == &t) {
+                    i = this->callbacks.erase(i);
+                    continue;
+                }
+            }
+            i++;
+        }
+    }
+
+
     void log(typename Levels::Levels level, typename Subjects::Subjects subject, xl::zstring_view const & string) {
-        if (this->log_callback &&
-            this->get_level_status(level) &&
-            this->get_subject_status(subject)) {
-            this->log_callback(*this, LogMessage(level, subject, string));
+        for (auto & callback : this->callbacks) {
+            if (this->get_level_status(level) &&
+                this->get_subject_status(subject)) {
+                callback(LogMessage(*this, level, subject, string));
+            }
         }
     }
 

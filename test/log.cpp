@@ -12,7 +12,7 @@ TEST(log, SimpleLog) {
     {
         using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
         int call_count = 0;
-        LogT log([&call_count](auto & logger, auto & message){call_count++;});
+        LogT log([&call_count](auto & message){call_count++;});
         EXPECT_EQ(call_count, 0);
         log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
         EXPECT_EQ(call_count, 1);
@@ -30,6 +30,46 @@ TEST(log, SimpleLog) {
         EXPECT_EQ(call_count, 7);
     }
 }
+
+
+TEST(log, MultipleCallbacks) {
+    {
+        using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+        struct LogCallback {
+            int counter = 0;
+            void operator()(LogT::LogMessage const & message) {
+                counter++;
+            }
+        };
+
+        LogT log;
+        int call_count = 0;
+        LogCallback callback1;
+        LogCallback callback2;
+        log.add_callback(std::ref(callback1));
+        log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
+        EXPECT_EQ(callback1.counter, 1);
+        int call_count2 = 0;
+        log.add_callback(std::ref(callback2));
+        log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
+        EXPECT_EQ(callback1.counter, 2);
+        EXPECT_EQ(callback2.counter, 1);
+
+        log.remove_callback(callback2);
+        log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
+        EXPECT_EQ(callback1.counter, 3);
+        EXPECT_EQ(callback2.counter, 1);
+
+        log.remove_callback(callback1);
+        log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
+        EXPECT_EQ(callback1.counter, 3);
+        EXPECT_EQ(callback2.counter, 1);
+
+
+
+    }
+}
+
 
 
 
@@ -62,12 +102,12 @@ TEST(log, CustomLog) {
     using LogT = xl::Log<CustomLevels, CustomSubjects>;
     int call_count = 0;
 
-    LogT log([&call_count](auto & logger, auto & message){
+    LogT log([&call_count](auto & message){
         call_count++;
         if (message.subject == CustomSubjects::Subjects::CustomSubject1) {
-            EXPECT_EQ(logger.get_subject_name(message.subject), "CustomSubject1");
+            EXPECT_EQ(message.log.get_subject_name(message.subject), "CustomSubject1");
         } else if (message.subject == CustomSubjects::Subjects::CustomSubject2) {
-            EXPECT_EQ(logger.get_subject_name(message.subject), "CustomSubject2");
+            EXPECT_EQ(message.log.get_subject_name(message.subject), "CustomSubject2");
         } else {
             EXPECT_EQ(1,2);
         }
