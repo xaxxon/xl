@@ -6,7 +6,7 @@
 
 #include "log.h"
 
-
+using namespace xl;
 
 TEST(log, SimpleLog) {
     {
@@ -31,6 +31,41 @@ TEST(log, SimpleLog) {
     }
 }
 
+TEST(log, LogCallbackGuard) {
+
+    int global_log_count = 0;
+    using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+    struct LogCallback {
+        int & counter ;
+
+        LogCallback(int & counter) : counter(counter) {}
+        void operator()(LogT::LogMessage const & message) {
+            counter++;
+        }
+    };
+
+    LogT log;
+
+    EXPECT_EQ(global_log_count, 0);
+    log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
+    EXPECT_EQ(global_log_count, 0);
+    {
+        LogCallbackGuard<LogCallback, LogT> g(log, global_log_count);
+        log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
+        EXPECT_EQ(global_log_count, 1);
+        {
+            LogCallbackGuard<LogCallback, LogT> g2(log, global_log_count);
+            log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
+            EXPECT_EQ(global_log_count, 3);
+
+        }
+        log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
+        EXPECT_EQ(global_log_count, 4);
+
+    }
+    log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
+    EXPECT_EQ(global_log_count, 4);
+}
 
 TEST(log, MultipleCallbacks) {
     {

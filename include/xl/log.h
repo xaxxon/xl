@@ -10,6 +10,8 @@
 namespace xl {
 
 namespace log {
+
+
 class DefaultLevels {
     inline static std::string level_names[] = {"info", "warn", "error"};
 
@@ -23,6 +25,7 @@ public:
     }
 };
 
+
 class DefaultSubjects {
     inline static std::string subject_names[] = {"default"};
 
@@ -35,9 +38,9 @@ public:
         return subject_names[static_cast<std::underlying_type_t<Subjects>>(subject)];
     }
 };
-}
 
-
+} // end namespace log
+// back in namespace xl
 
 /**
  * Objects of this type take messages to be logged and route them to the registered callback.
@@ -207,7 +210,24 @@ public:
 #endif
 };
 
+template<class CallbackT, class LogT>
+class LogCallbackGuard {
 
+    CallbackT callback;
+    LogT & logger;
 
+public:
+    template<class... Args>
+    LogCallbackGuard(LogT & logger, Args&&... args) :
+        callback(std::forward<Args>(args)...),
+        logger(logger)
+    {
+        this->logger.add_callback(std::ref(callback));
+    }
 
-}
+    ~LogCallbackGuard(){
+        this->logger.remove_callback(callback);
+    }
+};
+
+} // end namespace xl
