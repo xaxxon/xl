@@ -66,7 +66,7 @@ public:
     };
 
 
-    using LogCallback = std::function<void(LogMessage const & message)>;
+    using CallbackT = std::function<void(LogMessage const & message)>;
 
     // if false, logs of this level will be ignored
     std::vector<char> level_status;
@@ -75,7 +75,8 @@ public:
     std::vector<char> subject_status;
 
 private:
-    std::vector<LogCallback> callbacks;
+    // unique_ptr so the callback objects themselves don't move if the vector resizes
+    std::vector<std::unique_ptr<CallbackT>> callbacks;
 
 public:
 
@@ -120,39 +121,34 @@ public:
     }
     Log() = default;
 
-    Log(LogCallback log_callback) :
-        callbacks{log_callback}
-    {}
-
-    void set_log_callback(LogCallback log_callback) {
-        this->log_callback = log_callback;
+    Log(CallbackT log_callback)
+    {
+        this->callbacks.push_back(std::make_unique<CallbackT>(log_callback));
     }
 
     void clear_callbacks() {
         this->callbacks.clear();
     }
 
-    void add_callback(LogCallback callback) {
-        this->callbacks.push_back(callback);
+    CallbackT & add_callback(CallbackT callback) {
+        this->callbacks.push_back(std::make_unique<CallbackT>(callback));
+        return *this->callbacks.back();
     }
 
     /**
      * If the callback was passed in as a reference wrapper, this can find any corresponding entries and remove them
      * @param t pass in the object to find (not as a reference wrapper)
      */
-    template<class T>
-    void remove_callback(T const & t) {
+    void remove_callback(CallbackT & callback) {
 
         auto i = this->callbacks.begin();
         while(i != this->callbacks.end()) {
-            auto & callback = *i;
-            if (std::reference_wrapper<T> const * ref = callback.template target<std::reference_wrapper<T>>()) {
-                if (&ref->get() == &t) {
-                    i = this->callbacks.erase(i);
-                    continue;
-                }
+            auto & c = *i;
+            if (c.get() == &callback) {
+                i = this->callbacks.erase(i);
+            } else {
+                i++;
             }
-            i++;
         }
     }
 
@@ -161,7 +157,7 @@ public:
         for (auto & callback : this->callbacks) {
             if (this->get_level_status(level) &&
                 this->get_subject_status(subject)) {
-                callback(LogMessage(*this, level, subject, string));
+                (*callback)(LogMessage(*this, level, subject, string));
             }
         }
     }
@@ -215,6 +211,7 @@ class LogCallbackGuard {
 
     CallbackT callback;
     LogT & logger;
+    typename LogT::CallbackT * registered_callback = nullptr;
 
 public:
     template<class... Args>
@@ -222,11 +219,11 @@ public:
         callback(std::forward<Args>(args)...),
         logger(logger)
     {
-        this->logger.add_callback(std::ref(callback));
+        this->registered_callback = &this->logger.add_callback(std::ref(callback));
     }
 
     ~LogCallbackGuard(){
-        this->logger.remove_callback(callback);
+        this->logger.remove_callback(*this->registered_callback);
     }
 };
 

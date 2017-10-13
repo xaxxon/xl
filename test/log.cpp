@@ -67,6 +67,7 @@ TEST(log, LogCallbackGuard) {
     EXPECT_EQ(global_log_count, 4);
 }
 
+
 TEST(log, MultipleCallbacks) {
     {
         using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
@@ -81,21 +82,21 @@ TEST(log, MultipleCallbacks) {
         int call_count = 0;
         LogCallback callback1;
         LogCallback callback2;
-        log.add_callback(std::ref(callback1));
+        auto & cb1_callback = log.add_callback(std::ref(callback1));
         log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
         EXPECT_EQ(callback1.counter, 1);
         int call_count2 = 0;
-        log.add_callback(std::ref(callback2));
+        auto & cb2_callback = log.add_callback(std::ref(callback2));
         log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
         EXPECT_EQ(callback1.counter, 2);
         EXPECT_EQ(callback2.counter, 1);
 
-        log.remove_callback(callback2);
+        log.remove_callback(cb2_callback);
         log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
         EXPECT_EQ(callback1.counter, 3);
         EXPECT_EQ(callback2.counter, 1);
 
-        log.remove_callback(callback1);
+        log.remove_callback(cb1_callback);
         log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
         EXPECT_EQ(callback1.counter, 3);
         EXPECT_EQ(callback2.counter, 1);
