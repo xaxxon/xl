@@ -3,7 +3,6 @@
 #include <utility>
 #include <type_traits>
 
-
 namespace xl {
 
 
@@ -88,6 +87,56 @@ ContainerT<std::result_of_t<Callable(ValueT)>> transform(ContainerT<ValueT, Rest
 
     return result;
 }
+
+
+/**
+ * Similar to std::remove_if but the rejected elements are removed from the container
+ * @tparam T
+ * @tparam Callable
+ * @param container
+ * @param callable
+ * @return same container passed in but without the rejected elements
+ */
+template<class T, class Callable, int_t<decltype(std::remove_if(begin(std::declval<T>()), end(std::declval<T>()), std::declval<Callable>()))> = 0>
+auto & erase_if(T & container, Callable callable) {
+    auto end_of_keep_elements = std::remove_if(begin(container), end(container), callable);
+    container.erase(end_of_keep_elements, container.end());
+    return container;
+}
+
+template<class T, class Callable, int_t<decltype(std::remove_if(begin(std::declval<T>()), end(std::declval<T>()), std::declval<Callable>()))> = 0>
+auto && erase_if(T && container, Callable callable) {
+    return std::move(erase_if(container, std::move(callable)));
+}
+
+
+
+/**
+ * If the type is copyable, returns a copy of it
+ */
+template<class T, std::enable_if_t<std::is_copy_constructible_v<T>, int> = 0>
+T copy(T const & t) {
+    return t;
+};
+
+/**
+ * If it's a container of things that aren't copyable, return a new container of reference (wrappers) to the elements
+ * of the original container
+ * @return new container with reference_wrapper's to the objects in the original container
+ */
+template<class ValueT, class... Rest, template<class, class...> class ContainerT>
+auto copy(ContainerT<ValueT, Rest...> const & container) {
+    if constexpr(std::is_copy_constructible_v<ValueT>) {
+        return ContainerT<ValueT, Rest...>();
+    } else {
+        ContainerT<std::reference_wrapper<ValueT>> results;
+        for (ValueT & e : const_cast<ContainerT<ValueT, Rest...>&>(container)) {
+            results.push_back(std::ref(e));
+        }
+        return results;
+    }
+}
+
 
 
 template<class T1, class T2>
