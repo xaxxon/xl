@@ -21,3 +21,22 @@ TEST(ZStringView, ConstexprZStringView) {
         EXPECT_EQ(zstring_view.c_str()[4], '\0');
     }
 }
+
+TEST(ZStringView, ConstructorTests) {
+    {
+        std::string s("stuff");
+        zstring_view zs(s);
+    }
+    {
+        // explicitly disallowed because it doesn't make sense to take an rvalue
+//        zstring_view zs(std::string{});
+    }
+    {
+        // not allowed because string_view doesn't guarantee NUL termination
+//        zstring_view zs(std::string_view{});
+    }
+    {
+        zstring_view zs("asdf");
+    }
+
+}

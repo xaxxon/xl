@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-project ("XL Test")
+project ("XL Bench")
 
 set(CLANG_HOME $ENV{CLANG_HOME})
 
@@ -14,8 +14,6 @@ set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wno-aligned-allocation-unavailable -std
 
 # EXCLUDE_FROM_ALL so it doesn't get built on make install
 add_executable(bench-xl EXCLUDE_FROM_ALL ${BENCH_SRC})
-target_include_directories(bench-xl PRIVATE ../include/xl ${gtest_SOURCE_DIR}/include ${gmock_SOURCE_DIR}/include)
+target_include_directories(bench-xl PRIVATE ../include/xl)
 
-target_link_libraries(bench-xl c++experimental benchmark fmt xl)
-
-cotire(bench-xl)
+target_link_libraries(bench-xl c++experimental benchmark fmt xl::xl)

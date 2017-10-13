@@ -39,7 +39,7 @@ public:
     Template(std::string const & tmpl) : _tmpl(tmpl) {}
     Template(std::string && tmpl = "") : _tmpl(std::move(tmpl)) {}
 
-    char const * c_str() const { return this->_tmpl.c_str(); }
+    inline char const * c_str() const { return this->_tmpl.c_str(); }
 
 //    std::string fill(Provider_Interface const & interface = EmptyProvider{}, std::map<std::string, Template> const & templates = {});
 
@@ -48,9 +48,9 @@ public:
 
     // compiles the template for faster processing
     // benchmarks showed ~200x improvement when re-using templates 1000 times
-    void compile() const;
+    inline void compile() const;
 
-    bool is_compiled() const;
+    inline bool is_compiled() const;
 };
 
 using TemplateMap = std::map<std::string, Template>;

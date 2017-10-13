@@ -17,6 +17,9 @@ file(GLOB_RECURSE XL_HEADER_FILES include/xl/*.h)
 
 add_library(xl INTERFACE)
 
+# so xl::xl can be used inside this project, as well
+add_library(xl::xl ALIAS xl)
+
 # Requires C++17 support
 target_compile_features(xl INTERFACE cxx_std_17)
 

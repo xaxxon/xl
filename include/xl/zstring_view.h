@@ -16,6 +16,10 @@ class basic_zstring_view : public std::basic_string_view<CharT, Traits> {
 public:
     using std::basic_string_view<CharT, Traits>::basic_string_view;
 
+    basic_zstring_view(std::basic_string<CharT> const & source) :
+        std::basic_string_view<CharT, Traits>(source.c_str(), source.size())
+    {}
+
     // There is intentionally no constructor that takes a std::string_view because it's not guaranteed to be
     //   NUL terminated and there's nowhere to store a memory allocation to store a copy of the string with a NUL
 

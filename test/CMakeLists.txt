@@ -23,12 +23,10 @@ add_definitions(-DXL_USE_LIB_FMT)
 
 add_executable(test-xl EXCLUDE_FROM_ALL ${TEST_SRC} ${XL_HEADER_FILES})
 
-set_property(TARGET test-xl PROPERTY CXX_STANDARD 17)
-
 add_definitions(-DGOOGLE_TEST)
 
 
-add_subdirectory(./googletest)
+add_subdirectory(googletest EXCLUDE_FROM_ALL)
 
-target_link_libraries(test-xl c++experimental fmt gmock gtest gmock_main xl)
+target_link_libraries(test-xl c++experimental fmt gmock gtest gmock_main xl::xl)
 

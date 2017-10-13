@@ -12,14 +12,14 @@ class RegexResult {
     std::string _string_copy;
 
 public:
-    RegexResult(std::regex const & regex, zstring_view string) :
+    RegexResult(zstring_view string, std::regex const & regex) :
         _string_copy(string)
     {
         std::regex_match(this->_string_copy, this->_matches, regex);
     }
 
     RegexResult(zstring_view regex_string, zstring_view string) :
-        RegexResult(std::regex(regex_string.c_str()), string)
+        RegexResult(string, std::regex(regex_string.c_str()))
     {}
 
     std::smatch const & matches() {
@@ -38,15 +38,30 @@ public:
         return this->_matches.empty();
     }
 
+    /**
+     * Returns true if the regex matched anything
+     * @return whether the regex matched anything
+     */
+    operator bool() const {
+        return !this->empty();
+    }
 };
 
-RegexResult regex(std::regex const & regex, zstring_view string) {
-    return RegexResult(regex, string);
+
+inline RegexResult regexer(zstring_view string, std::regex const & regex) {
+    return RegexResult(string, regex);
 }
 
+inline RegexResult regexer(zstring_view string, zstring_view regex_string) {
+    return regexer(string, std::regex(regex_string.c_str()));
+}
 
-RegexResult regex(zstring_view regex_string, zstring_view string) {
-    return regex(std::regex(regex_string.c_str()), string);
+inline std::regex operator"" _re(char const * regex_string, unsigned long) {
+    return std::regex(regex_string, std::regex_constants::ECMAScript);
+}
+
+inline std::regex operator"" _rei(char const * regex_string, unsigned long) {
+    return std::regex(regex_string, std::regex_constants::ECMAScript | std::regex_constants::icase);
 }
 
 

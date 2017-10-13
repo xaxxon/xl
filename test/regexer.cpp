@@ -10,7 +10,7 @@ using namespace xl;
 
 TEST(Regexer, EmptyRegex) {
     {
-        auto result = regex("", "");
+        auto result = regexer("", ""_re);
         EXPECT_EQ(result.matches().size(), 1);
         EXPECT_EQ(result.size(), 1);
     }
@@ -19,7 +19,7 @@ TEST(Regexer, EmptyRegex) {
 TEST(Regexer, EmptyString) {
     {
 
-        auto result = regex("a", "");
+        auto result = regexer("a", ""_re);
         EXPECT_TRUE(result.matches().empty());
         EXPECT_TRUE(result.empty());
     }
@@ -27,18 +27,18 @@ TEST(Regexer, EmptyString) {
 
 TEST(Regexer, InvalidString) {
     {
-        EXPECT_THROW(regex("[", ""), std::regex_error);
+        EXPECT_THROW(regexer("", "["_re), std::regex_error);
     }
 }
 
 
 TEST(Regexer, BasicRegex) {
     {
-        auto result = regex("a", "a");
+        auto result = regexer("a", "a"_re);
         EXPECT_EQ(result.matches().size(), 1);
     }
     {
-        auto result = regex("(a)b", "ab");
+        auto result = regexer("ab", "(a)b"_re);
         EXPECT_EQ(result.matches().size(), 2);
 
         // second test is a shortcut for the first
@@ -50,6 +50,13 @@ TEST(Regexer, BasicRegex) {
         EXPECT_EQ(result[1], "a");
 
         // alternate syntax
-        EXPECT_EQ(regex("(a)b", "ab").matches()[1], "a");
+        EXPECT_EQ(regexer("ab", "(a)b"_re).matches()[1], "a");
+    }
+}
+
+TEST(Regexer, NoMatch) {
+    {
+        EXPECT_FALSE(regexer("b", "a"_re));
+        EXPECT_TRUE(regexer("b", "b"_re));
     }
 }
