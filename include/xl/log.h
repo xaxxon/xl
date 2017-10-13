@@ -76,13 +76,13 @@ public:
 
     bool set_level_status(typename Levels::Levels level, bool new_status) {
         bool previous_status;
-        if (level_status.size() <= level) {
+        if (level_status.size() <= (int)level) {
             previous_status = true;
-            level_status.resize(level, 1);
+            level_status.resize((int)level + 1, 1);
         } else {
-            previous_status = level_status[(char)level];
+            previous_status = level_status[(int)level];
         }
-        level_status[level] = new_status;
+        level_status[(int)level] = new_status;
         return previous_status;
     }
     
@@ -90,7 +90,7 @@ public:
         if (level_status.size() <= (int)level) {
             return true;
         } else {
-            return level_status[(char)level];
+            return level_status[(int)level];
         }
     }
 
@@ -98,19 +98,19 @@ public:
         bool previous_status;
         if (subject_status.size() <= (int)subject) {
             previous_status = true;
-            subject_status.resize(subject, 1);
+            subject_status.resize((int)subject + 1, 1);
         } else {
-            previous_status = subject_status[(char)subject];
+            previous_status = subject_status[(int)subject];
         }
-        subject_status[(char)subject] = new_status;
+        subject_status[(int)subject] = new_status;
         return previous_status;
     }
     
     bool get_subject_status(typename Subjects::Subjects subject) {
-        if (subject_status.size() <= (char)subject) {
+        if (subject_status.size() <= (int)subject) {
             return true;
         } else {
-            return subject_status[(char)subject];
+            return subject_status[(int)subject];
         }
     }
 

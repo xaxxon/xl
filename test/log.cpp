@@ -22,6 +22,12 @@ TEST(log, SimpleLog) {
         log.warn(xl::log::DefaultSubjects::Subjects::Default, "Warning");
         log.error(xl::log::DefaultSubjects::Subjects::Default, "Error");
         EXPECT_EQ(call_count, 5);
+        log.set_level_status(xl::log::DefaultLevels::Levels::Warn, false);
+        log.warn(xl::log::DefaultSubjects::Subjects::Default, "Warning");
+        EXPECT_EQ(call_count, 5);
+        log.info(xl::log::DefaultSubjects::Subjects::Default, "Info");
+        log.error(xl::log::DefaultSubjects::Subjects::Default, "Error");
+        EXPECT_EQ(call_count, 7);
     }
 }
 
@@ -41,13 +47,13 @@ public:
 
 class CustomLevels {
 
-    static inline std::string level_names[] = {"info", "warn"};
+    inline static std::string level_names[] = {"info", "warn"};
 
 public:
     enum class Levels {Info, Warn};
 
     static std::string const & get_subject_name(Levels level) {
-        return level_names[static_cast<std::underlying_type_t<Levels>>(level)];
+        return CustomLevels::level_names[static_cast<std::underlying_type_t<Levels>>(level)];
     }
 };
 
