@@ -201,7 +201,8 @@ public:
 TEST(template, InlineSubtemplate) {
     Template t(R"(
 This is a normal template {{SUBSTITUTE}}
-{{VECTOR|! * This is \{{{SUPERLATIVE}}\} inline template{{EXCLAMATION}}}}
+{{VECTOR|!!
+ * This is \{{{SUPERLATIVE}}\} inline template{{EXCLAMATION}}}}
 This is more normal template
 )");
 

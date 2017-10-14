@@ -185,6 +185,7 @@ public:
     }
 };
 
+
 template<class T>
 class Provider<T, std::enable_if_t<xl::is_range_for_loop_able_v<T> && !std::is_convertible_v<T, std::string>>> : public Provider_Interface {
 
