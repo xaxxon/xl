@@ -179,7 +179,6 @@ void Template::compile() const {
 
         // if there was an inline template specified
         if (matches[INLINE_TEMPLATE_MARKER] != "") {
-            std::cerr << fmt::format("on substitution '{}', inline template: '{}'", matches[REPLACEMENT_NAME_INDEX].str(), matches[REPLACEMENT_OPTIONS_INDEX].str()) << std::endl;
             this->compiled_substitutions.emplace_back(matches[REPLACEMENT_NAME_INDEX], nullptr, "", Template(matches[REPLACEMENT_OPTIONS_INDEX].str()));
         } else {
             // look up the template to use:
