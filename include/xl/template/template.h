@@ -104,26 +104,8 @@ bool Template::is_compiled() const {
 
 void Template::compile() const {
 
-
-    // must match:
-    //   a string with no replacement
-    //   a replacement with no other string
-    //   a string followed by a replacement
-    //   BUT NOT neither. (leading positive lookahead assertion makes sure string isn't empty)
     static std::regex r(
-        // forward lookahead that the string has at least one character (not empty)
-        //"^(?=(?:.|\\n))"
-
-            // grab everything up until a first lone curly brace
-            //"((?:[^{}]|[{]{2}|[}]{2})*)"
-
-            // grab a brace (potentially the wrong one which will be checked for later) and then a submatch of
-            //   everything inside the braces excluding leading and trailing whitespace
-            //   followed by a closing curly brace or potentially end-of-line in case of a no-closing-brace error
-            // negative forward assertion to make sure the closing brace isn't escaped as }}
-            //"(?:([{}]?)\\s*((?:[^}{]|[}]{2}|[{]{2})*?)(?:[|]((?:[^{}]|[}]{2}|[{]{2})*?\\s*))?\\s*([}]|$)(?!\\})\\\\?)?",
-        //"^(?=(?:.|\\n))((?:\\\\[{]|[^{}]|[{](?!\\{)|[}](?!\\}))*)(?:([{]{2})\\s*([!]?)((?:[^{}|\\s]|\\s*(?!(?:[}][}]))|\\\\[}]|[^}|\\s]|[}](?!\\}))*)\\s*(?:[|]((?:\\\\[}]|[^}]|[}](?!\\}))*))?)?([}]{2})?",
-        "(?=(?:.|\\n))((?:\\\\[{]|[^{}]|[{](?!\\{)|[}](?!\\}))*)(?:([{]{2})\\s*((?:[^{}|\\s]|\\s*(?!(?:[}][}]))|\\\\[}]|[^}|\\s]|[}](?!\\}))*)\\s*(?:[|](!?)(?:![^\n]*\n)?((?:(?:(?:.|\\n)*?(?=[{]{2}))(?:[{]{2}(?:(?:.|\\n)*?(?=[}]{2}))[}]{2}))*(?:(?:.|\\n)*?(?=[}]{2}))))?)?([}]{2})?",
+        R"((?=(?:.|\n))((?:\\[{]|[^{}]|[{](?!\{)|[}](?!\}))*)(?:([{]{2})\s*((?:[^{}|\s]|\s*(?!(?:[}][}]))|\\[}]|[^}|\s]|[}](?!\}))*)\s*(?:[|](!?)(?:![^\n]*\n)?((?:(?:(?:.|\n)*?(?=[{]{2}))(?:[{]{2}(?:(?:.|\n)*?(?=[}]{2}))[}]{2}))*(?:(?:.|\n)*?(?=[}]{2}))))?)?([}]{2})?)",
         std::regex::optimize
     );
 

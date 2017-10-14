@@ -6,8 +6,7 @@ project ("XL Test")
 set(CLANG_HOME $ENV{CLANG_HOME})
 link_directories(. ${CLANG_HOME}/lib)
 
-find_package(fmt)
-find_package(boost)
+find_package(fmt REQUIRED)
 
 include_directories(${gtest_SOURCE_DIR}/include)
 include_directories(${gmock_SOURCE_DIR}/include)
