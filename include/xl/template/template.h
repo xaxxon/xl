@@ -14,11 +14,10 @@
 
 #include "../library_extensions.h"
 
-#include "provider_data.h"
-
 
 namespace xl {
 
+class ProviderData;
 class Provider_Interface;
 
 
@@ -43,7 +42,7 @@ public:
 
 //    std::string fill(Provider_Interface const & interface = EmptyProvider{}, std::map<std::string, Template> const & templates = {});
 
-    template<class T = EmptyProvider>
+    template<class T = std::string>
     std::string fill(T && source = T{}, std::map<std::string, Template> const & templates = {}) const;
 
     // compiles the template for faster processing
@@ -57,7 +56,7 @@ using TemplateMap = std::map<std::string, Template>;
 
 } // end namespace xl
 
-
+#include "provider_data.h"
 #include "provider.h"
 namespace xl {
 
@@ -90,7 +89,7 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
 
         if (this->compiled_substitutions.size() > i) {
             auto & data = this->compiled_substitutions[i];
-            auto substitution_result = provider(ProviderData(data.name, &templates, data.parameters));
+            auto substitution_result = provider(ProviderData(data.name, &templates, data.parameters, data.inline_template));
             result.insert(result.end(), substitution_result.begin(), substitution_result.end());
         }
     }
@@ -123,7 +122,8 @@ void Template::compile() const {
             //   followed by a closing curly brace or potentially end-of-line in case of a no-closing-brace error
             // negative forward assertion to make sure the closing brace isn't escaped as }}
             //"(?:([{}]?)\\s*((?:[^}{]|[}]{2}|[{]{2})*?)(?:[|]((?:[^{}]|[}]{2}|[{]{2})*?\\s*))?\\s*([}]|$)(?!\\})\\\\?)?",
-        "^(?=(?:.|\\n))((?:\\\\[{]|[^{}]|[{](?!\\{)|[}](?!\\}))*)(?:([{]{2})\\s*((?:[^{}|\\s]|\\s*(?!(?:[}][}]))|\\\\[}]|[^}|\\s]|[}](?!\\}))*)\\s*(?:[|]((?:\\\\[}]|[^}]|[}](?!\\}))*))?)?([}]{2})?",
+        //"^(?=(?:.|\\n))((?:\\\\[{]|[^{}]|[{](?!\\{)|[}](?!\\}))*)(?:([{]{2})\\s*([!]?)((?:[^{}|\\s]|\\s*(?!(?:[}][}]))|\\\\[}]|[^}|\\s]|[}](?!\\}))*)\\s*(?:[|]((?:\\\\[}]|[^}]|[}](?!\\}))*))?)?([}]{2})?",
+        "(?=(?:.|\\n))((?:\\\\[{]|[^{}]|[{](?!\\{)|[}](?!\\}))*)(?:([{]{2})\\s*((?:[^{}|\\s]|\\s*(?!(?:[}][}]))|\\\\[}]|[^}|\\s]|[}](?!\\}))*)\\s*(?:[|](!?)((?:(?:(?:.|\\n)*?(?=[{]{2}))(?:[{]{2}(?:(?:.|\\n)*?(?=[}]{2}))[}]{2}))*(?:(?:.|\\n)*?(?=[}]{2}))))?)?([}]{2})?",
         std::regex::optimize
     );
 
@@ -132,7 +132,8 @@ void Template::compile() const {
         WHOLE_STRING_INDEX = 0,
         LITERAL_STRING_INDEX,
         OPEN_BRACE_INDEX,
-        REPLACEMENT_NAME_INDEX,
+        REPLACEMENT_NAME_INDEX, // !
+        INLINE_TEMPLATE_MARKER,
         REPLACEMENT_OPTIONS_INDEX,
         CLOSE_BRACE_INDEX,
     };
@@ -149,10 +150,10 @@ void Template::compile() const {
 
     while (std::regex_search(remaining_template, matches, r)) {
 
-//            std::cerr << fmt::format("matching against: '{}'", remaining_template) << std::endl;
-//            for (int i = 0; i < matches.size(); i++) {
-//                std::cerr << fmt::format("match[{}]: '{}'", i, matches[i].str()) << std::endl;
-//            }
+//        std::cerr << fmt::format("matching against: '{}'", remaining_template) << std::endl;
+//        for (int i = 0; i < matches.size(); i++) {
+//            std::cerr << fmt::format("match[{}]: '{}'", i, matches[i].str()) << std::endl;
+//        }
 
         // if no substitution found, everything was a literal and is handled as a "trailing literal" outside
         //   this loop
@@ -162,7 +163,7 @@ void Template::compile() const {
 
         // check for open but no close or incorrect brace type
         if (matches[OPEN_BRACE_INDEX].str() != "{{" || matches[CLOSE_BRACE_INDEX].str() != "}}") {
-            throw TemplateException("Found mismatched braces");
+            throw TemplateException("Found mismatched braces" + matches[OPEN_BRACE_INDEX].str() + matches[CLOSE_BRACE_INDEX].str());
         }
 
         remaining_template = matches.suffix().first;
@@ -176,6 +177,14 @@ void Template::compile() const {
         this->compiled_static_strings.push_back(literal_string);
         this->minimum_result_length += this->compiled_static_strings.back().size();
 
+        // if there was an inline template specified
+        if (matches[INLINE_TEMPLATE_MARKER] != "") {
+            std::cerr << fmt::format("on substitution '{}', inline template: '{}'", matches[REPLACEMENT_NAME_INDEX].str(), matches[REPLACEMENT_OPTIONS_INDEX].str()) << std::endl;
+            this->compiled_substitutions.emplace_back(matches[REPLACEMENT_NAME_INDEX], nullptr, "", Template(matches[REPLACEMENT_OPTIONS_INDEX].str()));
+        } else {
+            // look up the template to use:
+            this->compiled_substitutions.emplace_back(matches[REPLACEMENT_NAME_INDEX], nullptr, matches[REPLACEMENT_OPTIONS_INDEX]);
+        }
 
 //            if (!provider.provides(matches[REPLACEMENT_NAME_INDEX])) {
 //                throw TemplateException(
@@ -186,14 +195,11 @@ void Template::compile() const {
 //                std::cerr << fmt::format("GOT REPLACEMENT OPTIONS: {}", matches[REPLACEMENT_OPTIONS_INDEX].str()) << std::endl;
 //            }
 
-        // look up the template to use:
-        this->compiled_substitutions.emplace_back(matches[REPLACEMENT_NAME_INDEX], nullptr, matches[REPLACEMENT_OPTIONS_INDEX]);
 
     }
 
 //    std::cerr << fmt::format("pushing on remaining template: '{}'", std::regex_replace(remaining_template, post_process_regex, "$1")) << std::endl;
     this->compiled_static_strings.push_back(std::regex_replace(remaining_template, post_process_regex, "$1$2"));
-
 }
 
 } // end namespace xl

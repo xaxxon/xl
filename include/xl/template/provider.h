@@ -9,7 +9,7 @@
 
 #include "exceptions.h"
 #include "template.h"
-
+#include "provider_data.h"
 namespace xl {
 
 
@@ -188,6 +188,7 @@ public:
 template<class T>
 class Provider<T, std::enable_if_t<xl::is_range_for_loop_able_v<T> && !std::is_convertible_v<T, std::string>>> : public Provider_Interface {
 
+static_assert(!std::is_same_v<std::remove_reference_t<std::remove_const_t<T>>, std::string>);
 private:
     T t;
 public:
@@ -195,6 +196,7 @@ public:
     Provider(T const & t) : t(t) {}
 
     std::string operator()(ProviderData const & data) override {
+//        std::cerr << fmt::format("container provider looking at substution data for: {}, {}", data.name, (bool)data.inline_template) << std::endl;
         std::stringstream result;
 
         static std::regex parameters_regex("^([^|]*)[|]?(.*)$");
@@ -208,23 +210,29 @@ public:
 //            std::cerr << fmt::format("parameter regex[{}]: '{}'", i, matches[i].str()) << std::endl;
 //        }
 
-
-
-        bool first = true;
-        std::string join_string = matches[JOIN_STRING_INDEX].str();
+//        std::cerr << fmt::format("inline template exists? {}", (bool)data.inline_template) << std::endl;
+        Template const & tmpl = [&]{
+            if (data.inline_template) {
+                return *data.inline_template;
+            } else {
 //        std::cerr << fmt::format("looking up template named: '{}'", matches[TEMPLATE_NAME_INDEX].str()) << std::endl;
 //        std::cerr << fmt::format("join string: '{}'", join_string) << std::endl;
-        auto template_iterator = data.templates->find(matches[TEMPLATE_NAME_INDEX].str());
-        if ( template_iterator == data.templates->end()) {
-            if (data.templates->empty()) {
-                throw TemplateException("ContainerProvider received empty template map so it can't possibly find a template for its members");
+                auto template_iterator = data.templates->find(matches[TEMPLATE_NAME_INDEX].str());
+                if (template_iterator == data.templates->end()) {
+                    if (data.templates->empty()) {
+                        throw TemplateException(
+                            "ContainerProvider received empty template map so it can't possibly find a template for its members" + data.name);
+                    }
+                    throw TemplateException(
+                        fmt::format("ContainerProvider couldn't find template named: '{}'", data.parameters));
+                }
+                return template_iterator->second;
             }
-            throw TemplateException(fmt::format("ContainerProvider couldn't find template named: '{}'", data.parameters));
-        }
-        Template const & tmpl = template_iterator->second;
+        }();
 
-
-        for (auto const & element : t) {
+        std::string join_string = matches[JOIN_STRING_INDEX].str() != "" ? matches[JOIN_STRING_INDEX].str() : "\n";
+        bool first = true;
+        for (auto & element : t) {
             auto p = Provider<std::decay_t<decltype(element)>>(element);
 
             if (!first) {

@@ -2,10 +2,10 @@
 
 #include <map>
 #include <string>
-
+#include <optional>
 
 #include "exceptions.h"
-
+#warning including provider_data.h
 namespace xl {
 
 class Template;
@@ -14,15 +14,31 @@ class Template;
 using TemplateMap = std::map<std::string, Template>;
 
 struct ProviderData {
-    std::string name;
-    TemplateMap const * templates;
-    std::string const parameters;
 
-    ProviderData(std::string const & name, TemplateMap const * templates = nullptr, std::string parameters = "") :
+    /// name to look up in the provider for a replacement value
+    std::string name;
+
+    /// map of template names to templates
+    TemplateMap const * templates;
+
+    /// any other data associated with the substitution
+    std::string parameters;
+
+    /// an inline template, if specified
+    std::optional<Template> inline_template;
+
+    ProviderData(std::string const & name,
+                 TemplateMap const * templates = nullptr,
+                 std::string parameters = "",
+                 std::optional<Template> inline_template = std::optional<Template>{}) :
         name(name),
         templates(templates),
-        parameters(parameters) {}
+        parameters(parameters),
+        inline_template(inline_template)
+    {}
 };
+
+#warning done defining ProviderData
 
 
 /**

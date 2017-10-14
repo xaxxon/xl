@@ -198,3 +198,26 @@ public:
 
 
 
+TEST(template, InlineSubtemplate) {
+    Template t(R"(
+This is a normal template {{SUBSTITUTE}}
+{{VECTOR|! * This is an {{}} inline template}}
+This is more normal template
+)");
+
+    auto result = t.fill(make_provider(
+        std::pair("SUBSTITUTE", "REPLACEMENT"),
+        std::pair("VECTOR", vector<string>{"awesome", "cool", "super"})
+    ));
+
+    std::string expected_result = R"(
+This is a normal template REPLACEMENT
+ * This is an awesome inline template
+ * This is an cool inline template
+ * This is an super inline template
+This is more normal template
+)";
+
+    EXPECT_EQ(result, expected_result);
+}
+

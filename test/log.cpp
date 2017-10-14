@@ -34,6 +34,7 @@ TEST(log, SimpleLog) {
     }
 }
 
+
 TEST(log, LogCallbackGuard) {
 
     int global_log_count = 0;
@@ -202,3 +203,4 @@ TEST(log, CustomLog) {
     const char *c = "str";
     my_stringstream << c << s;
 }
+
