@@ -5,7 +5,6 @@
 #include <optional>
 
 #include "exceptions.h"
-#warning including provider_data.h
 namespace xl {
 
 class Template;
@@ -37,8 +36,6 @@ struct ProviderData {
         inline_template(inline_template)
     {}
 };
-
-#warning done defining ProviderData
 
 
 /**

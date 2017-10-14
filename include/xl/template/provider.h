@@ -232,6 +232,8 @@ public:
 
         std::string join_string = matches[JOIN_STRING_INDEX].str() != "" ? matches[JOIN_STRING_INDEX].str() : "\n";
         bool first = true;
+
+        // Iterate through the container
         for (auto & element : t) {
             auto p = Provider<std::decay_t<decltype(element)>>(element);
 
@@ -255,15 +257,15 @@ public:
 
 
 
-template<>
-class Provider<std::map<std::string, std::unique_ptr<Provider_Interface>>> : public Provider_Interface {
+template<class Value>
+class Provider<std::map<std::string, Value>, std::enable_if_t<xl::is_range_for_loop_able_v<std::map<std::string, Value>> && !std::is_convertible_v<std::map<std::string, Value>, std::string>>> : public Provider_Interface {
 public:
 
-    std::map<std::string, std::unique_ptr<Provider_Interface>> map;
+    std::map<std::string, Value> map;
 
     template<class... Keys, class... Values>
     Provider(std::pair<Keys, Values> && ... pairs) {
-        (this->map.emplace(pairs.first, make_provider(pairs.second)),...);
+        (this->map.emplace(std::pair<std::string, std::unique_ptr<Provider_Interface>>(std::move(pairs.first), make_provider(pairs.second))),...);
 //        std::cerr << fmt::format("done adding pairs to map") << std::endl;
 //        std::cerr << fmt::format("map size: {}", this->map.size()) << std::endl;
 //        for(auto const & [a,b] : this->map) {
@@ -271,9 +273,18 @@ public:
 //        }
     }
 
+    Provider(std::map<std::string, Value> map) : map(std::move(map))
+    {}
+
     std::string operator()(ProviderData const & data) override {
         if (auto provider_iterator = this->map.find(data.name); provider_iterator != this->map.end()) {
-            return provider_iterator->second->operator()(data);
+            if constexpr(std::is_base_of_v<Provider_Interface, Value>) {
+                return provider_iterator->second()(data);
+            } else if constexpr(std::is_same_v<std::unique_ptr<Provider_Interface>, Value>) {
+                return provider_iterator->second->operator()(data);
+            } else {
+                return Provider<Value>(provider_iterator->second)(data);
+            }
         } else {
 //            std::cerr << fmt::format("in map:") << std::endl;
 //            for(auto const & [k,v] : this->map) {
