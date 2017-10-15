@@ -2,6 +2,7 @@
 #pragma once
 
 #include <fstream>
+#include <regex>
 
 #include <experimental/filesystem>
 
@@ -26,6 +27,12 @@ Template load_template_from_istream(std::basic_istream<CharT, Traits> const & is
 }
 
 
+std::string make_template_name(std::string const & filename) {
+    static std::regex r("\\.template$");
+    return std::regex_replace(filename, r, "");
+}
+
+
 /**
  * Loads either a single file or a directory of files into a std::map appropriate for sending to Template::fill
  * @param path_name file or directory name
@@ -34,13 +41,15 @@ Template load_template_from_istream(std::basic_istream<CharT, Traits> const & is
 TemplateMap load_templates(std::string_view path_name) {
     fs::path path(path_name);
     TemplateMap results;
+
+
     if (fs::is_directory(path)) {
         for (auto entry : fs::directory_iterator(path)) {
-            results.emplace(entry.path().filename(), load_template_from_istream(std::ifstream(entry.path())));
+            results.emplace(make_template_name(entry.path().filename()), load_template_from_istream(std::ifstream(entry.path())));
         }
 
     } else if (fs::is_regular_file(path)){
-        results.emplace(path.filename(),
+        results.emplace(make_template_name(path.filename()),
                         load_template_from_istream(std::ifstream(path)));
 
     } else {
