@@ -228,3 +228,23 @@ This is more normal template
     EXPECT_EQ(result, expected_result);
 }
 
+
+
+TEST(template, LoadDirectoryOfTemplates) {
+    auto templates = load_templates("templates");
+
+    EXPECT_EQ(templates.size(), 2);
+    EXPECT_NE(templates.find("a.template"), templates.end());
+    EXPECT_NE(templates.find("b.template"), templates.end());
+
+    EXPECT_EQ(templates["a.template"].fill(),"a.template contents");
+    EXPECT_EQ(templates["b.template"].fill(),"b.template contents");
+
+    templates = load_templates("templates/a.template");
+    EXPECT_EQ(templates.size(), 1);
+    EXPECT_NE(templates.find("a.template"), templates.end());
+    EXPECT_EQ(templates.find("b.template"), templates.end());
+    EXPECT_EQ(templates["a.template"].fill(),"a.template contents");
+
+
+}

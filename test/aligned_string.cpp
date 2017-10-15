@@ -112,12 +112,6 @@ TEST(AlignedString_Static64, OverfullString) {
 }
 
 
-
-
-
-
-
-
 TEST(AlignedString_Dynamic16, EmptyString) {
     {
         AlignedString<AlignedStringBuffer_Dynamic<16>> string;

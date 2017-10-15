@@ -29,3 +29,9 @@ add_subdirectory(googletest EXCLUDE_FROM_ALL)
 
 target_link_libraries(test-xl c++experimental fmt gmock gtest gmock_main xl::xl)
 
+add_custom_target(copy_test_resources)
+add_custom_command(TARGET copy_test_resources PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/templates ${PROJECT_BINARY_DIR}/templates)
+
+
+add_dependencies(test-xl copy_test_resources)

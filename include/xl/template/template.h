@@ -58,6 +58,8 @@ using TemplateMap = std::map<std::string, Template>;
 
 #include "provider_data.h"
 #include "provider.h"
+#include "directory_loader.h"
+
 namespace xl {
 
 //std::string Template::fill(Provider_Interface const & interface, std::map<std::string, Template> const & templates) {
@@ -104,10 +106,48 @@ bool Template::is_compiled() const {
 
 void Template::compile() const {
 
+
+
+/*
+ * this isn't useable by std::regex, but can be pasted into regex101.com to work with
+ * Then when you're done, trim out the whitespace and comments to generate the std::regex below
+ * https://regex101.com/r/fz8g7j
+
+# assert regex isn't empty
+(?=(?:.|\n))
+
+# leading literal section
+((?:\\[{]|[^{}]|[{](?!\{)|[}](?!\}))*)
+
+# Opening {{
+(?:([{]{2})\s*
+
+# Substitution name
+((?:[^{}|\s]|\s*(?!(?:[}][}]))|\\[}]|[^}|\s]|[}](?!\}))*)\s*
+
+# Optional following | and other data
+(?:[|]
+
+  # optional ! or !! to denote an inline template
+  (!?)(?:![^\n]*\n)?
+
+  # The inline template or additional substitution data
+  ((?:(?:(?:.|\n)*?(?=[{]{2}))(?:[{]{2}(?:(?:.|\n)*?(?=[}]     {2}))[}]{2}))*(?:(?:.|\n)*?(?=[}]{2})))
+
+#end optional data
+)?
+
+# end opening }}
+)?
+
+# Closing }}
+([}]{2})?
+*/
+
+    // DO NOT EDIT THIS DIRECTLY, EDIT THE COMMENTED VERSION ABOVE AND THEN COPY IT AND TRIM OUT THE WHITESPACE AND COMMENTS
     static std::regex r(
         R"((?=(?:.|\n))((?:\\[{]|[^{}]|[{](?!\{)|[}](?!\}))*)(?:([{]{2})\s*((?:[^{}|\s]|\s*(?!(?:[}][}]))|\\[}]|[^}|\s]|[}](?!\}))*)\s*(?:[|](!?)(?:![^\n]*\n)?((?:(?:(?:.|\n)*?(?=[{]{2}))(?:[{]{2}(?:(?:.|\n)*?(?=[}]{2}))[}]{2}))*(?:(?:.|\n)*?(?=[}]{2}))))?)?([}]{2})?)",
-        std::regex::optimize
-    );
+        std::regex::optimize | std::regex::ECMAScript);
 
     // submatch positions for the above regex
     enum RegexMatchIndex {
