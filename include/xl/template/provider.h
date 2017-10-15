@@ -104,7 +104,7 @@ class Provider<T, std::enable_if_t<std::is_convertible_v<T, std::string>>> : pub
 public:
     Provider(T && string) : string(std::move(string))
     {}
-    Provider(T & string) : string(string)
+    Provider(T const & string) : string(string)
     {}
 
 

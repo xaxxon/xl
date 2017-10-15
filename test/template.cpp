@@ -248,3 +248,14 @@ TEST(template, LoadDirectoryOfTemplates) {
 
 
 }
+
+
+TEST(template, TemplateSubstitutionTemplate) {
+    auto templates = load_templates("templates");
+
+    auto result = Template("{{!a}} {{!b}}").fill("", templates);
+
+    EXPECT_EQ(result, "a.template contents b.template contents");
+
+    EXPECT_THROW(Template("{{!a}} {{!c}}").fill("", templates), TemplateException);
+}

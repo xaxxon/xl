@@ -25,15 +25,18 @@ struct ProviderData {
 
     /// an inline template, if specified
     std::optional<Template> inline_template;
+    std::string template_name;
 
     ProviderData(std::string const & name,
                  TemplateMap const * templates = nullptr,
                  std::string parameters = "",
-                 std::optional<Template> inline_template = std::optional<Template>{}) :
+                 std::optional<Template> inline_template = std::optional<Template>{},
+                 std::string template_name = "") :
         name(name),
         templates(templates),
         parameters(parameters),
-        inline_template(inline_template)
+        inline_template(inline_template),
+        template_name(template_name)
     {}
 };
 

@@ -91,8 +91,24 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
 
         if (this->compiled_substitutions.size() > i) {
             auto & data = this->compiled_substitutions[i];
-            auto substitution_result = provider(ProviderData(data.name, &templates, data.parameters, data.inline_template));
-            result.insert(result.end(), substitution_result.begin(), substitution_result.end());
+
+            if (data.template_name != "") {
+                if (templates.empty()) {
+                    throw TemplateException("Cannot refer to another template if no other templates specified: " + data.template_name);
+                }
+                auto template_iterator = templates.find(data.template_name);
+                if (template_iterator == templates.end()) {
+                    throw TemplateException("No template found named: " + data.template_name);
+                }
+                auto inline_template_result = template_iterator->second.fill(provider, templates);
+                result.insert(result.end(), begin(inline_template_result), end(inline_template_result));
+
+            } else {
+
+                auto substitution_result = provider(
+                    ProviderData(data.name, &templates, data.parameters, data.inline_template));
+                result.insert(result.end(), substitution_result.begin(), substitution_result.end());
+            }
         }
     }
     return result;
@@ -123,7 +139,7 @@ void Template::compile() const {
 (?:([{]{2})\s*
 
 # Substitution name
-((?:[^{}|\s]|\s*(?!(?:[}][}]))|\\[}]|[^}|\s]|[}](?!\}))*)\s*
+(!?)((?:[^{}|\s]|\s*(?!(?:[}][}]))|\\[}]|[^}|\s]|[}](?!\}))*)\s*
 
 # Optional following | and other data
 (?:[|]
@@ -146,7 +162,7 @@ void Template::compile() const {
 
     // DO NOT EDIT THIS DIRECTLY, EDIT THE COMMENTED VERSION ABOVE AND THEN COPY IT AND TRIM OUT THE WHITESPACE AND COMMENTS
     static std::regex r(
-        R"((?=(?:.|\n))((?:\\[{]|[^{}]|[{](?!\{)|[}](?!\}))*)(?:([{]{2})\s*((?:[^{}|\s]|\s*(?!(?:[}][}]))|\\[}]|[^}|\s]|[}](?!\}))*)\s*(?:[|](!?)(?:![^\n]*\n)?((?:(?:(?:.|\n)*?(?=[{]{2}))(?:[{]{2}(?:(?:.|\n)*?(?=[}]{2}))[}]{2}))*(?:(?:.|\n)*?(?=[}]{2}))))?)?([}]{2})?)",
+        R"((?=(?:.|\n))((?:\\[{]|[^{}]|[{](?!\{)|[}](?!\}))*)(?:([{]{2})\s*(!?)((?:[^{}|\s]|\s*(?!(?:[}][}]))|\\[}]|[^}|\s]|[}](?!\}))*)\s*(?:[|](!?)(?:![^\n]*\n)?((?:(?:(?:.|\n)*?(?=[{]{2}))(?:[{]{2}(?:(?:.|\n)*?(?=[}]{2}))[}]{2}))*(?:(?:.|\n)*?(?=[}]{2}))))?)?([}]{2})?)",
         std::regex::optimize | std::regex::ECMAScript);
 
     // submatch positions for the above regex
@@ -154,6 +170,7 @@ void Template::compile() const {
         WHOLE_STRING_INDEX = 0,
         LITERAL_STRING_INDEX,
         OPEN_BRACE_INDEX,
+        REPLACEMENT_TEMPLATE_MARKER, // substitute with another template, not content
         REPLACEMENT_NAME_INDEX, // !
         INLINE_TEMPLATE_MARKER,
         REPLACEMENT_OPTIONS_INDEX,
@@ -188,6 +205,7 @@ void Template::compile() const {
             throw TemplateException("Found mismatched braces" + matches[OPEN_BRACE_INDEX].str() + matches[CLOSE_BRACE_INDEX].str());
         }
 
+
         remaining_template = matches.suffix().first;
 
         std::string literal_string = matches[LITERAL_STRING_INDEX];
@@ -200,7 +218,9 @@ void Template::compile() const {
         this->minimum_result_length += this->compiled_static_strings.back().size();
 
         // if there was an inline template specified
-        if (matches[INLINE_TEMPLATE_MARKER] != "") {
+        if (matches.length(REPLACEMENT_TEMPLATE_MARKER) == 1) {
+            this->compiled_substitutions.emplace_back("", nullptr, "", std::optional<Template>(), matches[REPLACEMENT_NAME_INDEX]);
+        }else if (matches.length(INLINE_TEMPLATE_MARKER) == 1) {
             this->compiled_substitutions.emplace_back(matches[REPLACEMENT_NAME_INDEX], nullptr, "", Template(matches[REPLACEMENT_OPTIONS_INDEX].str()));
         } else {
             // look up the template to use:

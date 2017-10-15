@@ -35,6 +35,7 @@ std::string make_template_name(std::string const & filename) {
 
 /**
  * Loads either a single file or a directory of files into a std::map appropriate for sending to Template::fill
+ * If the filename ends with .template, the trailing .template is removed from the key in the returned map
  * @param path_name file or directory name
  * @return map of templates with keys being just the filename (not the full path) of the files loaded
  */
@@ -60,4 +61,4 @@ TemplateMap load_templates(std::string_view path_name) {
 }
 
 
-}
+} // end namespace xl
