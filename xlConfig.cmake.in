@@ -30,6 +30,27 @@ endif()
 
 
 
+# If pcre is available, additional functionality is made available.
+# USE_LIB_PCRE value: unset or true - use pcre if available
+#                      "required" - fail if pcre not available
+#                    false - do not use pcre even if available
+if (NOT DEFINED xl::USE_PCRE)
+    set(xl::USE_PCRE TRUE)
+endif()
+
+if (NOT xl::USE_PCRE)
+    message("Not using PCRE because xl::USE_PCRE is false")
+else()
+    FIND_LIBRARY(FOUND_LIB_PCRE pcre)
+    IF(FOUND_LIB_PCRE)
+        add_definitions(-DXL_USE_PCRE)
+    endif()
+endif()
+
+
+
+
+
 @PACKAGE_INIT@
 
 set_and_check(FOO_INCLUDE_DIR "@PACKAGE_INCLUDE_INSTALL_DIR@")

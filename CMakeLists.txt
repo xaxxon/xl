@@ -22,6 +22,7 @@ add_library(xl::xl ALIAS xl)
 
 # Requires C++17 support
 target_compile_features(xl INTERFACE cxx_std_17)
+target_link_libraries(xl INTERFACE pcre)
 
 add_subdirectory(test)
 add_subdirectory(benchmark)

@@ -2,10 +2,15 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "regexer.h"
+#include "regex/regexer.h"
 
 using namespace xl;
 #include "library_extensions.h"
+
+TEST(RegexPcre, SimpleMatch) {
+    xl::Regex regex("(a)(b)");
+    regex.match("ab");
+}
 
 
 TEST(Regexer, EmptyRegex) {

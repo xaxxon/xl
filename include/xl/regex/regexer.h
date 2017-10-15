@@ -1,11 +1,45 @@
 #pragma once
 
-#include <regex>
+namespace xl {
+    enum RegexFlags {
+        NONE = 0,
+        OPTIMIZE = 1
+    };
+} // end namespace xl
+
+#if defined XL_USE_PCRE
+#include "regex_pcre.h"
+using DefaultRegexImpl = xl::RegexPcre;
+#else
+using DefaultRegexImpl = xl::RegexStd;
+#endif
+
+#include "regex_std.h"
 
 #include "zstring_view.h"
 
 
+
+
 namespace xl {
+
+/**
+ * Maps to either std::regex or PCRE depending on build options
+ */
+template<class RegexImpl = DefaultRegexImpl>
+class Regex : public RegexImpl {
+public:
+
+    Regex(xl::zstring_view regex_string, xl::RegexFlags flags = NONE) :
+        RegexImpl(regex_string)
+    {}
+
+    template<class T, std::enable_if_t<std::is_constructible_v<RegexImpl, T>, int> = 0>
+    Regex(T && t) :
+        RegexImpl(std::forward<T>(t))
+    {};
+
+};
 
 class RegexResult {
     std::smatch _matches;
