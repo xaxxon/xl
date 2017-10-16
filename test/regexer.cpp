@@ -16,7 +16,6 @@ TEST(RegexPcre, SimpleMatch) {
 TEST(Regexer, EmptyRegex) {
     {
         auto result = regexer("", ""_re);
-        EXPECT_EQ(result.matches().size(), 1);
         EXPECT_EQ(result.size(), 1);
     }
 }
@@ -25,14 +24,13 @@ TEST(Regexer, EmptyString) {
     {
 
         auto result = regexer("a", ""_re);
-        EXPECT_TRUE(result.matches().empty());
-        EXPECT_TRUE(result.empty());
+        EXPECT_EQ(result.size(), 1);
     }
 }
 
 TEST(Regexer, InvalidString) {
     {
-        EXPECT_THROW(regexer("", "["_re), std::regex_error);
+        EXPECT_THROW(regexer("", "["_re), xl::RegexException);
     }
 }
 
@@ -40,22 +38,20 @@ TEST(Regexer, InvalidString) {
 TEST(Regexer, BasicRegex) {
     {
         auto result = regexer("a", "a"_re);
-        EXPECT_EQ(result.matches().size(), 1);
+        EXPECT_EQ(result.size(), 1);
     }
     {
         auto result = regexer("ab", "(a)b"_re);
-        EXPECT_EQ(result.matches().size(), 2);
+        EXPECT_EQ(result.size(), 2);
 
         // second test is a shortcut for the first
-        EXPECT_EQ(result.matches()[0], "ab");
         EXPECT_EQ(result[0], "ab");
 
         // second test is a shortcut for the first
-        EXPECT_EQ(result.matches()[1], "a");
         EXPECT_EQ(result[1], "a");
 
         // alternate syntax
-        EXPECT_EQ(regexer("ab", "(a)b"_re).matches()[1], "a");
+        EXPECT_EQ(regexer("ab", "(a)b"_re)[1], "a");
     }
 }
 

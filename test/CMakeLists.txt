@@ -18,7 +18,8 @@ set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wno-aligned-allocation-unavailable -std
 
 
 include_directories(../include/xl)
-add_definitions(-DXL_USE_LIB_FMT -DXL_USE_PCRE)
+add_definitions(-DXL_USE_LIB_FMT)
+add_definitions(-DXL_USE_PCRE) # on another line to easily add and remove during development
 
 add_executable(test-xl EXCLUDE_FROM_ALL ${TEST_SRC} ${XL_HEADER_FILES})
 

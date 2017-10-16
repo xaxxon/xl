@@ -10,13 +10,70 @@
 
 namespace xl {
 
+class RegexPcre;
+
+class RegexResultPcre {
+    friend class RegexPcre;
+private:
+
+    // original regex string
+    std::string const source;
+
+    // number of actual captures from running the regex
+    int results = 0;
+
+    // buffer for storing submatch offsets (3 for each capture)
+    std::unique_ptr<int[]> const captures;
+
+    // number of captures space has been allocated for (int * 3)
+    int const capture_count;
+
+public:
+    RegexResultPcre(std::string source, int results, std::unique_ptr<int[]> captures, size_t capture_count) :
+        source(source),
+        results(results),
+        captures(std::move(captures)),
+        capture_count(capture_count)
+    {
+//        std::cerr << fmt::format("created results for {} with results {} and capture count {} with buffer {}",
+//            this->source, this->results, this->capture_count, (void*)this->captures.get()
+//        ) << std::endl;
+    }
+
+    operator bool() const {
+        return results > 0;
+    }
+
+    size_t size() const {
+        return this->results;
+    }
+
+    std::string operator[](size_t index) const {
+        if (index > results) {
+            throw RegexException("Index out of range");
+        }
+
+        auto substring_buffer_length = (this->captures[(index * 2) + 1] - this->captures[(index * 2)]);
+        std::string substring(substring_buffer_length, '\0');
+        pcre_copy_substring(source.c_str(), this->captures.get(), this->results, index, substring.data(), substring_buffer_length + 1);
+
+        return substring;
+    }
+};
+
 
 class RegexPcre {
 
     pcre * compiled_regex = nullptr;
     pcre_extra * extra = nullptr;
-    std::unique_ptr<int[]> results;
-    int result_size = 0;
+    int capture_count;
+
+    int make_pcre_regex_flags(RegexFlags flags) {
+        int result = 0;
+        result |= flags | ICASE ? PCRE_CASELESS : 0;
+
+        return result;
+    }
 
 public:
 
@@ -26,57 +83,45 @@ public:
         int error_offset;
 
         compiled_regex = pcre_compile(regex_string.c_str(),
-                                      0, // options
+                                      make_pcre_regex_flags(flags), // options
                                       &error_string,
                                       &error_offset,
                                       NULL // table pointer ??
         );
 
         if (compiled_regex == nullptr) {
-            // TODO: ERROR
+            // TODO: improve error message
+            throw RegexException("Invalid regex");
         }
 
         if (flags | OPTIMIZE) {
-            char const ** pcre_study_error_message;
-            this->extra = pcre_study(compiled_regex, 0, pcre_study_error_message);
+            char const * pcre_study_error_message;
+            this->extra = pcre_study(compiled_regex, 0, &pcre_study_error_message);
             if (this->extra == nullptr) {
                 // TODO: ERROR
             }
         }
 
-        pcre_fullinfo(this->compiled_regex, this->extra, PCRE_INFO_CAPTURECOUNT, &this->result_size);
-        std::cerr << fmt::format("found capture count: {}", this->result_size) << std::endl;
-        this->result_size = (this->result_size + 1) * 3; // need 3 entries per capture
-        this->results = std::make_unique<int[]>(this->result_size);
+        // inspect the regex to find out how much space to allocate for results
+        pcre_fullinfo(this->compiled_regex, this->extra, PCRE_INFO_CAPTURECOUNT, &this->capture_count);
+        this->capture_count++; // plus one for full match
 
     }
 
 
-    void match(xl::zstring_view data) {
+    RegexResultPcre match(xl::zstring_view data) const {
+        auto buffer_length = this->capture_count * 3;
+        auto buffer = std::make_unique<int[]>(buffer_length);
+        auto results = pcre_exec(this->compiled_regex,
+                                         this->extra,
+                                         data.c_str(),
+                                         data.length(),  // length of string
+                                         0,              // Start looking at this point
+                                         0,              // OPTIONS
+                                         buffer.get(),
+                                         buffer_length); // Length of subStrVec
 
-        auto result = pcre_exec(this->compiled_regex,
-                                this->extra,
-                                data.c_str(),
-                                data.length(),  // length of string
-                                0,                      // Start looking at this point
-                                0,                      // OPTIONS
-                                this->results.get(),
-                                this->result_size);                    // Length of subStrVec
-
-        if (result < 0) {
-            // TODO: ERROR
-        } else {
-            // this means size of this->results was too small but it should have been allocated large enough
-            assert(result > 0);
-
-            for(int j=0; j<result; j++) {
-                char const * submatch_string;
-                pcre_get_substring(data.c_str(), this->results.get(), result, j, &(submatch_string));
-                printf("Match(%2d/%2d): (%2d,%2d): '%s'\n", j, result-1, this->results[j*2], this->results[j*2+1], submatch_string);
-            } /* end for */
-
-        }
-
+      return RegexResultPcre(data, results, std::move(buffer), buffer_length);
     }
 
     ~RegexPcre() {
