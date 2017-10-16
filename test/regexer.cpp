@@ -61,3 +61,25 @@ TEST(Regexer, NoMatch) {
         EXPECT_TRUE(regexer("b", "b"_re));
     }
 }
+
+#if defined XL_USE_PCRE
+
+TEST(Regexer, RecursivePattern) {
+    {
+        Regex r("\\w{3}\\d{3}(?R)?");
+        EXPECT_TRUE(r.match("abc123abc13abc123"));
+    }
+
+    {
+        // match arbitrarily deep nested parenthesis
+        Regex r("^(\\(((?>[^()]+)|(?1))*\\))$");
+        EXPECT_TRUE(r.match("(Test((test)te(s)t))"));
+        EXPECT_FALSE(r.match("Test((test)te(s)t)"));
+        EXPECT_FALSE(r.match("(Test((test)te(st))"));
+    }
+}
+
+
+
+#endif
+
