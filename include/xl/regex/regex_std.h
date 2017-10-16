@@ -53,8 +53,19 @@ class RegexStd {
     std::regex regex;
 
     auto make_std_regex_flags(xl::RegexFlags flags) {
+        if (flags | EXTENDED) {
+            throw RegexException("std::regex doesn't support extended regexes");
+        } else if (flags | DOTALL) {
+            throw RegexException("std::regex doesn't support DOTALL");
+        } else if (flags | MULTILINE) {
+            throw RegexException("std::regex for my compiler hasn't yet implemented std::regex_constants::multiline");
+        }
+
         std::underlying_type_t<std::regex_constants::syntax_option_type> result = std::regex_constants::ECMAScript;
-        // result |= flags | OPTIMIZE ? std::regex_constants::optimize : 0;
+        result |= flags | OPTIMIZE ? std::regex_constants::optimize : 0;
+
+        // not supported in clang 5
+//        result |= flags | MULTILINE ? std::regex_constants::multiline : 0;
         return result;
     }
 

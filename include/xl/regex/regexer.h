@@ -2,11 +2,13 @@
 
 namespace xl {
     enum RegexFlags {
-        NONE = 0,
-        OPTIMIZE = 1,
-        ICASE = 2
+        NONE      = 0,
+        OPTIMIZE  = 1 << 0,
+        ICASE     = 1 << 1,
+        EXTENDED  = 1 << 2,
+        DOTALL    = 1 << 3,
+        MULTILINE = 1 << 4
     };
-
 
     class RegexException : public std::exception {
         std::string reason;

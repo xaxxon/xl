@@ -70,7 +70,10 @@ class RegexPcre {
 
     int make_pcre_regex_flags(RegexFlags flags) {
         int result = 0;
-        result |= flags | ICASE ? PCRE_CASELESS : 0;
+        result |= ICASE ? PCRE_CASELESS : 0;
+        result |= EXTENDED ? PCRE_EXTENDED : 0;
+        result |= DOTALL ? PCRE_DOTALL : 0;
+        result |= MULTILINE ? PCRE_MULTILINE : 0;
 
         return result;
     }
