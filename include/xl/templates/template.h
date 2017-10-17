@@ -131,40 +131,12 @@ void Template::compile() const {
  * Then when you're done, trim out the whitespace and comments to generate the std::regex below
  * https://regex101.com/r/fz8g7j
 
-# assert regex isn't empty
-(?=(?:.|\n))
-
-# leading literal section
-((?:\\[{]|[^{}]|[{](?!\{)|[}](?!\}))*)
-
-# Opening {{
-(?:([{]{2})\s*
-
-# Substitution name
-(!?)((?:[^{}|\s]|\s*(?!(?:[}][}]))|\\[}]|[^}|\s]|[}](?!\}))*)\s*
-
-# Optional following | and other data
-(?:[|]
-
-  # optional ! or !! to denote an inline template
-  (!?)(?:![^\n]*\n)?
-
-  # The inline template or additional substitution data
-  ((?:(?:(?:.|\n)*?(?=[{]{2}))(?:[{]{2}(?:(?:.|\n)*?(?=[}]     {2}))[}]{2}))*(?:(?:.|\n)*?(?=[}]{2})))
-
-#end optional data
-)?
-
-# end opening }}
-)?
-
-# Closing }}
-([}]{2})?
-*/
+ *** MISSING ***
+ */
 
     // DO NOT EDIT THIS DIRECTLY, EDIT THE COMMENTED VERSION ABOVE AND THEN COPY IT AND TRIM OUT THE WHITESPACE AND COMMENTS
     static std::regex r(
-        R"((?=(?:.|\n))((?:\\[{]|[^{}]|[{](?!\{)|[}](?!\}))*)(?:([{]{2})\s*(!?)((?:[^{}|\s]|\s*(?!(?:[}][}]))|\\[}]|[^}|\s]|[}](?!\}))*)\s*(?:[|](!?)(?:![^\n]*\n)?((?:(?:(?:.|\n)*?(?=[{]{2}))(?:[{]{2}(?:(?:.|\n)*?(?=[}]{2}))[}]{2}))*(?:(?:.|\n)*?(?=[}]{2}))))?)?([}]{2})?)",
+        R"((?=(?:.|\n))((?:\\[{]|[^{}]|[{](?!\{)|[}](?!\}))*)(?:([{]{2})\s*(!?)((?:[^{}|\s]|\s*(?!(?:[}][}]))|\\[}]|[^}|\s]|[}](?!\}))*)\s*(?:[|](!?)(?:![^\n]*\n)?((?:(?:(?:\\[{]|\\[}]|.|\n)*?(?=(?:\{\{|\}\})))(?:[{]{2}(?:(?:.|\n)*?(?=[}]{2}))[}]{2})?)*(?:(?:.|\n)*?(?=[}]{2}))))?)?([}]{2})?)",
         std::regex::optimize | std::regex::ECMAScript);
 
     // submatch positions for the above regex
@@ -204,7 +176,7 @@ void Template::compile() const {
 
         // check for open but no close or incorrect brace type
         if (matches[OPEN_BRACE_INDEX].str() != "{{" || matches[CLOSE_BRACE_INDEX].str() != "}}") {
-            throw TemplateException("Found mismatched braces" + matches[OPEN_BRACE_INDEX].str() + matches[CLOSE_BRACE_INDEX].str());
+            throw TemplateException("Found mismatched braces in '" + this->_tmpl + "': '" + matches[OPEN_BRACE_INDEX].str() + "' and '" + matches[CLOSE_BRACE_INDEX].str() + "'");
         }
 
 
