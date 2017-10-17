@@ -72,7 +72,7 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
         this->compile();
     }
 
-    std::cerr << fmt::format("filling template: '{}'", this->_tmpl) << std::endl;
+//    std::cerr << fmt::format("filling template: '{}'", this->_tmpl) << std::endl;
 
     std::unique_ptr<Provider_Interface> provider_interface_unique_pointer;
     Provider_Interface * provider_interface_pointer;
