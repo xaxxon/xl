@@ -272,7 +272,7 @@ class Uncopyable {
 
 public:
     std::unique_ptr<Provider_Interface> get_provider(){
-        return make_provider(std::pair("A", "B"));
+        return make_provider(std::pair("A", "B"),std::pair("C", "D"));
     }
 };
 
@@ -287,3 +287,14 @@ TEST(template, UncopyableVectorProvider) {
 
     EXPECT_EQ(result, "B\nB");
 }
+
+TEST(template, ExpandInline) {
+
+
+    auto provider = make_provider(std::pair("uncopyable", Uncopyable()));
+
+    auto result = Template("{{uncopyable|!{{A}}{{C}}}}").fill(provider);
+
+    EXPECT_EQ(result, "BD");
+}
+

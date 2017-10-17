@@ -172,12 +172,18 @@ public:
 
 
     std::string operator()(ProviderData const & data) override {
+        std::unique_ptr<Provider_Interface> provider;
         if constexpr(has_get_provider_free_function_v<T>){
-            return get_provider(*t)->operator()(data);
+            provider = get_provider(*t);
         } else if constexpr(has_get_provider_member_v<T>) {
-            return t->get_provider()->operator()(data);
+            provider = t->get_provider();
         } else {
             throw xl::templates::TemplateException("this shouldn't happen");
+        }
+        if (data.inline_template) {
+            return data.inline_template->fill(provider);
+        } else {
+            return provider->operator()(data);
         }
     }
 };
