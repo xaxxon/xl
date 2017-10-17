@@ -15,13 +15,14 @@ namespace xl::templates {
 
 
 template<class T, class=void>
-class Provider;
+class Provider {
+    Provider(T&&);
+    Provider(T&);
+};
 
-template<class T>
-Provider(T &&) -> Provider<T, void>;
 
-template<class T>
-Provider(T &) -> Provider<T, void>;
+template<class... Keys, class... Values>
+Provider(std::pair<Keys, Values>&&...) -> Provider<std::map<std::string, std::unique_ptr<Provider_Interface>>>;
 
 
 
@@ -103,9 +104,7 @@ class Provider<T, std::enable_if_t<std::is_convertible_v<T, std::string>>> : pub
     std::string string;
 
 public:
-    Provider(T && string) : string(std::move(string))
-    {}
-    Provider(T const & string) : string(string)
+    Provider(T string) : string(std::move(string))
     {}
 
 
@@ -120,7 +119,6 @@ template<class... Keys, class... Values, std::enable_if_t<!(sizeof...(Keys) <= 1
 std::unique_ptr<Provider_Interface> make_provider(std::pair<Keys, Values>&&... pairs) {
     return std::unique_ptr<Provider_Interface>(new Provider(std::forward<std::pair<Keys, Values>&&>(pairs)...));
 }
-
 
 
 // Is T callable and returns a type which can be made into a Provider?
@@ -188,7 +186,6 @@ public:
 template<class T>
 class Provider<T, std::enable_if_t<xl::is_range_for_loop_able_v<T> && !std::is_convertible_v<T, std::string>>> : public Provider_Interface {
 
-static_assert(!std::is_same_v<std::remove_reference_t<std::remove_const_t<T>>, std::string>);
 private:
     magic_ptr<std::remove_reference_t<T>> t;
 public:
@@ -253,7 +250,6 @@ public:
         return result.str();
     }
 };
-
 
 
 
