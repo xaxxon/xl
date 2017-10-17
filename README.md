@@ -28,3 +28,7 @@ Some handy type traits as well.
 
 Logging library which calls user defined callbacks when data is provided.   Has log levels and subjects which can be
 turned on/off at runtime.
+
+### magic_ptr
+
+Smart pointer class which may or may not own the object it refers to.  Deleter is specified at runtime (like in shared_ptr), but magic_ptr is not copyable (like unique_ptr) and may inherit ownership from a unique_ptr.
