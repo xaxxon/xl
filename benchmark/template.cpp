@@ -6,7 +6,7 @@
 #include <vector>
 #include <sstream>
 
-#include "template.h"
+#include "templates.h"
 
 using namespace xl;
 using namespace std;

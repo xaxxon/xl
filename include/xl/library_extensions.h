@@ -32,6 +32,13 @@ auto find(ContainerT<ValueT, Rest...> const & container, ValueT const & value) {
     return std::find(begin(container), end(container), value);
 };
 
+template<class Container, class Callback>
+auto copy_if(Container const & container, Callback && callback) {
+    Container result;
+    std::copy_if(begin(container), end(container), std::back_inserter(result), callback);
+    return result;
+};
+
 
 template<class...>
 using int_t = int;
@@ -137,18 +144,6 @@ auto copy(ContainerT<ValueT, Rest...> const & container) {
     }
 }
 
-
-
-template<class T1, class T2>
-class pair : public std::pair<T1, T2> {
-public:
-    pair(T1 && t1, T2 && t2) :
-        std::pair<T1, T2>(std::forward<T1>(t1), std::forward<T2>(t2))
-    {}
-};
-
-template<class T1, class T2>
-pair(T1 t1, T2 t) -> pair<T1, T2>;
 
 } // end namespace xl
 

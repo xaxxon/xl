@@ -5,7 +5,7 @@
 #include <optional>
 
 #include "exceptions.h"
-namespace xl {
+namespace xl::templates {
 
 class Template;
 

@@ -26,10 +26,11 @@ public:
  */
 template<class T>
 class magic_ptr {
+    using NoRefT = std::remove_reference_t<T>;
 public:
-    using Deleter = std::function<void(T *)>;
+    using Deleter = std::function<void(NoRefT *)>;
 private:
-    T * t;
+    NoRefT * t;
     Deleter deleter;
 
 public:
@@ -168,7 +169,15 @@ public:
         return !this->empty();
     }
 
+    T * operator->(){
+        return this->t;
+    }
+
 };
+
+
+template<class T>
+magic_ptr(T &) -> magic_ptr<T>;
 
 
 } // end namespace xl

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace xl {
+namespace xl::templates {
 
 
 class TemplateException : public std::exception {

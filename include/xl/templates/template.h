@@ -15,7 +15,7 @@
 #include "../library_extensions.h"
 
 
-namespace xl {
+namespace xl::templates {
 
 class ProviderData;
 class Provider_Interface;
@@ -60,7 +60,7 @@ using TemplateMap = std::map<std::string, Template>;
 #include "provider.h"
 #include "directory_loader.h"
 
-namespace xl {
+namespace xl::templates {
 
 //std::string Template::fill(Provider_Interface const & interface, std::map<std::string, Template> const & templates) {
 //    return this->fill<>(interface, templates);

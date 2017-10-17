@@ -9,7 +9,7 @@
 #include "template.h"
 
 
-namespace xl {
+namespace xl::templates {
 
 namespace fs = std::experimental::filesystem;
 

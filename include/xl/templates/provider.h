@@ -6,21 +6,22 @@
 
 
 #include "../library_extensions.h"
+#include "../magic_ptr.h"
 
 #include "exceptions.h"
 #include "template.h"
 #include "provider_data.h"
-namespace xl {
+namespace xl::templates {
 
 
 template<class T, class=void>
-class Provider {
-public:
-    Provider(T && t); // intentionally not defined
-    Provider(T & t); // intentionally not defined
-    Provider(T const & t); // intentionally not defined
-    Provider() = delete;
-};
+class Provider;
+
+template<class T>
+Provider(T &&) -> Provider<T, void>;
+
+template<class T>
+Provider(T &) -> Provider<T, void>;
 
 
 
@@ -30,7 +31,7 @@ class is_provider_type : public std::false_type {};
 template<class T>
 class is_provider_type<T, std::enable_if_t<std::is_same_v<
     std::string,
-    std::result_of_t<Provider<T>(ProviderData const &)>
+    std::result_of_t<Provider<std::remove_reference_t<T>>(ProviderData const &)>
 > // is same
 > // enable_if
 
@@ -124,16 +125,16 @@ std::unique_ptr<Provider_Interface> make_provider(std::pair<Keys, Values>&&... p
 
 // Is T callable and returns a type which can be made into a Provider?
 template<class T>
-class Provider<T, std::enable_if_t<is_provider_callback_type_v<std::remove_reference_t<T>>>> : public Provider_Interface {
+class Provider<T, std::enable_if_t<is_provider_callback_type_v<T>>> : public Provider_Interface {
 
     T callback;
 
-    using CallbackResultT = std::result_of_t<T()>;
+    using CallbackResultT = std::remove_reference_t<std::result_of_t<T()>>;
 
 public:
-    Provider(std::remove_reference_t<T> && callback) : callback(std::move(callback))
+    Provider(T && callback) : callback(std::move(callback))
     {}
-    Provider(std::remove_reference_t<T> & callback) : callback(callback)
+    Provider(T & callback) : callback(callback)
     {}
 
 
@@ -165,22 +166,20 @@ template<class T>
 class Provider<T, std::enable_if_t<can_get_provider_for_type_v<T>>> : public Provider_Interface {
 
 private:
-    T t;
+    xl::magic_ptr<T> t;
 
 public:
     Provider(T && t) : t(std::move(t)) {}
     Provider(T & t) : t(t) {}
-    Provider(T const & t) : t(t) {}
 
 
     std::string operator()(ProviderData const & data) override {
-        if constexpr(has_get_provider_member_v<T>)
-        {
-            return t.get_provider()->operator()(data);
-        } else if constexpr(has_get_provider_free_function_v<T>){
-            return get_provider(t)->operator()(data);
+        if constexpr(has_get_provider_free_function_v<T>){
+            return get_provider(*t)->operator()(data);
+        } else if constexpr(has_get_provider_member_v<T>) {
+            return t->get_provider()->operator()(data);
         } else {
-            throw xl::TemplateException("this shouldn't happen");
+            throw xl::templates::TemplateException("this shouldn't happen");
         }
     }
 };
@@ -191,10 +190,11 @@ class Provider<T, std::enable_if_t<xl::is_range_for_loop_able_v<T> && !std::is_c
 
 static_assert(!std::is_same_v<std::remove_reference_t<std::remove_const_t<T>>, std::string>);
 private:
-    T t;
+    magic_ptr<std::remove_reference_t<T>> t;
 public:
 
-    Provider(T const & t) : t(t) {}
+    Provider(T & t) : t(t) {}
+    Provider(T && t) : t(std::move(t)) {}
 
     std::string operator()(ProviderData const & data) override {
 //        std::cerr << fmt::format("container provider looking at substution data for: {}, {}", data.name, (bool)data.inline_template) << std::endl;
@@ -235,8 +235,8 @@ public:
         bool first = true;
 
         // Iterate through the container
-        for (auto & element : t) {
-            auto p = Provider<std::decay_t<decltype(element)>>(element);
+        for (auto & element : *t) {
+            auto p = Provider<std::remove_reference_t<decltype(element)>>(element);
 
             if (!first) {
                 result << join_string;
@@ -298,11 +298,7 @@ public:
 
 
 
-
-template<class... Keys, class... Values>
-Provider(std::pair<Keys, Values>&&...) -> Provider<std::map<std::string, std::unique_ptr<Provider_Interface>>>;
-
-static_assert(!xl::can_get_provider_for_type_v<std::string>);
+static_assert(!can_get_provider_for_type_v<std::string>);
 static_assert(is_provider_type_v<std::string>);
 static_assert(is_provider_callback_type_v<std::__1::function<std::__1::basic_string<char> ()> &>);
 
