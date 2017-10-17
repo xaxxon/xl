@@ -1,5 +1,8 @@
 #pragma once
 
+#include <exception>
+#include <string>
+
 namespace xl {
     enum RegexFlags {
         NONE      = 0,

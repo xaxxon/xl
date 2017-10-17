@@ -27,7 +27,7 @@ Template load_template_from_istream(std::basic_istream<CharT, Traits> const & is
 }
 
 
-std::string make_template_name(std::string const & filename) {
+inline std::string make_template_name(std::string const & filename) {
     static std::regex r("\\.template$");
     return std::regex_replace(filename, r, "");
 }
@@ -39,7 +39,7 @@ std::string make_template_name(std::string const & filename) {
  * @param path_name file or directory name
  * @return map of templates with keys being just the filename (not the full path) of the files loaded
  */
-TemplateMap load_templates(std::string_view path_name) {
+inline TemplateMap load_templates(std::string_view path_name) {
     fs::path path(path_name);
     TemplateMap results;
 

@@ -2,7 +2,6 @@
 
 
 #include <regex>
-#include <fmt/ostream.h>
 #include "../zstring_view.h"
 
 
@@ -73,10 +72,8 @@ public:
     RegexStd(xl::zstring_view regex_string, xl::RegexFlags flags = NONE) try :
         regex(regex_string.c_str(), make_std_regex_flags(flags))
     {
-        std::cerr << fmt::format("tried to make regex from {}", regex_string) << std::endl;
         regex = std::regex(regex_string.c_str());
     } catch (std::regex_error const & e) {
-        std::cerr << fmt::format("about to rethrow") << std::endl;
         throw xl::RegexException(e.what());
     }
 

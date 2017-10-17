@@ -15,22 +15,21 @@ public:
     const char * what() const noexcept {
         return reason.c_str();
     }
-
 };
+
 
 /**
  * A magic_ptr is similar to a unique_ptr but it knows if it's holding a "reference" or an owning
  * pointer based on whether it was created with an rvalue or lvalue reference.  Both kinds of
- * magic_ptr's have the same type, however, so they can be used interchangeably
- * magic_ptr's are move-only as they can act like a unique_ptr
+ * magic_ptr's have the same type, however, so they can be used interchangeably in a homogenous container
+ * magic_ptr's are move-only like a unique_ptr, as they may own memory.
  */
 template<class T>
 class magic_ptr {
-    using NoRefT = std::remove_reference_t<T>;
 public:
-    using Deleter = std::function<void(NoRefT *)>;
+    using Deleter = std::function<void(T *)>;
 private:
-    NoRefT * t;
+    T * t;
     Deleter deleter;
 
 public:

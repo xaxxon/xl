@@ -3,9 +3,6 @@
 #if defined XL_USE_PCRE
 
 #include <pcre.h>
-
-#include <fmt/ostream.h>
-
 #include "../zstring_view.h"
 
 namespace xl {
@@ -35,9 +32,6 @@ public:
         captures(std::move(captures)),
         capture_count(capture_count)
     {
-//        std::cerr << fmt::format("created results for {} with results {} and capture count {} with buffer {}",
-//            this->source, this->results, this->capture_count, (void*)this->captures.get()
-//        ) << std::endl;
     }
 
     operator bool() const {

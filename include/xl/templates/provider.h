@@ -3,7 +3,7 @@
 #include <string>
 #include <map>
 #include <type_traits>
-
+#include <iostream>
 
 #include "../library_extensions.h"
 #include "../magic_ptr.h"
@@ -263,11 +263,11 @@ public:
     template<class... Keys, class... Values>
     Provider(std::pair<Keys, Values> && ... pairs) {
         (this->map.emplace(std::pair<std::string, std::unique_ptr<Provider_Interface>>(std::move(pairs.first), make_provider(pairs.second))),...);
-//        std::cerr << fmt::format("done adding pairs to map") << std::endl;
-//        std::cerr << fmt::format("map size: {}", this->map.size()) << std::endl;
-//        for(auto const & [a,b] : this->map) {
-//            std::cerr << fmt::format("{}: {}", a, (void*)b.get()) << std::endl;
-//        }
+        std::cerr << fmt::format("done adding pairs to map") << std::endl;
+        std::cerr << fmt::format("map size: {}", this->map.size()) << std::endl;
+        for(auto const & [a,b] : this->map) {
+            std::cerr << fmt::format("{}: {}", a, (void*)b.get()) << std::endl;
+        }
     }
 
     Provider(std::map<std::string, Value> map) : map(std::move(map))
