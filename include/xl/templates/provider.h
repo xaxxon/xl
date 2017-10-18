@@ -204,7 +204,7 @@ public:
         std::stringstream result;
 
         static std::regex parameters_regex("^([^|]*)[|]?(.*)$");
-        enum ParameterRegexIndex { EVERYTHING = 0,   TEMPLATE_NAME_INDEX, JOIN_STRING_INDEX };
+        enum ParameterRegexIndex { EVERYTHING = 0, TEMPLATE_NAME_INDEX, JOIN_STRING_INDEX };
 
         std::smatch matches;
         if (!std::regex_match(data.parameters, matches, parameters_regex)) {
@@ -235,13 +235,13 @@ public:
         }();
 
         std::string join_string = matches[JOIN_STRING_INDEX].str() != "" ? matches[JOIN_STRING_INDEX].str() : "\n";
-        bool first = true;
+        bool needs_join_string = false;
 
         // Iterate through the container
         for (auto & element : *t) {
             auto p = Provider<std::remove_reference_t<decltype(element)>>(element);
 
-            if (!first) {
+            if (needs_join_string) {
                 result << join_string;
 //                std::cerr << fmt::format("inserting join string '{}' on subsequent pass", join_string) << std::endl;
 
@@ -249,8 +249,13 @@ public:
 //                std::cerr << fmt::format("skipping join string '{}' on first pass", join_string) << std::endl;
 
             }
-            first = false;
-            result << tmpl.fill(p, *data.templates);
+            needs_join_string = true;
+            auto fill_result = tmpl.fill(p, *data.templates);
+            std::cerr << fmt::format("replacement is {}, ignore is {}", fill_result, data.ignore_empty_replacements) << std::endl;
+            if (fill_result == "" && data.ignore_empty_replacements) {
+                needs_join_string = false;
+            }
+            result << fill_result;
 
         }
         return result.str();

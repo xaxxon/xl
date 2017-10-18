@@ -110,7 +110,7 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
             } else {
 
                 auto substitution_result = provider(
-                    ProviderData(data.name, &templates, data.parameters, data.inline_template));
+                    ProviderData(data.name, &templates, data.parameters, data.inline_template).set_ignore_empty_replacements(data.ignore_empty_replacements));
                 result.insert(result.end(), substitution_result.begin(), substitution_result.end());
             }
         }
@@ -166,6 +166,7 @@ void Template::compile() const {
 
 # Everything after the | before the }}
  (?<InlineTemplateMarker>!)?
+ (?<IgnoreEmptyMarker><)?
  (?<IgnoreWhitespaceTilEndOfLine>!(?&UntilEndOfLine))?
 (?<SubstitutionData>((?&UntilDoubleBrace)(?&Substitution)?)*)
 
@@ -234,13 +235,16 @@ void Template::compile() const {
         this->compiled_static_strings.push_back(literal_string);
         this->minimum_result_length += this->compiled_static_strings.back().size();
 
+        bool ignore_empty_replacements = matches.length("IgnoreEmptyMarker");
+        std::cerr << fmt::format("ignoring empty replacements? {}", ignore_empty_replacements) << std::endl;
+
 //        // if there was an inline template specified
         if (matches.length("TemplateInsertionMarker") == 1) {
-            this->compiled_substitutions.emplace_back("", nullptr, "", std::optional<Template>(), matches["SubstitutionName"]);
+            this->compiled_substitutions.emplace_back("", nullptr, "", std::optional<Template>(), matches["SubstitutionName"]).set_ignore_empty_replacements(ignore_empty_replacements);
         }else if (matches.length("InlineTemplateMarker") == 1) {
-            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, "", Template(matches["SubstitutionData"]));
+            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, "", Template(matches["SubstitutionData"])).set_ignore_empty_replacements(ignore_empty_replacements);
         } else {
-            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, matches["SubstitutionData"]);
+            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, matches["SubstitutionData"]).set_ignore_empty_replacements(ignore_empty_replacements);
         }
 
 //            if (!provider.provides(matches[REPLACEMENT_NAME_INDEX])) {

@@ -23,6 +23,8 @@ struct ProviderData {
     /// any other data associated with the substitution
     std::string parameters;
 
+    bool ignore_empty_replacements = false;
+
     /// an inline template, if specified
     std::optional<Template> inline_template;
     std::string template_name;
@@ -38,6 +40,19 @@ struct ProviderData {
         inline_template(inline_template),
         template_name(template_name)
     {}
+
+    ProviderData(ProviderData const &) = default;
+
+    ProviderData && set_ignore_empty_replacements(bool ignore) && {
+        this->ignore_empty_replacements = ignore;
+        return std::move(*this);
+    }
+
+    ProviderData & set_ignore_empty_replacements(bool ignore) & {
+        this->ignore_empty_replacements = ignore;
+        return *this;
+    }
+
 };
 
 

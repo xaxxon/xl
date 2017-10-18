@@ -62,6 +62,17 @@ TEST(template, CallbackSubstitutionTemplate) {
               "replace: REPLACEMENT-CALLBACK");
 }
 
+TEST(template, EmptyVectorReplacementIgnored) {
+    vector<string> v{"a", "", "c"};
+    {
+        auto result = Template("{{name|!<{{dummyname}}}}").fill(make_provider(std::pair("name", v)));
+        EXPECT_EQ(result, "a\nc");
+    }
+    {
+        auto result = Template("{{name|!{{dummyname}}}}").fill(make_provider(std::pair("name", v)));
+        EXPECT_EQ(result, "a\n\nc");
+    }
+}
 
 
 struct A {
@@ -115,6 +126,9 @@ TEST(template, VectorCallbackTemplate) {
     EXPECT_EQ(Template("replace: {{TEST1|A1|, }}").fill(make_provider(std::pair{"TEST1", make_provider(vector_object_callback)}), templates),
     "replace: {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
 }
+
+
+
 
 
 
