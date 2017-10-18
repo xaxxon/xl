@@ -208,7 +208,7 @@ public:
 
         std::smatch matches;
         if (!std::regex_match(data.parameters, matches, parameters_regex)) {
-            throw TemplateException(fmt::format("Unknown template parameters for ContainerProvider: '{}'", data.parameters));
+            throw TemplateException(fmt::format("Unknown template parameters for container Provider: '{}'", data.parameters));
         }
 //        for(int i = 0; i < matches.size(); i++) {
 //            std::cerr << fmt::format("parameter regex[{}]: '{}'", i, matches[i].str()) << std::endl;
@@ -293,7 +293,7 @@ public:
 //            for(auto const & [k,v] : this->map) {
 //                std::cerr << fmt::format("key: {}", k) << std::endl;
 //            }
-            throw TemplateException("unknown name: " + data.name);
+            throw TemplateException("unknown name: '" + data.name + "'");
         }
     }
 };

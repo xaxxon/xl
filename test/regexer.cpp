@@ -30,7 +30,7 @@ TEST(Regexer, EmptyString) {
 
 TEST(Regexer, InvalidString) {
     {
-        EXPECT_THROW(regexer("", "["_re), xl::RegexException);
+        EXPECT_THROW(regexer("", "[[[["_re), xl::RegexException);
     }
 }
 

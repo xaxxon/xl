@@ -3,8 +3,6 @@
 #include <iostream>
 #include <sstream>
 #include <benchmark/benchmark.h>
-#include <vector>
-#include <sstream>
 
 #include "templates.h"
 

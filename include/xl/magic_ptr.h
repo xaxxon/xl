@@ -23,6 +23,7 @@ public:
  * pointer based on whether it was created with an rvalue or lvalue reference.  Both kinds of
  * magic_ptr's have the same type, however, so they can be used interchangeably in a homogenous container
  * magic_ptr's are move-only like a unique_ptr, as they may own memory.
+ * Note: magic_ptr's are *HUGE*, likely 5x a normal pointer.  Use with care.
  */
 template<class T>
 class magic_ptr {

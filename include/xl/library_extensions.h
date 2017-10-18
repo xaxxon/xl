@@ -3,6 +3,8 @@
 #include <utility>
 #include <type_traits>
 
+#include "magic_ptr.h"
+
 namespace xl {
 
 
@@ -38,6 +40,54 @@ auto copy_if(Container const & container, Callback && callback) {
     std::copy_if(begin(container), end(container), std::back_inserter(result), callback);
     return result;
 };
+
+
+/**
+ * Takes a container and produces tuples with each value of the container and an associated counter
+ */
+template<class Container>
+struct EachI {
+public:
+    using value_type = typename Container::value_type;
+    magic_ptr<Container> c;
+public:
+
+    template<class U>
+    EachI(U && c) : c(std::move(c)) {}
+
+    struct iterator {
+        int counter = 0;
+        typename Container::iterator i;
+
+        iterator(typename Container::iterator i) :
+            i(i)
+        {}
+
+        iterator(){}
+
+        void operator++() {
+            counter++;
+            i++;
+        }
+        std::tuple<value_type &, int> operator*(){
+            return {*i, counter};
+        };
+        bool operator!=(iterator const & other) {
+            return this->i != other.i;
+        }
+    };
+    auto begin() {
+        return iterator(c->begin());
+    }
+    auto end() {
+        return iterator(c->end());
+    }
+};
+
+template<class T>
+auto each_i(T && container) {
+    return EachI<std::remove_reference_t<T>>(std::forward<T>(container));
+}
 
 
 template<class...>

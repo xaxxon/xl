@@ -298,3 +298,9 @@ TEST(template, ExpandInline) {
     EXPECT_EQ(result, "BD");
 }
 
+
+TEST(template, ExpandEmptyLine) {
+    auto result = Template("{{empty_substitution|!!}}").fill("");
+
+    EXPECT_EQ(result, "");
+}

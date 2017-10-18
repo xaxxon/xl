@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include <fmt/format.h>
 #include <regex>
 #include "../zstring_view.h"
 
@@ -23,12 +23,13 @@ public:
         RegexResultStd(string, std::regex(regex_string.c_str()))
     {}
 
-    std::smatch const & matches() {
-        return this->_matches;
+    // everything after the match
+    char const * suffix() {
+        return &*(this->_matches.suffix().first);
     }
 
-    auto operator[](size_t n) const {
-        return this->_matches[n];
+    std::string operator[](size_t n) const {
+        return this->_matches[n].str();
     }
 
     auto size() const {
@@ -37,6 +38,10 @@ public:
 
     bool empty() const {
         return this->_matches.empty();
+    }
+
+    bool length(size_t n = 0) const {
+        return this->_matches.length(n);
     }
 
     /**
@@ -50,29 +55,33 @@ public:
 
 class RegexStd {
     std::regex regex;
+    std::string regex_string = "UNKNOWN";
 
     auto make_std_regex_flags(xl::RegexFlags flags) {
-        if (flags | EXTENDED) {
+        if (flags & EXTENDED) {
             throw RegexException("std::regex doesn't support extended regexes");
-        } else if (flags | DOTALL) {
+        } else if (flags & DOTALL) {
             throw RegexException("std::regex doesn't support DOTALL");
-        } else if (flags | MULTILINE) {
+        } else if (flags & MULTILINE) {
             throw RegexException("std::regex for my compiler hasn't yet implemented std::regex_constants::multiline");
         }
 
-        std::underlying_type_t<std::regex_constants::syntax_option_type> result = std::regex_constants::ECMAScript;
-        result |= flags | OPTIMIZE ? std::regex_constants::optimize : 0;
+        std::underlying_type_t<std::regex_constants::syntax_option_type> result = std::regex_constants::ECMAScript | std::regex_constants::optimize;
+        result |= flags & OPTIMIZE ? std::regex_constants::optimize : 0;
 
         // not supported in clang 5
-//        result |= flags | MULTILINE ? std::regex_constants::multiline : 0;
+//        result |= flags & MULTILINE ? std::regex_constants::multiline : 0;
+        std::cout << fmt::format("final flags: {}", (int)result) << std::endl;
         return result;
     }
 
 public:
     RegexStd(xl::zstring_view regex_string, xl::RegexFlags flags = NONE) try :
-        regex(regex_string.c_str(), make_std_regex_flags(flags))
+//        regex(regex_string.c_str(), make_std_regex_flags(flags)),
+        regex_string(regex_string)
     {
-        regex = std::regex(regex_string.c_str());
+        std::cout << fmt::format("Creating regex with '{}'", regex_string.c_str()) << std::endl;
+        this->regex = std::regex(regex_string.c_str(), make_std_regex_flags(flags));
     } catch (std::regex_error const & e) {
         throw xl::RegexException(e.what());
     }
@@ -81,7 +90,7 @@ public:
         regex(std::move(regex)) {}
 
     RegexResultStd match(std::string_view source) const {
-
+        std::cout << fmt::format("about to match with {}", regex_string) << std::endl;
         return RegexResultStd(source, this->regex);
 
     }

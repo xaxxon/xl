@@ -11,8 +11,10 @@
 #include <functional>
 
 #include <fmt/ostream.h>
+#include <regex/regexer.h>
 
 #include "../library_extensions.h"
+#include "../regex/regexer.h"
 
 
 namespace xl::templates {
@@ -135,70 +137,104 @@ void Template::compile() const {
  */
 
     // DO NOT EDIT THIS DIRECTLY, EDIT THE COMMENTED VERSION ABOVE AND THEN COPY IT AND TRIM OUT THE WHITESPACE AND COMMENTS
-    static std::regex r(
-        R"((?=(?:.|\n))((?:\\[{]|[^{}]|[{](?!\{)|[}](?!\}))*)(?:([{]{2})\s*(!?)((?:[^{}|\s]|\s*(?!(?:[}][}]))|\\[}]|[^}|\s]|[}](?!\}))*)\s*(?:[|](!?)(?:![^\n]*\n)?((?:(?:(?:\\[{]|\\[}]|.|\n)*?(?=(?:\{\{|\}\})))(?:[{]{2}(?:(?:.|\n)*?(?=[}]{2}))[}]{2})?)*(?:(?:.|\n)*?(?=[}]{2}))))?)?([}]{2})?)",
-        std::regex::optimize | std::regex::ECMAScript);
+    static xl::Regex r(R"(
 
-    // submatch positions for the above regex
-    enum RegexMatchIndex {
-        WHOLE_STRING_INDEX = 0,
-        LITERAL_STRING_INDEX,
-        OPEN_BRACE_INDEX,
-        REPLACEMENT_TEMPLATE_MARKER, // substitute with another template, not content
-        REPLACEMENT_NAME_INDEX, // !
-        INLINE_TEMPLATE_MARKER,
-        REPLACEMENT_OPTIONS_INDEX,
-        CLOSE_BRACE_INDEX,
-    };
+(?(DEFINE)(?<NotEmptyAssertion>(?=(?:.|\n))))
+(?(DEFINE)(?<OpenDelimiterHead>\{))
+(?(DEFINE)(?<CloseDelimiterHead>\}))
+(?(DEFINE)(?<OpenDelimiterTail>\{))
+(?(DEFINE)(?<CloseDelimiterTail>\}))
+
+(?(DEFINE)(?<OpenDelimiter>(?&OpenDelimiterHead)(?&OpenDelimiterTail)))
+(?(DEFINE)(?<CloseDelimiter>(?&CloseDelimiterHead)(?&CloseDelimiterTail)))
+(?(DEFINE)(?<EitherDelimiter>( (?&OpenDelimiter) | (?&CloseDelimiter))))
+(?(DEFINE)(?<UntilDoubleBrace>(?:\s|\\(?&OpenDelimiterHead)|\\(?&CloseDelimiterHead)|[^{}]|[{](?!\{)|[}](?!\}))*))
+(?(DEFINE)(?<UntilEndOfLine>[^\n]*\n))
+
+
+
+(?&NotEmptyAssertion)
+(?<Literal>(?&UntilDoubleBrace))
+(?:(?<Substitution>(?<OpenDelimiterHere>\{\{)\s*
+
+(?<TemplateInsertionMarker>!)?
+
+# Everything up to the optional |
+(?:(?<SubstitutionName>(?:\\\}|\\\{|[^|\s])*?)\s*(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||$))
+
+ (?<PIPE>[|]
+
+# Everything after the | before the }}
+ (?<InlineTemplateMarker>!)?
+ (?<IgnoreWhitespaceTilEndOfLine>!(?&UntilEndOfLine))?
+(?<SubstitutionData>((?R))*)
+
+   # end "stuff after |"
+)? # end PIPE
+  (?<CloseDelimiterHere>\}\})
+ )?) # end Substition
+
+
+)",
+        xl::OPTIMIZE | xl::EXTENDED | xl::DOTALL);
+
+
 
     // turn double curlies {{ or }} into { or } and anything with a backslash before it into just the thing
     //   after the backslash
-    static std::regex post_process_regex("(?:([{}])\\1|\\\\(.))");
+    static std::regex post_process_regex("(?:\\\\(.))");
 
 
 
-    std::cmatch matches;
-    char const * remaining_template = this->c_str();
-//    std::cerr << fmt::format("filling template: '{}'", this->_tmpl.c_str()) << std::endl;
+    std::string remaining_template = this->c_str();
+    std::cerr << fmt::format("compiling template: '{}'", this->_tmpl.c_str()) << std::endl;
 
-    while (std::regex_search(remaining_template, matches, r)) {
+    while (auto matches = r.match(remaining_template)) {
 
-//        std::cerr << fmt::format("matching against: '{}'", remaining_template) << std::endl;
+        for(auto [s,i] : each_i(matches.get_all_matches())) {
+            if (s != "") {
+                std::cerr << fmt::format("{}: '{}'", i, s) << std::endl;
+            }
+        }
+        std::cerr << fmt::format("literal: '{}', substutition: '{}'",
+                                 matches["Literal"],
+                                 matches["Substitution"]
+        ) << std::endl;
+
 //        for (int i = 0; i < matches.size(); i++) {
 //            std::cerr << fmt::format("match[{}]: '{}'", i, matches[i].str()) << std::endl;
 //        }
 
         // if no substitution found, everything was a literal and is handled as a "trailing literal" outside
         //   this loop
-        if (matches[OPEN_BRACE_INDEX].str() == "" && matches[CLOSE_BRACE_INDEX].str() == "") {
+        if (matches.length("Substitution") == 0) {
             break;
         }
 
         // check for open but no close or incorrect brace type
-        if (matches[OPEN_BRACE_INDEX].str() != "{{" || matches[CLOSE_BRACE_INDEX].str() != "}}") {
-            throw TemplateException("Found mismatched braces in '" + this->_tmpl + "': '" + matches[OPEN_BRACE_INDEX].str() + "' and '" + matches[CLOSE_BRACE_INDEX].str() + "'");
+        if (matches["OpenDelimiterHere"] != "{{" || matches["CloseDelimiterHere"] != "}}") {
+            throw TemplateException("Found mismatched braces in '" + this->_tmpl + "': '" + matches["OpenDelimiterHere"] + "' and '" + matches["CloseDelimiterHere"] + "'");
         }
 
 
-        remaining_template = matches.suffix().first;
+        remaining_template = matches.suffix();
 
-        std::string literal_string = matches[LITERAL_STRING_INDEX];
-//        std::cerr << fmt::format("postprocessing: '{}'", literal_string) << std::endl;
+        std::string literal_string = matches["Literal"];
+        std::cerr << fmt::format("postprocessing: '{}'", literal_string) << std::endl;
 
-        literal_string = std::regex_replace(literal_string, post_process_regex, "$1$2");
-//        std::cerr << fmt::format("into: '{}'", literal_string) << std::endl;
+        literal_string = std::regex_replace(literal_string, post_process_regex, "$1");
+        std::cerr << fmt::format("into: '{}'", literal_string) << std::endl;
 
         this->compiled_static_strings.push_back(literal_string);
         this->minimum_result_length += this->compiled_static_strings.back().size();
 
-        // if there was an inline template specified
-        if (matches.length(REPLACEMENT_TEMPLATE_MARKER) == 1) {
-            this->compiled_substitutions.emplace_back("", nullptr, "", std::optional<Template>(), matches[REPLACEMENT_NAME_INDEX]);
-        }else if (matches.length(INLINE_TEMPLATE_MARKER) == 1) {
-            this->compiled_substitutions.emplace_back(matches[REPLACEMENT_NAME_INDEX], nullptr, "", Template(matches[REPLACEMENT_OPTIONS_INDEX].str()));
+//        // if there was an inline template specified
+        if (matches.length("TemplateInsertionMarker") == 1) {
+            this->compiled_substitutions.emplace_back("", nullptr, "", std::optional<Template>(), matches["SubstitutionName"]);
+        }else if (matches.length("InlineTemplateMarker") == 1) {
+            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, "", Template(matches["SubstitutionData"]));
         } else {
-            // look up the template to use:
-            this->compiled_substitutions.emplace_back(matches[REPLACEMENT_NAME_INDEX], nullptr, matches[REPLACEMENT_OPTIONS_INDEX]);
+            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, matches["SubstitutionData"]);
         }
 
 //            if (!provider.provides(matches[REPLACEMENT_NAME_INDEX])) {
@@ -213,8 +249,52 @@ void Template::compile() const {
 
     }
 
-//    std::cerr << fmt::format("pushing on remaining template: '{}'", std::regex_replace(remaining_template, post_process_regex, "$1")) << std::endl;
-    this->compiled_static_strings.push_back(std::regex_replace(remaining_template, post_process_regex, "$1$2"));
+std::cerr << fmt::format("remaining template: '{}'", remaining_template) << std::endl;
+    std::cerr << fmt::format("pushing on remaining template: '{}'", std::regex_replace(remaining_template, post_process_regex, "$1")) << std::endl;
+    this->compiled_static_strings.push_back(std::regex_replace(remaining_template, post_process_regex, "$1"));
 }
 
 } // end namespace xl
+
+
+/*
+Attempt at using "fancy" regex stuff
+(?(DEFINE)(?<NotEmptyAssertion>(?=(?:.|\n))))
+(?(DEFINE)(?<OpenDelimiterHead>\{))
+(?(DEFINE)(?<CloseDelimiterHead>\}))
+(?(DEFINE)(?<OpenDelimiterTail>\{))
+(?(DEFINE)(?<CloseDelimiterTail>\}))
+
+(?(DEFINE)(?<OpenDelimiter>(?&OpenDelimiterHead)(?&OpenDelimiterTail)))
+(?(DEFINE)(?<CloseDelimiter>(?&CloseDelimiterHead)(?&CloseDelimiterTail)))
+(?(DEFINE)(?<EitherDelimiter>(
+  (?&OpenDelimiter) |
+  (?&CloseDelimiter))))
+(?(DEFINE)(?<UntilDoubleBrace>(?:\s|\\(?&OpenDelimiter)|\\(?&CloseDelimiter)|[^{}]|[{](?!\{)|[}](?!\}))*))
+(?(DEFINE)(?<TemplateSubstitutionMarker>!))
+(?(DEFINE)(?<InlineTemplateMarker>!))
+(?(DEFINE)(?<UntilEndOfLine>![^\n]*\n))
+
+(?(DEFINE)(?<SubstitutionPattern>(?&OpenDelimiter)((?&TemplateSubstitutionMarker)?)
+
+# Everything up to the optional |
+((?:\\\}|\\\{|[^|])*?(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||$))
+
+ (?:[|]
+
+# Everything after the | before the }}
+ (!?)
+ (?:!(?&UntilEndOfLine))?
+((?:\\\}|\\\{|[^|])*?(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\|))
+
+  )? # end "stuff after |"
+
+  (?&CloseDelimiter)
+ ) # end Substitution named pattern
+) # end DEFINE Substitution
+
+^(?&NotEmptyAssertion)
+(?<StringLiteral>(?&UntilDoubleBrace))
+(?<Substitution>(?&CloseDelimiter)|(?&SubstitutionPattern)|$)
+
+ */

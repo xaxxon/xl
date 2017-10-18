@@ -12,6 +12,7 @@ namespace xl {
         DOTALL    = 1 << 3,
         MULTILINE = 1 << 4
     };
+    using RegexFlagsT = std::underlying_type_t<RegexFlags>;
 
     class RegexException : public std::exception {
         std::string reason;
