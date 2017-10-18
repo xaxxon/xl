@@ -167,12 +167,13 @@ void Template::compile() const {
 # Everything after the | before the }}
  (?<InlineTemplateMarker>!)?
  (?<IgnoreWhitespaceTilEndOfLine>!(?&UntilEndOfLine))?
-(?<SubstitutionData>((?R))*)
+(?<SubstitutionData>((?&UntilDoubleBrace)(?&Substitution)?)*)
 
    # end "stuff after |"
 )? # end PIPE
   (?<CloseDelimiterHere>\}\})
- )?) # end Substition
+ ) # end Substition
+| (?<UnmatchedOpen>\{\{) | (?<UnmatchedClose>\}\}) | $)
 
 
 )",
@@ -205,15 +206,20 @@ void Template::compile() const {
 //            std::cerr << fmt::format("match[{}]: '{}'", i, matches[i].str()) << std::endl;
 //        }
 
+
+        // check for open but no close or incorrect brace type
+        if (matches.length("UnmatchedOpen")) {
+            throw TemplateException("Unmatched Open");
+        }
+        if (matches.length("UnmatchedClose")) {
+            throw TemplateException("Unmatched Close");
+        }
+
+
         // if no substitution found, everything was a literal and is handled as a "trailing literal" outside
         //   this loop
         if (matches.length("Substitution") == 0) {
             break;
-        }
-
-        // check for open but no close or incorrect brace type
-        if (matches["OpenDelimiterHere"] != "{{" || matches["CloseDelimiterHere"] != "}}") {
-            throw TemplateException("Found mismatched braces in '" + this->_tmpl + "': '" + matches["OpenDelimiterHere"] + "' and '" + matches["CloseDelimiterHere"] + "'");
         }
 
 

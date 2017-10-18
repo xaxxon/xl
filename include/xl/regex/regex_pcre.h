@@ -66,6 +66,7 @@ public:
 
     size_t length(xl::zstring_view name) const {
         auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name.c_str());
+        std::cerr << fmt::format("Looked up named capture '{}' => {}", name.c_str(), index) << std::endl;
         return this->length(index);
     }
 
@@ -73,7 +74,9 @@ public:
         if (index > this->results) {
             return 0;
         }
-        return this->captures[index * 2 + 1] - this->captures[index * 2];
+        auto length = this->captures[index * 2 + 1] - this->captures[index * 2];
+        std::cerr << fmt::format("return length of substring {}: {}", index, length) << std::endl;
+        return length;
     }
 
     std::string operator[](char const * name) const {
