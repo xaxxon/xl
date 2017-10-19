@@ -40,7 +40,7 @@ TEST(LibraryExtensions, each_i) {
 
     auto sum = 0;
     for(auto [e1, e2, i] : each_i(v1, v2)) {
-        std::cerr << fmt::format("adding {} {} {}", e1, e2, i) << std::endl;
+//        std::cerr << fmt::format("adding {} {} {}", e1, e2, i) << std::endl;
         sum += e1 + e2 + i;
     }
 

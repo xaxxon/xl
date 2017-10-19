@@ -1,6 +1,8 @@
 #pragma once
 
 #include <fmt/format.h>
+#include <iostream>
+
 #include <regex>
 #include "../zstring_view.h"
 

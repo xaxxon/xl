@@ -56,17 +56,17 @@ public:
     }
 
     char const * suffix() const {
-        std::cerr << fmt::format("string length: {}, captures[1]: {}", this->source.length(), this->captures[1]) << std::endl;
-        std::cerr << fmt::format("suffix: '{}'", this->source.data() + this->captures[1]) << std::endl;
+//        std::cerr << fmt::format("string length: {}, captures[1]: {}", this->source.length(), this->captures[1]) << std::endl;
+//        std::cerr << fmt::format("suffix: '{}'", this->source.data() + this->captures[1]) << std::endl;
         char const * result = this->source.data() + this->captures[1];
-        std::cerr << fmt::format("returning suffix address {} vs base {}", (void*)result, (void*)this->source.c_str()) << std::endl;
+//        std::cerr << fmt::format("returning suffix address {} vs base {}", (void*)result, (void*)this->source.c_str()) << std::endl;
         return result;
     }
 
 
     size_t length(xl::zstring_view name) const {
         auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name.c_str());
-        std::cerr << fmt::format("Looked up named capture '{}' => {}", name.c_str(), index) << std::endl;
+        // std::cerr << fmt::format("Looked up named capture '{}' => {}", name.c_str(), index) << std::endl;
         return this->length(index);
     }
 
@@ -75,13 +75,13 @@ public:
             return 0;
         }
         auto length = this->captures[index * 2 + 1] - this->captures[index * 2];
-        std::cerr << fmt::format("return length of substring {}: {}", index, length) << std::endl;
+        // std::cerr << fmt::format("return length of substring {}: {}", index, length) << std::endl;
         return length;
     }
 
     std::string operator[](char const * name) const {
         auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name);
-        std::cerr << fmt::format("Looked up named capture '{}' => {}", name, index) << std::endl;
+        // std::cerr << fmt::format("Looked up named capture '{}' => {}", name, index) << std::endl;
         return this->operator[](index);
     }
 
@@ -92,14 +92,14 @@ public:
     std::string operator[](int index) const {
         if (index > results) {
 //            throw RegexException(fmt::format("index out of range: {} vs {}", index, results));
-            std::cerr << fmt::format("index might be out of range: {} vs {}", index, results) << std::endl;
+           // std::cerr << fmt::format("index might be out of range: {} vs {}", index, results) << std::endl;
             return "";
         }
 
         auto substring_buffer_length = (this->captures[(index * 2) + 1] - this->captures[(index * 2)]);
         std::string substring(substring_buffer_length, '\0');
         pcre_copy_substring(source.c_str(), this->captures.get(), this->results, index, substring.data(), substring_buffer_length + 1);
-std::cerr << fmt::format("returning substring {}: '{}'", index, substring) << std::endl;
+        // std::cerr << fmt::format("returning substring {}: '{}'", index, substring) << std::endl;
         return substring;
     }
 

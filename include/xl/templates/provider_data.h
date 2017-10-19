@@ -23,6 +23,9 @@ struct ProviderData {
     /// any other data associated with the substitution
     std::string parameters;
 
+    /// content which may or may not be shown
+    std::string contingent_leading_content;
+
     bool ignore_empty_replacements = false;
 
     /// an inline template, if specified
@@ -33,12 +36,14 @@ struct ProviderData {
                  TemplateMap const * templates = nullptr,
                  std::string parameters = "",
                  std::optional<Template> inline_template = std::optional<Template>{},
-                 std::string template_name = "") :
+                 std::string template_name = "",
+                 std::string contingent_leading_content = "") :
         name(name),
         templates(templates),
         parameters(parameters),
         inline_template(inline_template),
-        template_name(template_name)
+        template_name(template_name),
+        contingent_leading_content(std::move(contingent_leading_content))
     {}
 
     ProviderData(ProviderData const &) = default;

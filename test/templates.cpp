@@ -63,6 +63,26 @@ TEST(template, CallbackSubstitutionTemplate) {
 }
 
 
+TEST(template, SingleLineIgnoreEmpty) {
+    {
+        auto result = Template("Stuff on same line {{name|!{{name}}}}").fill(make_provider(std::pair("name", "")));
+        EXPECT_EQ(result, "Stuff on same line ");
+    }
+    {
+        auto result = Template("Stuff on same line {{name|!<{{name}}}}").fill(make_provider(std::pair("name", "")));
+        EXPECT_EQ(result, "");
+    }
+    {
+        auto result = Template("Stuff on same line {{name|<}}").fill(make_provider(std::pair("name", "")));
+        EXPECT_EQ(result, "");
+    }
+    {
+        auto result = Template("Stuff on same line {{name|<}}").fill(make_provider(std::pair("name", "content")));
+        EXPECT_EQ(result, "Stuff on same line content");
+    }
+}
+
+
 TEST(template, EmptyVectorReplacementIgnored) {
     {
         vector<string> v{"a", "", "c"};
@@ -291,7 +311,7 @@ class Uncopyable {
     std::unique_ptr<int> upi;
 
 public:
-    std::unique_ptr<Provider_Interface> get_provider(){
+    std::unique_ptr<Provider_Interface> get_provider() const {
         return make_provider(std::pair("A", "B"),std::pair("C", "D"));
     }
 };
@@ -323,4 +343,20 @@ TEST(template, ExpandEmptyLine) {
     auto result = Template("{{empty_substitution|!!}}").fill("");
 
     EXPECT_EQ(result, "");
+}
+
+
+// this just needs to compile
+TEST(template, VectorOfUniquePointer){
+    vector<unique_ptr<Uncopyable>> vupc;
+    vupc.push_back(std::make_unique<Uncopyable>());
+    vupc.push_back(std::make_unique<Uncopyable>());
+
+    vector<unique_ptr<Uncopyable>> const cvupc(std::move(vupc));
+
+
+    auto result = Template("{{vector|!!\n"
+                 " * @param \\{{{A}}\\} {{C}}}}").fill(Provider(std::pair("vector", make_provider(cvupc))));
+
+    EXPECT_EQ(result, " * @param {B} D\n * @param {B} D");
 }

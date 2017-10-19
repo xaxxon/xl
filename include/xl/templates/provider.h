@@ -180,11 +180,40 @@ public:
         } else {
             throw xl::templates::TemplateException("this shouldn't happen");
         }
+
         if (data.inline_template) {
             return data.inline_template->fill(provider);
         } else {
             return provider->operator()(data);
         }
+    }
+};
+
+
+
+template<class T, class Deleter>
+class Provider<std::unique_ptr<T, Deleter>> : public Provider_Interface {
+    T & t;
+public:
+    Provider(std::unique_ptr<T, Deleter> & t) :
+        t(*t)
+    {}
+
+    std::string operator()(ProviderData const & data) {
+        return make_provider(t)->operator()(data);
+    }
+};
+
+template<class T, class Deleter>
+class Provider<std::unique_ptr<T, Deleter> const> : public Provider_Interface {
+    T const & t;
+public:
+    Provider(std::unique_ptr<T, Deleter> const & t) :
+        t(*t)
+    {}
+
+    std::string operator()(ProviderData const & data) {
+        return make_provider(t)->operator()(data);
     }
 };
 
@@ -251,7 +280,7 @@ public:
             }
             needs_join_string = true;
             auto fill_result = tmpl.fill(p, *data.templates);
-            std::cerr << fmt::format("replacement is {}, ignore is {}", fill_result, data.ignore_empty_replacements) << std::endl;
+//            std::cerr << fmt::format("replacement is {}, ignore is {}", fill_result, data.ignore_empty_replacements) << std::endl;
             if (fill_result == "" && data.ignore_empty_replacements) {
                 needs_join_string = false;
             }
@@ -294,10 +323,10 @@ public:
                 return Provider<Value>(provider_iterator->second)(data);
             }
         } else {
-//            std::cerr << fmt::format("in map:") << std::endl;
-//            for(auto const & [k,v] : this->map) {
-//                std::cerr << fmt::format("key: {}", k) << std::endl;
-//            }
+            std::cerr << fmt::format("in map:") << std::endl;
+            for(auto const & [k,v] : this->map) {
+                std::cerr << fmt::format("key: {}", k) << std::endl;
+            }
             throw TemplateException("unknown name: '" + data.name + "'");
         }
     }

@@ -11,7 +11,7 @@
 #include <functional>
 
 #include <fmt/ostream.h>
-#include <regex/regexer.h>
+#include "../regex/regexer.h"
 
 #include "../library_extensions.h"
 #include "../regex/regexer.h"
@@ -90,16 +90,8 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
     std::string result{};
     result.reserve(this->minimum_result_length);
 
-    bool previous_static_string_ended_with_newline = false;
 
     for(int i = 0; i < this->compiled_static_strings.size(); i++) {
-
-        previous_static_string_ended_with_newline = false;
-        auto & static_string = this->compiled_static_strings[i];
-        if (static_string[static_string.length()-1]=='\n') {
-            std::cerr << fmt::format("static string ends in newline") << std::endl;
-            previous_static_string_ended_with_newline = true;
-        }
 
         result.insert(result.end(), this->compiled_static_strings[i].begin(), this->compiled_static_strings[i].end());
 
@@ -115,12 +107,19 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
                     throw TemplateException("No template found named: " + data.template_name);
                 }
                 auto inline_template_result = template_iterator->second.fill(provider, templates);
+                if (!inline_template_result.empty()) {
+                    result.insert(result.end(), data.contingent_leading_content.begin(), data.contingent_leading_content.end());
+                }
                 result.insert(result.end(), begin(inline_template_result), end(inline_template_result));
 
             } else {
 
                 auto substitution_result = provider(
                     ProviderData(data.name, &templates, data.parameters, data.inline_template).set_ignore_empty_replacements(data.ignore_empty_replacements));
+                if (!substitution_result.empty()) {
+                    result.insert(result.end(), data.contingent_leading_content.begin(), data.contingent_leading_content.end());
+                }
+
                 result.insert(result.end(), substitution_result.begin(), substitution_result.end());
             }
         }
@@ -199,19 +198,19 @@ void Template::compile() const {
 
 
     std::string remaining_template = this->c_str();
-    std::cerr << fmt::format("compiling template: '{}'", this->_tmpl.c_str()) << std::endl;
+//    std::cerr << fmt::format("compiling template: '{}'", this->_tmpl.c_str()) << std::endl;
 
     while (auto matches = r.match(remaining_template)) {
 
-        for(auto [s,i] : each_i(matches.get_all_matches())) {
-            if (s != "") {
-                std::cerr << fmt::format("{}: '{}'", i, s) << std::endl;
-            }
-        }
-        std::cerr << fmt::format("literal: '{}', substutition: '{}'",
-                                 matches["Literal"],
-                                 matches["Substitution"]
-        ) << std::endl;
+//        for(auto [s,i] : each_i(matches.get_all_matches())) {
+//            if (s != "") {
+//                std::cerr << fmt::format("{}: '{}'", i, s) << std::endl;
+//            }
+//        }
+//        std::cerr << fmt::format("literal: '{}', substutition: '{}'",
+//                                 matches["Literal"],
+//                                 matches["Substitution"]
+//        ) << std::endl;
 
 //        for (int i = 0; i < matches.size(); i++) {
 //            std::cerr << fmt::format("match[{}]: '{}'", i, matches[i].str()) << std::endl;
@@ -237,24 +236,40 @@ void Template::compile() const {
         remaining_template = matches.suffix();
 
         std::string literal_string = matches["Literal"];
-        std::cerr << fmt::format("postprocessing: '{}'", literal_string) << std::endl;
+//        std::cerr << fmt::format("postprocessing: '{}'", literal_string) << std::endl;
 
         literal_string = std::regex_replace(literal_string, post_process_regex, "$1");
-        std::cerr << fmt::format("into: '{}'", literal_string) << std::endl;
+//        std::cerr << fmt::format("into: '{}'", literal_string) << std::endl;
+
+
+        bool ignore_empty_replacements = matches.length("IgnoreEmptyMarker");
+//        std::cerr << fmt::format("ignoring empty replacements? {}", ignore_empty_replacements) << std::endl;
+        std::string contingent_leading_content;
+        if (ignore_empty_replacements) {
+            // trim off everything after the last newline on the static and put it in the template
+            static Regex last_line_regex(R"(^(.*?)(\n?[^\n]*)$)", xl::DOTALL);
+            auto results = last_line_regex.match(literal_string);
+            assert(results);
+            auto beginning_of_literal = results[1];
+            contingent_leading_content = results[2];
+
+//            std::cerr << fmt::format("start: '{}', last line: '{}'", beginning_of_literal, contingent_leading_content) << std::endl;
+
+            literal_string = beginning_of_literal;
+
+        }
 
         this->compiled_static_strings.push_back(literal_string);
         this->minimum_result_length += this->compiled_static_strings.back().size();
 
-        bool ignore_empty_replacements = matches.length("IgnoreEmptyMarker");
-        std::cerr << fmt::format("ignoring empty replacements? {}", ignore_empty_replacements) << std::endl;
 
 //        // if there was an inline template specified
         if (matches.length("TemplateInsertionMarker") == 1) {
-            this->compiled_substitutions.emplace_back("", nullptr, "", std::optional<Template>(), matches["SubstitutionName"]).set_ignore_empty_replacements(ignore_empty_replacements);
+            this->compiled_substitutions.emplace_back("", nullptr, "", std::optional<Template>(), matches["SubstitutionName"], contingent_leading_content).set_ignore_empty_replacements(ignore_empty_replacements);
         }else if (matches.length("InlineTemplateMarker") == 1) {
-            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, "", Template(matches["SubstitutionData"])).set_ignore_empty_replacements(ignore_empty_replacements);
+            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, "", Template(matches["SubstitutionData"]), "", contingent_leading_content).set_ignore_empty_replacements(ignore_empty_replacements);
         } else {
-            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, matches["SubstitutionData"]).set_ignore_empty_replacements(ignore_empty_replacements);
+            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, matches["SubstitutionData"], std::optional<Template>(), "", contingent_leading_content).set_ignore_empty_replacements(ignore_empty_replacements);
         }
 
 //            if (!provider.provides(matches[REPLACEMENT_NAME_INDEX])) {
@@ -269,52 +284,9 @@ void Template::compile() const {
 
     }
 
-std::cerr << fmt::format("remaining template: '{}'", remaining_template) << std::endl;
-    std::cerr << fmt::format("pushing on remaining template: '{}'", std::regex_replace(remaining_template, post_process_regex, "$1")) << std::endl;
+//std::cerr << fmt::format("remaining template: '{}'", remaining_template) << std::endl;
+//    std::cerr << fmt::format("pushing on remaining template: '{}'", std::regex_replace(remaining_template, post_process_regex, "$1")) << std::endl;
     this->compiled_static_strings.push_back(std::regex_replace(remaining_template, post_process_regex, "$1"));
 }
 
 } // end namespace xl
-
-
-/*
-Attempt at using "fancy" regex stuff
-(?(DEFINE)(?<NotEmptyAssertion>(?=(?:.|\n))))
-(?(DEFINE)(?<OpenDelimiterHead>\{))
-(?(DEFINE)(?<CloseDelimiterHead>\}))
-(?(DEFINE)(?<OpenDelimiterTail>\{))
-(?(DEFINE)(?<CloseDelimiterTail>\}))
-
-(?(DEFINE)(?<OpenDelimiter>(?&OpenDelimiterHead)(?&OpenDelimiterTail)))
-(?(DEFINE)(?<CloseDelimiter>(?&CloseDelimiterHead)(?&CloseDelimiterTail)))
-(?(DEFINE)(?<EitherDelimiter>(
-  (?&OpenDelimiter) |
-  (?&CloseDelimiter))))
-(?(DEFINE)(?<UntilDoubleBrace>(?:\s|\\(?&OpenDelimiter)|\\(?&CloseDelimiter)|[^{}]|[{](?!\{)|[}](?!\}))*))
-(?(DEFINE)(?<TemplateSubstitutionMarker>!))
-(?(DEFINE)(?<InlineTemplateMarker>!))
-(?(DEFINE)(?<UntilEndOfLine>![^\n]*\n))
-
-(?(DEFINE)(?<SubstitutionPattern>(?&OpenDelimiter)((?&TemplateSubstitutionMarker)?)
-
-# Everything up to the optional |
-((?:\\\}|\\\{|[^|])*?(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||$))
-
- (?:[|]
-
-# Everything after the | before the }}
- (!?)
- (?:!(?&UntilEndOfLine))?
-((?:\\\}|\\\{|[^|])*?(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\|))
-
-  )? # end "stuff after |"
-
-  (?&CloseDelimiter)
- ) # end Substitution named pattern
-) # end DEFINE Substitution
-
-^(?&NotEmptyAssertion)
-(?<StringLiteral>(?&UntilDoubleBrace))
-(?<Substitution>(?&CloseDelimiter)|(?&SubstitutionPattern)|$)
-
- */

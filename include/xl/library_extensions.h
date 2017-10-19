@@ -45,8 +45,12 @@ auto copy_if(Container const & container, Callback && callback) {
 /**
  * Takes a container and produces tuples with each value of the container and an associated counter
  */
-template<class... Containers>
-struct EachI {
+template<class, class...>
+struct EachI;
+
+
+template<size_t... Is, class... Containers>
+struct EachI<std::index_sequence<Is...>, Containers...> {
 public:
     std::tuple<magic_ptr<Containers>...> containers;
 public:
@@ -68,54 +72,34 @@ public:
 
         iterator(){}
 
-        template<size_t... Is>
-        auto increment_helper(std::index_sequence<Is...>){
+        void operator++() {
+            counter++;
             (std::get<Is>(iterators)++,...);
         }
 
-        void operator++() {
-            counter++;
-            increment_helper(std::index_sequence_for<Containers...>());
-        }
-
-        template<size_t... Is>
-        auto helper(std::index_sequence<Is...>){
+        ResultTuple operator*(){
             return ResultTuple{*std::get<Is>(iterators)..., counter};
         }
-        ResultTuple operator*(){
-            return helper(std::index_sequence_for<Containers...>());
-        }
         bool operator!=(iterator const & other) {
-            std::cerr << fmt::format("count: {}", counter) << std::endl;
+//            std::cerr << fmt::format("count: {}", counter) << std::endl;
 //            return this->iterators != other.iterators;
             return std::get<0>(this->iterators) != std::get<0>(other.iterators);
         }
-
     };
 
 
-    template<size_t... Is>
-    auto begin_helper(std::index_sequence<Is...>){
+    auto begin() {
         return iterator(std::get<Is>(this->containers)->begin()...);
     }
 
-    auto begin() {
-        return begin_helper(std::index_sequence_for<Containers...>());
-    }
-
-    template<size_t... Is>
-    auto end_helper(std::index_sequence<Is...>){
-        return iterator(std::get<Is>(this->containers)->end()...);
-    }
-
     auto end() {
-        return end_helper(std::index_sequence_for<Containers...>());
+        return iterator(std::get<Is>(this->containers)->end()...);
     }
 };
 
 template<class... Containers>
 auto each_i(Containers&&... containers) {
-    return EachI<std::remove_reference_t<Containers>...>(std::forward<Containers>(containers)...);
+    return EachI<std::index_sequence_for<Containers...>, std::remove_reference_t<Containers>...>(std::forward<Containers>(containers)...);
 }
 
 
