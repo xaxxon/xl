@@ -90,7 +90,17 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
     std::string result{};
     result.reserve(this->minimum_result_length);
 
+    bool previous_static_string_ended_with_newline = false;
+
     for(int i = 0; i < this->compiled_static_strings.size(); i++) {
+
+        previous_static_string_ended_with_newline = false;
+        auto & static_string = this->compiled_static_strings[i];
+        if (static_string[static_string.length()-1]=='\n') {
+            std::cerr << fmt::format("static string ends in newline") << std::endl;
+            previous_static_string_ended_with_newline = true;
+        }
+
         result.insert(result.end(), this->compiled_static_strings[i].begin(), this->compiled_static_strings[i].end());
 
         if (this->compiled_substitutions.size() > i) {

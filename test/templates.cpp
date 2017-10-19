@@ -62,15 +62,22 @@ TEST(template, CallbackSubstitutionTemplate) {
               "replace: REPLACEMENT-CALLBACK");
 }
 
+
 TEST(template, EmptyVectorReplacementIgnored) {
-    vector<string> v{"a", "", "c"};
     {
+        vector<string> v{"a", "", "c"};
+        auto result = Template("{{name|!{{dummyname}}}}").fill(make_provider(std::pair("name", v)));
+        EXPECT_EQ(result, "a\n\nc");
+    }
+    {
+        vector<string> v{"a", "", "c"};
         auto result = Template("{{name|!<{{dummyname}}}}").fill(make_provider(std::pair("name", v)));
         EXPECT_EQ(result, "a\nc");
     }
     {
-        auto result = Template("{{name|!{{dummyname}}}}").fill(make_provider(std::pair("name", v)));
-        EXPECT_EQ(result, "a\n\nc");
+        vector<string> v{"", "", ""};
+        auto result = Template("{{name|!<{{dummyname}}}}").fill(make_provider(std::pair("name", v)));
+        EXPECT_EQ(result, "");
     }
 }
 
@@ -81,7 +88,6 @@ struct A {
     A(int i) : i(i) {}
 
 };
-
 
 
 std::unique_ptr<Provider_Interface> get_provider(A const & a) {

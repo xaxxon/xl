@@ -32,3 +32,18 @@ TEST(LibraryExtensions, copy_if) {
         EXPECT_EQ(result.size(), 2);
     }
 }
+
+
+TEST(LibraryExtensions, each_i) {
+    vector<int> v1{1,2,3,4,5};
+    vector<int> v2{6,7,8,9,10};
+
+    auto sum = 0;
+    for(auto [e1, e2, i] : each_i(v1, v2)) {
+        std::cerr << fmt::format("adding {} {} {}", e1, e2, i) << std::endl;
+        sum += e1 + e2 + i;
+    }
+
+    EXPECT_EQ(sum, 65);
+
+}

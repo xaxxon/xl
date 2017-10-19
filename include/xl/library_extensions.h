@@ -4,7 +4,7 @@
 #include <type_traits>
 
 #include "magic_ptr.h"
-
+#include "fmt/format.h"
 namespace xl {
 
 
@@ -45,48 +45,77 @@ auto copy_if(Container const & container, Callback && callback) {
 /**
  * Takes a container and produces tuples with each value of the container and an associated counter
  */
-template<class Container>
+template<class... Containers>
 struct EachI {
 public:
-    using value_type = typename Container::value_type;
-    magic_ptr<Container> c;
+    std::tuple<magic_ptr<Containers>...> containers;
 public:
 
-    template<class U>
-    EachI(U && c) : c(std::move(c)) {}
+    template<class... ConstructorContainers>
+    EachI(ConstructorContainers&&... containers) :
+        containers(std::forward<ConstructorContainers>(containers)...)
+    {}
+
 
     struct iterator {
         int counter = 0;
-        typename Container::iterator i;
+        using ResultTuple = std::tuple<typename Containers::value_type&..., int>;
+        std::tuple<typename Containers::iterator...> iterators;
 
-        iterator(typename Container::iterator i) :
-            i(i)
+        iterator(typename Containers::iterator... i) :
+            iterators(i...)
         {}
 
         iterator(){}
 
+        template<size_t... Is>
+        auto increment_helper(std::index_sequence<Is...>){
+            (std::get<Is>(iterators)++,...);
+        }
+
         void operator++() {
             counter++;
-            i++;
+            increment_helper(std::index_sequence_for<Containers...>());
         }
-        std::tuple<value_type &, int> operator*(){
-            return {*i, counter};
-        };
+
+        template<size_t... Is>
+        auto helper(std::index_sequence<Is...>){
+            return ResultTuple{*std::get<Is>(iterators)..., counter};
+        }
+        ResultTuple operator*(){
+            return helper(std::index_sequence_for<Containers...>());
+        }
         bool operator!=(iterator const & other) {
-            return this->i != other.i;
+            std::cerr << fmt::format("count: {}", counter) << std::endl;
+//            return this->iterators != other.iterators;
+            return std::get<0>(this->iterators) != std::get<0>(other.iterators);
         }
+
     };
-    auto begin() {
-        return iterator(c->begin());
+
+
+    template<size_t... Is>
+    auto begin_helper(std::index_sequence<Is...>){
+        return iterator(std::get<Is>(this->containers)->begin()...);
     }
+
+    auto begin() {
+        return begin_helper(std::index_sequence_for<Containers...>());
+    }
+
+    template<size_t... Is>
+    auto end_helper(std::index_sequence<Is...>){
+        return iterator(std::get<Is>(this->containers)->end()...);
+    }
+
     auto end() {
-        return iterator(c->end());
+        return end_helper(std::index_sequence_for<Containers...>());
     }
 };
 
-template<class T>
-auto each_i(T && container) {
-    return EachI<std::remove_reference_t<T>>(std::forward<T>(container));
+template<class... Containers>
+auto each_i(Containers&&... containers) {
+    return EachI<std::remove_reference_t<Containers>...>(std::forward<Containers>(containers)...);
 }
 
 
@@ -198,8 +227,8 @@ auto copy(ContainerT<ValueT, Rest...> const & container) {
 } // end namespace xl
 
 namespace std {
-    inline namespace __1 {
-        template<class T1, class T2>
-        pair(T1 t1, T2 t) -> pair<T1, T2>;
-    } // end namespace __1
+inline namespace __1 {
+template<class T1, class T2>
+pair(T1 t1, T2 t) -> pair<T1, T2>;
+} // end namespace __1
 } // end namespace std
