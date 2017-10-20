@@ -126,10 +126,17 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
                 auto new_data = data;
                 new_data.templates = &templates;
                 auto substitution_result = provider(new_data);
-                if (!substitution_result.empty()) {
-                    result.insert(result.end(), data.contingent_leading_content.begin(), data.contingent_leading_content.end());
+                if (!data.contingent_leading_content.empty()) {
+                    if (!substitution_result.empty()) {
+//                        std::cerr << fmt::format("adding contingent data: {}", data.contingent_leading_content)
+//                                  << std::endl;
+                        result.insert(result.end(), data.contingent_leading_content.begin(),
+                                      data.contingent_leading_content.end());
+                    } else {
+//                        std::cerr << fmt::format("skipping contingent data: {}", data.contingent_leading_content)
+//                                  << std::endl;
+                    }
                 }
-
                 result.insert(result.end(), substitution_result.begin(), substitution_result.end());
             }
         }
