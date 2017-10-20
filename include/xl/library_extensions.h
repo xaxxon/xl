@@ -81,8 +81,6 @@ public:
             return ResultTuple{*std::get<Is>(iterators)..., counter};
         }
         bool operator!=(iterator const & other) {
-//            std::cerr << fmt::format("count: {}", counter) << std::endl;
-//            return this->iterators != other.iterators;
             return std::get<0>(this->iterators) != std::get<0>(other.iterators);
         }
     };
