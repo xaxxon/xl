@@ -17,6 +17,8 @@ struct ProviderData {
     /// name to look up in the provider for a replacement value
     std::string name;
 
+    std::string join_string = "\n";
+
     /// map of template names to templates
     TemplateMap const * templates;
 
@@ -37,13 +39,16 @@ struct ProviderData {
                  std::string parameters = "",
                  std::optional<Template> inline_template = std::optional<Template>{},
                  std::string template_name = "",
-                 std::string contingent_leading_content = "") :
+                 std::string contingent_leading_content = "",
+                 std::string join_string = "\n"
+    ) :
         name(name),
         templates(templates),
         parameters(parameters),
         inline_template(inline_template),
         template_name(template_name),
-        contingent_leading_content(std::move(contingent_leading_content))
+        contingent_leading_content(std::move(contingent_leading_content)),
+        join_string(join_string)
     {}
 
     ProviderData(ProviderData const &) = default;

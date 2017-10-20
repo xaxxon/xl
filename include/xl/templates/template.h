@@ -123,8 +123,9 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
 
             } else {
 
-                auto substitution_result = provider(
-                    ProviderData(data.name, &templates, data.parameters, data.inline_template).set_ignore_empty_replacements(data.ignore_empty_replacements));
+                auto new_data = data;
+                new_data.templates = &templates;
+                auto substitution_result = provider(new_data);
                 if (!substitution_result.empty()) {
                     result.insert(result.end(), data.contingent_leading_content.begin(), data.contingent_leading_content.end());
                 }
@@ -157,6 +158,8 @@ void Template::compile() const {
     // DO NOT EDIT THIS DIRECTLY, EDIT THE COMMENTED VERSION ABOVE AND THEN COPY IT AND TRIM OUT THE WHITESPACE AND COMMENTS
     static xl::Regex r(R"(
 
+
+
 (?(DEFINE)(?<NotEmptyAssertion>(?=(?:.|\n))))
 (?(DEFINE)(?<OpenDelimiterHead>\{))
 (?(DEFINE)(?<CloseDelimiterHead>\}))
@@ -184,9 +187,11 @@ void Template::compile() const {
 (?<TemplateInsertionMarker>!)?
 
 # Everything up to the optional |
-(?:(?<SubstitutionName>(?:\\\}|\\\{|[^|\s])*?)\s*(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||$))
+(?:(?<SubstitutionName>(?:\\\}|\\\{|[^|%\s])*?)\s*(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||\%|$))
 
- (?<PIPE>[|]
+(?:(?<JoinStringMarker>%)(?<JoinString>(?:\\\||[^|])*))?
+
+ (?:[|]
 
 # Everything after the | before the }}
  (?<InlineTemplateMarker>!)?
@@ -273,14 +278,18 @@ void Template::compile() const {
         this->compiled_static_strings.push_back(literal_string);
         this->minimum_result_length += this->compiled_static_strings.back().size();
 
+        std::string join_string = "\n";
+        if (matches.length("JoinStringMarker")) {
+            join_string = matches["JoinString"];
+        }
 
 //        // if there was an inline template specified
         if (matches.length("TemplateInsertionMarker") == 1) {
-            this->compiled_substitutions.emplace_back("", nullptr, "", std::optional<Template>(), matches["SubstitutionName"], contingent_leading_content).set_ignore_empty_replacements(ignore_empty_replacements);
+            this->compiled_substitutions.emplace_back("", nullptr, "", std::optional<Template>(), matches["SubstitutionName"], contingent_leading_content, join_string).set_ignore_empty_replacements(ignore_empty_replacements);
         }else if (matches.length("InlineTemplateMarker") == 1) {
-            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, "", Template(matches["SubstitutionData"]), "", contingent_leading_content).set_ignore_empty_replacements(ignore_empty_replacements);
+            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, "", Template(matches["SubstitutionData"]), "", contingent_leading_content, join_string).set_ignore_empty_replacements(ignore_empty_replacements);
         } else {
-            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, matches["SubstitutionData"], std::optional<Template>(), "", contingent_leading_content).set_ignore_empty_replacements(ignore_empty_replacements);
+            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, matches["SubstitutionData"], std::optional<Template>(), "", contingent_leading_content, join_string).set_ignore_empty_replacements(ignore_empty_replacements);
         }
 
 //            if (!provider.provides(matches[REPLACEMENT_NAME_INDEX])) {

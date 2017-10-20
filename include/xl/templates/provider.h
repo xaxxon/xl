@@ -259,17 +259,6 @@ public:
 //        std::cerr << fmt::format("container provider looking at substution data for: {}, {}", data.name, (bool)data.inline_template) << std::endl;
         std::stringstream result;
 
-        // find an optional join string if specified
-        static std::regex parameters_regex("^([^|]*)[|]?(.*)$");
-        enum ParameterRegexIndex { EVERYTHING = 0, TEMPLATE_NAME_INDEX, JOIN_STRING_INDEX };
-
-        std::smatch matches;
-        if (!std::regex_match(data.parameters, matches, parameters_regex)) {
-            throw TemplateException(fmt::format("Unknown template parameters for container Provider: '{}'", data.parameters));
-        }
-//        for(int i = 0; i < matches.size(); i++) {
-//            std::cerr << fmt::format("parameter regex[{}]: '{}'", i, matches[i].str()) << std::endl;
-//        }
 
 //        std::cerr << fmt::format("inline template exists? {}", (bool)data.inline_template) << std::endl;
         Template const & tmpl = [&]{
@@ -278,7 +267,7 @@ public:
             } else {
 //        std::cerr << fmt::format("looking up template named: '{}'", matches[TEMPLATE_NAME_INDEX].str()) << std::endl;
 //        std::cerr << fmt::format("join string: '{}'", join_string) << std::endl;
-                auto template_iterator = data.templates->find(matches[TEMPLATE_NAME_INDEX].str());
+                auto template_iterator = data.templates->find(data.parameters);
                 if (template_iterator == data.templates->end()) {
                     if (data.templates->empty()) {
                         throw TemplateException(
@@ -291,7 +280,6 @@ public:
             }
         }();
 
-        std::string join_string = matches[JOIN_STRING_INDEX].str() != "" ? matches[JOIN_STRING_INDEX].str() : "\n";
         bool needs_join_string = false;
 
         // Iterate through the container
@@ -299,7 +287,7 @@ public:
             auto p = Provider<std::remove_reference_t<decltype(element)>>(element);
 
             if (needs_join_string) {
-                result << join_string;
+                result << data.join_string;
 //                std::cerr << fmt::format("inserting join string '{}' on subsequent pass", join_string) << std::endl;
 
             } else {

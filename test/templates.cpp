@@ -148,7 +148,7 @@ TEST(template, UserDefinedTypeArray) {
     TemplateMap templates{std::pair{"A1", Template("{i: {{I}} j: {{J}}}")},
                           std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
 
-    auto fill_result = Template("B: '{{NAME}}' A1: {{GET_VEC_A|A1|, }} A2: {{GET_VEC_A|A2|, }}").fill(b, templates);
+    auto fill_result = Template("B: '{{NAME}}' A1: {{GET_VEC_A%, |A1}} A2: {{GET_VEC_A%, |A2}}").fill(b, templates);
     EXPECT_EQ(fill_result, "B: 'B name' A1: {i: 1 j: 6}, {i: 2 j: 6}, {i: 3 j: 6}, {i: 4 j: 6}, {i: 5 j: 6} A2: {i2: 1 j2: 6}, {i2: 2 j2: 6}, {i2: 3 j2: 6}, {i2: 4 j2: 6}, {i2: 5 j2: 6}");
 }
 
@@ -161,7 +161,7 @@ TEST(template, VectorCallbackTemplate) {
     TemplateMap templates{std::pair{"A1", Template("{i: {{I}} j: {{J}}}")},
                           std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
 
-    EXPECT_EQ(Template("replace: {{TEST1|A1|, }}").fill(make_provider(std::pair{"TEST1", make_provider(vector_object_callback)}), templates),
+    EXPECT_EQ(Template("replace: {{TEST1%, |A1}}").fill(make_provider(std::pair{"TEST1", make_provider(vector_object_callback)}), templates),
     "replace: {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
 }
 
