@@ -66,6 +66,8 @@ class RegexStd {
             throw RegexException("std::regex doesn't support DOTALL");
         } else if (flags & MULTILINE) {
             throw RegexException("std::regex for my compiler hasn't yet implemented std::regex_constants::multiline");
+        } else if (flags & DOLLAR_END_ONLY) {
+            throw RegexException("Not sure if this is even a change in behavior for std::regex");
         }
 
         std::underlying_type_t<std::regex_constants::syntax_option_type> result = std::regex_constants::ECMAScript | std::regex_constants::optimize;

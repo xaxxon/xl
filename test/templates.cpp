@@ -69,15 +69,15 @@ TEST(template, SingleLineIgnoreEmpty) {
         EXPECT_EQ(result, "Stuff on same line ");
     }
     {
-        auto result = Template("Stuff on same line {{name|!<{{name}}}}").fill(make_provider(std::pair("name", "")));
+        auto result = Template("Stuff on same line {{<name|!{{name}}}}").fill(make_provider(std::pair("name", "")));
         EXPECT_EQ(result, "");
     }
     {
-        auto result = Template("Stuff on same line {{name|<}}").fill(make_provider(std::pair("name", "")));
+        auto result = Template("Stuff on same line {{<name}}").fill(make_provider(std::pair("name", "")));
         EXPECT_EQ(result, "");
     }
     {
-        auto result = Template("Stuff on same line {{name|<}}").fill(make_provider(std::pair("name", "content")));
+        auto result = Template("Stuff on same line {{<name}}").fill(make_provider(std::pair("name", "content")));
         EXPECT_EQ(result, "Stuff on same line content");
     }
 }
@@ -91,14 +91,26 @@ TEST(template, EmptyVectorReplacementIgnored) {
     }
     {
         vector<string> v{"a", "", "c"};
-        auto result = Template("{{name|!<{{dummyname}}}}").fill(make_provider(std::pair("name", v)));
+        auto result = Template("{{<name|!{{dummyname}}}}").fill(make_provider(std::pair("name", v)));
         EXPECT_EQ(result, "a\nc");
     }
     {
         vector<string> v{"", "", ""};
-        auto result = Template("{{name|!<{{dummyname}}}}").fill(make_provider(std::pair("name", v)));
+        auto result = Template("{{<name|!{{dummyname}}}}").fill(make_provider(std::pair("name", v)));
         EXPECT_EQ(result, "");
     }
+    {
+        vector<string> v{"", "", ""};
+        auto result = Template("before\n{{<name|!{{dummyname}}}}\nafter").fill(make_provider(std::pair("name", v)));
+        EXPECT_EQ(result, "before\nafter");
+    }
+    {
+        vector<string> v{"", "", ""};
+        auto result = Template("before\n{{<name|!!\n{{dummyname}}}}\nafter").fill(make_provider(std::pair("name", v)));
+        EXPECT_EQ(result, "before\nafter");
+    }
+
+
 }
 
 

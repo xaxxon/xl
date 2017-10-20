@@ -173,7 +173,13 @@ void Template::compile() const {
 
 (?&NotEmptyAssertion)
 (?<Literal>(?&UntilDoubleBrace))
-(?:(?<Substitution>(?<OpenDelimiterHere>\{\{)\s*
+
+# Start Substitution
+(?:(?<Substitution>
+(?<OpenDelimiterHere>\{\{)
+\s*
+ (?<IgnoreEmptyMarker><)?
+\s*
 
 (?<TemplateInsertionMarker>!)?
 
@@ -184,7 +190,6 @@ void Template::compile() const {
 
 # Everything after the | before the }}
  (?<InlineTemplateMarker>!)?
- (?<IgnoreEmptyMarker><)?
  (?<IgnoreWhitespaceTilEndOfLine>!(?&UntilEndOfLine))?
 (?<SubstitutionData>((?&UntilDoubleBrace)(?&Substitution)?)*)
 
@@ -256,16 +261,13 @@ void Template::compile() const {
         std::string contingent_leading_content;
         if (ignore_empty_replacements) {
             // trim off everything after the last newline on the static and put it in the template
-            static Regex last_line_regex(R"(^(.*?)(\n?[^\n]*)$)", xl::DOTALL);
+            static Regex last_line_regex(R"(^(.*?)(\n?[^\n]*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
             auto results = last_line_regex.match(literal_string);
-            assert(results);
-            auto beginning_of_literal = results[1];
-            contingent_leading_content = results[2];
-
+            if (results) {
+                literal_string = results[1];
+                contingent_leading_content = results[2];
+            }
 //            std::cerr << fmt::format("start: '{}', last line: '{}'", beginning_of_literal, contingent_leading_content) << std::endl;
-
-            literal_string = beginning_of_literal;
-
         }
 
         this->compiled_static_strings.push_back(literal_string);

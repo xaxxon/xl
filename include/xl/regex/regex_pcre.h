@@ -126,7 +126,7 @@ class RegexPcre {
         result |= flags & EXTENDED ? PCRE_EXTENDED : 0;
         result |= flags & DOTALL ? PCRE_DOTALL : 0;
         result |= flags & MULTILINE ? PCRE_MULTILINE : 0;
-
+        result |= flags & DOLLAR_END_ONLY ? PCRE_DOLLAR_ENDONLY : 0;
         return result;
     }
 

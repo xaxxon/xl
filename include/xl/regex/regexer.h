@@ -10,7 +10,8 @@ namespace xl {
         ICASE     = 1 << 1,
         EXTENDED  = 1 << 2,
         DOTALL    = 1 << 3,
-        MULTILINE = 1 << 4
+        MULTILINE = 1 << 4,
+        DOLLAR_END_ONLY = 1 << 5
     };
     using RegexFlagsT = std::underlying_type_t<RegexFlags>;
 

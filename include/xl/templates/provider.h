@@ -230,9 +230,7 @@ public:
 
     Provider(std::unique_ptr<T, Deleter> const & t) :
         t(*t)
-    {
-        assert(&this->t != nullptr);
-    }
+    {}
 
     std::string operator()(ProviderData const & data) {
         return make_provider(t)->operator()(data);
@@ -357,10 +355,10 @@ public:
                 return Provider<Value>(provider_iterator->second)(data);
             }
         } else {
-            std::cerr << fmt::format("in map:") << std::endl;
-            for(auto const & [k,v] : this->map) {
-                std::cerr << fmt::format("key: {}", k) << std::endl;
-            }
+//            std::cerr << fmt::format("in map:") << std::endl;
+//            for(auto const & [k,v] : this->map) {
+//                std::cerr << fmt::format("key: {}", k) << std::endl;
+//            }
             throw TemplateException("unknown name`: '" + data.name + "'");
         }
     }
