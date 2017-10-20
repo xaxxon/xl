@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fmt/format.h>
+
 namespace xl {
 
 
@@ -48,6 +50,7 @@ public:
     static inline Deleter const default_deleter = [](T * t) { delete t; };
 
 
+
     /**
      * Constructs empty object
      */
@@ -64,7 +67,8 @@ public:
      */
     magic_ptr(T * t, Deleter deleter) :
         t(t),
-        deleter(deleter) {}
+        deleter(deleter)
+    {}
 
 
     /**
@@ -73,7 +77,8 @@ public:
      */
     magic_ptr(T & t) :
         t(&t),
-        deleter(magic_ptr::noop_deleter) {}
+        deleter(magic_ptr::noop_deleter)
+    {}
 
     /**
      * Owning constructor calls move constructor for type T
@@ -81,7 +86,8 @@ public:
      */
     magic_ptr(T && t) :
         t(new T(std::move(t))),
-        deleter(magic_ptr::default_deleter) {}
+        deleter(magic_ptr::default_deleter)
+    {}
 
 
     /**
@@ -93,7 +99,8 @@ public:
     template<class UniquePtrDeleter>
     magic_ptr(std::unique_ptr<T, UniquePtrDeleter> unique_ptr) :
         t(unique_ptr.release()),
-        deleter(UniquePtrDeleter()) {}
+        deleter(UniquePtrDeleter())
+    {}
 
     /**
      * Move constructor for magic_ptr
@@ -115,11 +122,15 @@ public:
      * @return
      */
     magic_ptr & operator=(magic_ptr && other) {
+        this->release();
+
         this->t = other.t;
         this->deleter = other.deleter;
 
         other.t = nullptr;
         other.deleter = magic_ptr::noop_deleter;
+
+        return *this;
     }
 
 
@@ -156,9 +167,12 @@ public:
      * @return
      */
     T * release() {
+        auto value = this->t;
         this->deleter(this->t);
         this->deleter = magic_ptr::noop_deleter;
         this->t = nullptr;
+
+        return t;
     }
 
     bool empty() const {
@@ -178,6 +192,13 @@ public:
 
 template<class T>
 magic_ptr(T &) -> magic_ptr<T>;
+
+
+
+template<class T, class... Args>
+magic_ptr<T> make_magic(Args&&... args) {
+    return magic_ptr<T>(new T(std::forward<Args>(args)...), magic_ptr<T>::default_deleter);
+};
 
 
 } // end namespace xl
