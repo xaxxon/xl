@@ -74,6 +74,12 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
         this->compile();
     }
 
+    if constexpr(is_passthrough_provider_v<T>) {
+        return fill(source.get_underlying_provider(), templates);
+    }
+
+//    std::cerr << fmt::format("passthrough? {} {} ", typeid(T).name(), is_passthrough_provider_v<T>) << std::endl;
+
 //    std::cerr << fmt::format("filling template: '{}'", this->_tmpl) << std::endl;
 
     std::unique_ptr<Provider_Interface> provider_interface_unique_pointer;
@@ -84,6 +90,9 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
         provider_interface_unique_pointer = make_provider(source);
         provider_interface_pointer = provider_interface_unique_pointer.get();
     }
+
+
+
     Provider_Interface & provider = *provider_interface_pointer;
 //    std::cerr << fmt::format("providers vector size: {}", this->providers.size()) << std::endl;
 

@@ -21,6 +21,7 @@ class Provider {
 };
 
 
+
 template<class... Keys, class... Values>
 Provider(std::pair<Keys, Values>&&...) -> Provider<std::map<std::string, std::unique_ptr<Provider_Interface>>>;
 
@@ -167,19 +168,18 @@ private:
     xl::magic_ptr<T> t;
 
 public:
+
+    using XL_TEMPLATES_PASSTHROUGH_TYPE = T;
+
     Provider(T && t) : t(std::move(t)) {}
     Provider(T & t) : t(t) {}
 
 
+
     std::string operator()(ProviderData const & data) override {
-        std::unique_ptr<Provider_Interface> provider;
-        if constexpr(has_get_provider_free_function_v<T>){
-            provider = get_provider(*t);
-        } else if constexpr(has_get_provider_member_v<T>) {
-            provider = t->get_provider();
-        } else {
-            throw xl::templates::TemplateException("this shouldn't happen");
-        }
+        std::unique_ptr<Provider_Interface> provider = get_underlying_provider();
+
+
 
         if (data.inline_template) {
             return data.inline_template->fill(provider);
@@ -187,14 +187,25 @@ public:
             return provider->operator()(data);
         }
     }
-};
 
+    auto get_underlying_provider(){
+        if constexpr(has_get_provider_free_function_v<T>){
+            return get_provider(*t);
+        } else if constexpr(has_get_provider_member_v<T>) {
+            return t->get_provider();
+        } else {
+            throw xl::templates::TemplateException("this shouldn't happen");
+        }
+    }
+};
 
 
 template<class T, class Deleter>
 class Provider<std::unique_ptr<T, Deleter>> : public Provider_Interface {
     T & t;
 public:
+    using XL_TEMPLATES_PASSTHROUGH_TYPE = T;
+
     Provider(std::unique_ptr<T, Deleter> & t) :
         t(*t)
     {}
@@ -202,20 +213,38 @@ public:
     std::string operator()(ProviderData const & data) {
         return make_provider(t)->operator()(data);
     }
+
+    auto get_underlying_provider(){
+        return Provider<T>(t);
+    }
 };
+
+static_assert(is_passthrough_provider_v<Provider<std::unique_ptr<int>>>);
 
 template<class T, class Deleter>
 class Provider<std::unique_ptr<T, Deleter> const> : public Provider_Interface {
     T const & t;
 public:
+
+    using XL_TEMPLATES_PASSTHROUGH_TYPE = T;
+
     Provider(std::unique_ptr<T, Deleter> const & t) :
         t(*t)
-    {}
+    {
+        assert(&this->t != nullptr);
+    }
 
     std::string operator()(ProviderData const & data) {
         return make_provider(t)->operator()(data);
     }
+    auto get_underlying_provider(){
+        return Provider<T const>(t);
+    }
+
 };
+
+static_assert(is_passthrough_provider_v<Provider<std::unique_ptr<int> const>>);
+
 
 
 template<class T>
@@ -232,6 +261,7 @@ public:
 //        std::cerr << fmt::format("container provider looking at substution data for: {}, {}", data.name, (bool)data.inline_template) << std::endl;
         std::stringstream result;
 
+        // find an optional join string if specified
         static std::regex parameters_regex("^([^|]*)[|]?(.*)$");
         enum ParameterRegexIndex { EVERYTHING = 0, TEMPLATE_NAME_INDEX, JOIN_STRING_INDEX };
 
@@ -278,8 +308,12 @@ public:
 //                std::cerr << fmt::format("skipping join string '{}' on first pass", join_string) << std::endl;
 
             }
+
+
+
             needs_join_string = true;
             auto fill_result = tmpl.fill(p, *data.templates);
+
 //            std::cerr << fmt::format("replacement is {}, ignore is {}", fill_result, data.ignore_empty_replacements) << std::endl;
             if (fill_result == "" && data.ignore_empty_replacements) {
                 needs_join_string = false;
@@ -327,7 +361,7 @@ public:
             for(auto const & [k,v] : this->map) {
                 std::cerr << fmt::format("key: {}", k) << std::endl;
             }
-            throw TemplateException("unknown name: '" + data.name + "'");
+            throw TemplateException("unknown name`: '" + data.name + "'");
         }
     }
 };

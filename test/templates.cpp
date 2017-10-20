@@ -307,14 +307,43 @@ TEST(template, TemplateSubstitutionTemplate) {
 }
 
 
-class Uncopyable {
-    std::unique_ptr<int> upi;
+class HasProvider {
+    std::string s;
 
 public:
+    HasProvider(string s) : s(s) {}
     std::unique_ptr<Provider_Interface> get_provider() const {
-        return make_provider(std::pair("A", "B"),std::pair("C", "D"));
+        return make_provider(std::pair("string", this->s));
+
     }
 };
+
+
+class Uncopyable {
+    std::unique_ptr<int> upi;
+    vector<HasProvider> strings = {HasProvider("string1"), HasProvider("string2")};
+public:
+    Uncopyable() {}
+    Uncopyable(Uncopyable &&) = default;
+    std::unique_ptr<Provider_Interface> get_provider() const {
+        return make_provider(std::pair("A", "B"),std::pair("C", "D"), std::pair("strings", make_provider(strings)));
+    }
+};
+
+
+class UncopyableHolder {
+    vector<unique_ptr<Uncopyable>> v;
+
+public:
+    UncopyableHolder(){
+        v.emplace_back(make_unique<Uncopyable>());
+        v.emplace_back(make_unique<Uncopyable>());
+    }
+    std::unique_ptr<Provider_Interface> get_provider() const {
+        return make_provider(std::pair("v", make_provider(v)));
+    }
+};
+
 
 TEST(template, UncopyableVectorProvider) {
     vector<Uncopyable> vups;
@@ -328,14 +357,22 @@ TEST(template, UncopyableVectorProvider) {
     EXPECT_EQ(result, "B\nB");
 }
 
+
 TEST(template, ExpandInline) {
-
-
     auto provider = make_provider(std::pair("uncopyable", Uncopyable()));
-
     auto result = Template("{{uncopyable|!{{A}}{{C}}}}").fill(provider);
-
     EXPECT_EQ(result, "BD");
+}
+
+
+TEST(template, ExpandVectorInline) {
+    UncopyableHolder uch;
+    map<string, Template> templates;
+
+    templates.emplace("uncopyable", Template("{{strings|!{{string}}}}"));
+
+    auto result = Template("{{v|uncopyable}}").fill(UncopyableHolder(), templates);
+    EXPECT_EQ(result, "string1\nstring2\nstring1\nstring2");
 }
 
 
