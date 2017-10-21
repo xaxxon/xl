@@ -59,7 +59,10 @@ class RegexStd {
     std::regex regex;
     std::string regex_string = "UNKNOWN";
 
-    auto make_std_regex_flags(xl::RegexFlags flags) {
+    std::regex_constants::syntax_option_type make_std_regex_flags(xl::RegexFlags flags) {
+
+        std::underlying_type_t<std::regex_constants::syntax_option_type> result = std::regex_constants::ECMAScript;
+
         if (flags & EXTENDED) {
             throw RegexException("std::regex doesn't support extended regexes");
         } else if (flags & DOTALL) {
@@ -70,13 +73,12 @@ class RegexStd {
             throw RegexException("Not sure if this is even a change in behavior for std::regex");
         }
 
-        std::underlying_type_t<std::regex_constants::syntax_option_type> result = std::regex_constants::ECMAScript | std::regex_constants::optimize;
-        result |= flags & OPTIMIZE ? std::regex_constants::optimize : 0;
+        result |= (flags & OPTIMIZE ? std::regex_constants::optimize : 0);
 
         // not supported in clang 5
 //        result |= flags & MULTILINE ? std::regex_constants::multiline : 0;
-        std::cout << fmt::format("final flags: {}", (int)result) << std::endl;
-        return result;
+//        std::cout << fmt::format("final flags: {}", (int)result) << std::endl;
+        return static_cast<std::regex_constants::syntax_option_type>(result);
     }
 
 public:
@@ -84,9 +86,11 @@ public:
 //        regex(regex_string.c_str(), make_std_regex_flags(flags)),
         regex_string(regex_string)
     {
-        std::cout << fmt::format("Creating regex with '{}'", regex_string.c_str()) << std::endl;
+//        std::cerr << fmt::format("flags are {} => std::regex flag {}", (int)flags, make_std_regex_flags(flags)) << std::endl;
+//        std::cout << fmt::format("Creating regex with '{}'", regex_string.c_str()) << std::endl;
         this->regex = std::regex(regex_string.c_str(), make_std_regex_flags(flags));
     } catch (std::regex_error const & e) {
+        std::cerr << fmt::format("caught error creating std::regex for '{}'", regex_string.c_str()) << std::endl;
         throw xl::RegexException(e.what());
     }
 
@@ -94,7 +98,7 @@ public:
         regex(std::move(regex)) {}
 
     RegexResultStd match(std::string_view source) const {
-        std::cout << fmt::format("about to match with {}", regex_string) << std::endl;
+//        std::cout << fmt::format("about to match with {}", regex_string) << std::endl;
         return RegexResultStd(source, this->regex);
 
     }

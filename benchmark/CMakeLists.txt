@@ -9,7 +9,7 @@ link_directories(. ${CLANG_HOME}/lib)
 
 file(GLOB BENCH_SRC
         *.cpp)
-
+add_definitions(-DXL_USE_PCRE)
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wno-aligned-allocation-unavailable -stdlib=libc++ -msse4.1 -O3")
 
 # EXCLUDE_FROM_ALL so it doesn't get built on make install

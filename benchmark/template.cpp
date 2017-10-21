@@ -7,6 +7,7 @@
 #include "templates.h"
 
 using namespace xl;
+using namespace xl::templates;
 using namespace std;
 
 

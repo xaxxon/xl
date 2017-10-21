@@ -163,7 +163,7 @@ void Template::compile() const {
  */
 
     // DO NOT EDIT THIS DIRECTLY, EDIT THE COMMENTED VERSION ABOVE AND THEN COPY IT AND TRIM OUT THE WHITESPACE AND COMMENTS
-    static xl::Regex r(R"(
+    static xl::RegexPcre r(R"(
 
 
 
