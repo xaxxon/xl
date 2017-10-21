@@ -81,6 +81,8 @@ class EmptyProvider : public Provider_Interface {
     }
 };
 
+using ProviderPtr = std::unique_ptr<Provider_Interface>;
+
 
 
 template<class, class = void>

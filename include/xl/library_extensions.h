@@ -8,25 +8,41 @@
 namespace xl {
 
 
+template<typename T, typename V, typename = void>
+struct has_find_for : public std::false_type {};
+
+template<typename T, typename V>
+struct has_find_for<T, V, std::void_t<decltype(std::declval<T>().find(std::declval<V>()))>> : public std::true_type {};
+
+
+/**
+ * Whether type T has a member function `find` which can take a type V
+ * @tparam T Container type
+ * @tparam V Type to find
+ */
+template<typename T, typename V>
+constexpr bool has_find_for_v = has_find_for<T, V>::value;
+
+
 /**
  * returns whether the container contains the specified value
- * @tparam ValueT
- * @tparam Rest
- * @tparam ContainerT
- * @param container
+ * @tparam C Container type to look in
+ * @tparam V Value type to look for
+ * @param container container to be searched
  * @param value value to search the container for
  * @return whether the container contains the specified value
  */
-template<class ValueT, class... Rest, template<class, class...> class ContainerT>
-bool contains(ContainerT<ValueT, Rest...> const & container, ValueT const & value) {
+template<typename C, typename V, std::enable_if_t<has_find_for_v<C, V>> * = nullptr>
+bool contains(C && container, V && value) {
+    return container.find(value) != container.end();
+};
+
+template<typename C, typename V, std::enable_if_t<!has_find_for_v<C, V>> * = nullptr>
+bool contains(C && container, V && value) {
     return std::find(begin(container), end(container), value) != std::end(container);
 };
 
 
-template<class ValueT, class... Rest, template<class, class...> class ContainerT, class Callable>
-bool contains(ContainerT<ValueT, Rest...> const & container, Callable callback) {
-    return std::find_if(begin(container), end(container), callback) != std::end(container);
-};
 
 
 template<class ValueT, class... Rest, template<class, class...> class ContainerT>
@@ -206,6 +222,66 @@ auto copy(ContainerT<ValueT, Rest...> const & container) {
 }
 
 
+template<class, class = void>
+class EAC;
+
+template<class T, class Return, class Class>
+class EAC<Return(Class::*)(T)> {
+private:
+    using NoRefT = std::remove_reference_t<T>;
+    using PtrT = std::add_pointer_t<NoRefT>;
+    Return(Class::*pointer)(T);
+
+public:
+
+    EAC(Return(Class::*pointer)(T)) : pointer(pointer)
+    {}
+
+    auto operator()(NoRefT * t) {
+        if constexpr(std::is_pointer_v<NoRefT>) {
+            return (Class().*pointer)(t);
+        } else {
+            return (Class().*pointer)(*t);
+        }
+    }
+    auto operator()(NoRefT & t) {
+        return this->operator()(&t);
+    }
+    auto operator()(NoRefT && t) {
+        return this->operator()(&t);
+    }
+
+
+};
+
+template<class T>
+class EAC<T> {
+private:
+    T t;
+
+public:
+    EAC(T t) : t(t) {
+
+    }
+
+    template<class V>
+    auto operator()(V &&) {
+        return t;
+    }
+};
+
+template<class T, class Return, class Class>
+auto eac(Return(Class::*pointer)(T)) {
+    return EAC<Return(Class::*)(T)>(pointer);
+};
+
+template<class T>
+auto eac(T t) {
+    return EAC<T>(t);
+};
+
+
+
 } // end namespace xl
 
 namespace std {
@@ -214,3 +290,4 @@ template<class T1, class T2>
 pair(T1 t1, T2 t) -> pair<T1, T2>;
 } // end namespace __1
 } // end namespace std
+

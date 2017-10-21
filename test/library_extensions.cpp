@@ -47,3 +47,43 @@ TEST(LibraryExtensions, each_i) {
     EXPECT_EQ(sum, 65);
 
 }
+
+
+class ClassWithMemberFunction {
+public:
+    ClassWithMemberFunction(){}
+    ClassWithMemberFunction(ClassWithMemberFunction const &) = delete;
+    ClassWithMemberFunction & operator=(ClassWithMemberFunction const &) = delete;
+    bool a(int){return true;}
+    bool b(ClassWithMemberFunction &){return false;}
+};
+
+
+
+
+TEST(LibraryExtensions, EAC) {
+    EXPECT_EQ(eac(&ClassWithMemberFunction::a)(5), true);
+
+    ClassWithMemberFunction cwmf;
+    EXPECT_EQ(eac(&ClassWithMemberFunction::b)(cwmf), false);
+
+    EXPECT_EQ(eac(true)("this doesn't matter"), true);
+}
+
+TEST(LibraryExtensions, contains) {
+    std::vector<int> vi = {1,2,3};
+    EXPECT_TRUE(contains(vi, 1));
+    EXPECT_FALSE(contains(vi, 4));
+
+    EXPECT_TRUE(contains(std::vector<int>{1,2,3}, 1));
+    EXPECT_FALSE(contains(std::vector<int>{1,2,3}, 4));
+
+
+
+    std::map<int, bool> map = {{1, true}, {2, false}};
+    EXPECT_TRUE(contains(map, 1));
+    EXPECT_FALSE(contains(map, 3));
+
+    EXPECT_TRUE(contains(std::map<int, bool>{{1, true}, {2, false}}, 1));
+    EXPECT_FALSE(contains(std::map<int, bool>{{1, true}, {2, false}}, 3));
+}
