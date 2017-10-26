@@ -34,6 +34,9 @@ struct ProviderData {
     std::optional<Template> inline_template;
     std::string template_name;
 
+    /// stores the current template being processed - useful for debugging information if something goes wrong in provider
+    Template const * current_template;
+
     ProviderData(std::string const & name,
                  TemplateMap const * templates = nullptr,
                  std::string parameters = "",

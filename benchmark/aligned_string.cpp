@@ -12,6 +12,7 @@
 using namespace xl;
 using namespace std;
 
+
 std::string gen_random(const int len, char c = '\0') {
     static const char alphanum[] =
         "0123456789"

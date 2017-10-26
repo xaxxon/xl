@@ -100,7 +100,11 @@ public:
     RegexResultStd match(std::string_view source) const {
 //        std::cout << fmt::format("about to match with {}", regex_string) << std::endl;
         return RegexResultStd(source, this->regex);
+    }
 
+
+    std::string replace(xl::zstring_view source, xl::zstring_view result) {
+        return std::regex_replace(source.c_str(), this->regex, result.c_str());
     }
 };
 

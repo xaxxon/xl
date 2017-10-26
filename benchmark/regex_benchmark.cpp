@@ -53,3 +53,38 @@ static void xl_regex_pcre_match(benchmark::State& state) {
 
 }
 BENCHMARK(xl_regex_pcre_match);
+
+
+
+
+// Benchmark replace
+
+static void xl_std_regex_replace(benchmark::State& state) {
+    xl::RegexStd regex("^([^.]*)\\.(.*)$");
+    std::string source("This is a long string with a . in it");
+
+    // sanity check to make sure the match is happening and it is matching the right data
+    assert(regex.replace(source, "$2:$1") == " in it:This is a long string with a ");
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(regex.replace(source, "$2:$1"));
+    }
+
+}
+BENCHMARK(xl_std_regex_replace);
+
+
+
+static void xl_pcre_regex_replace(benchmark::State& state) {
+    xl::RegexPcre regex("^([^.]*)\\.(.*)$");
+    std::string source("This is a long string with a . in it");
+
+    // sanity check to make sure the match is happening and it is matching the right data
+    assert(regex.replace(source, "$2:$1") == " in it:This is a long string with a ");
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(regex.replace(source, "$2:$1"));
+    }
+
+}
+BENCHMARK(xl_pcre_regex_replace);

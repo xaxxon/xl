@@ -27,6 +27,11 @@ TEST(template, SimpleSubstitutionTemplate) {
     EXPECT_EQ(Template("replace: {{ TEST}}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
     EXPECT_EQ(Template("replace: {{TEST }}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
     EXPECT_EQ(Template("replace: {{ TEST }}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: {{NAME WITH SPACE}}").fill(make_provider(std::pair{"NAME WITH SPACE", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: {{ NAME WITH SPACE}}").fill(make_provider(std::pair{"NAME WITH SPACE", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: {{NAME WITH SPACE }}").fill(make_provider(std::pair{"NAME WITH SPACE", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: {{ NAME WITH SPACE }}").fill(make_provider(std::pair{"NAME WITH SPACE", "REPLACEMENT"})), "replace: REPLACEMENT");
+
 }
 TEST(template, EscapedCurlyBraceTemplate) {
     EXPECT_EQ(Template("replace: \\{{{TEST}}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: {REPLACEMENT");
@@ -44,7 +49,6 @@ TEST(template, InvalidTemplateSyntax_ClosedButNotOpened_Template) {
     EXPECT_THROW(Template("replace: TEST}}").fill(),
                  xl::templates::TemplateException);
 }
-
 TEST(template, SimpleSubstitutionTemplateWithSuffix) {
     EXPECT_EQ(Template("replace: {{TEST}} and more").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT and more");
 }

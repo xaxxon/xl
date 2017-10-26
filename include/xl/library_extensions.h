@@ -2,10 +2,32 @@
 
 #include <utility>
 #include <type_traits>
+#include <vector>
 
 #include "magic_ptr.h"
 #include "fmt/format.h"
 namespace xl {
+
+
+template<typename T, typename = void>
+struct has_insertion_operator : std::false_type {};
+
+template<typename T>
+struct has_insertion_operator<T,
+    std::void_t<decltype(
+    operator<<(
+        std::declval<std::ostream>(),
+        std::declval<T>()))>
+> : std::true_type {};
+
+/**
+ * LibC++ with clang5 doesn't work with this code - reports true when it should be false for newly created
+ * user-defined type:  class A{}; has_insertion_operator_v<A> <== true but should be false
+ * https://bugs.llvm.org/show_bug.cgi?id=35063
+ * @tparam T Type to check for operator<<
+ */
+template<class T>
+constexpr bool has_insertion_operator_v = has_insertion_operator<T>::value;
 
 
 template<typename T, typename V, typename = void>
@@ -13,6 +35,7 @@ struct has_find_for : public std::false_type {};
 
 template<typename T, typename V>
 struct has_find_for<T, V, std::void_t<decltype(std::declval<T>().find(std::declval<V>()))>> : public std::true_type {};
+
 
 
 /**
@@ -41,7 +64,6 @@ template<typename C, typename V, std::enable_if_t<!has_find_for_v<C, V>> * = nul
 bool contains(C && container, V && value) {
     return std::find(begin(container), end(container), value) != std::end(container);
 };
-
 
 
 
@@ -279,6 +301,32 @@ template<class T>
 auto eac(T t) {
     return EAC<T>(t);
 };
+
+
+
+template<typename T>
+struct FilteredVector : public std::vector<T> {
+
+    using VectorT = std::vector<T>;
+protected:
+    std::function<bool(T const &)> filter;
+
+public:
+    using VectorT::size;
+    using VectorT::resize;
+    using VectorT::reserve;
+
+    FilteredVector(std::function<bool(T const &)> filter) : filter(filter)
+    {}
+
+    void push_back(T t) {
+        if (this->filter(t)) {
+           this->VectorT::push_back(t);
+        }
+    }
+
+};
+
 
 
 

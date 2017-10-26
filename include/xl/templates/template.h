@@ -6,15 +6,13 @@
 #include <string>
 #include <variant>
 #include <sstream>
-#include <regex>
 #include <type_traits>
 #include <functional>
 
 #include <fmt/ostream.h>
-#include "../regex/regexer.h"
 
-#include "../library_extensions.h"
 #include "../regex/regexer.h"
+#include "../library_extensions.h"
 
 
 namespace xl::templates {
@@ -64,9 +62,6 @@ using TemplateMap = std::map<std::string, Template>;
 
 namespace xl::templates {
 
-//std::string Template::fill(Provider_Interface const & interface, std::map<std::string, Template> const & templates) {
-//    return this->fill<>(interface, templates);
-//}
 
 template<class T>
 std::string Template::fill(T && source, TemplateMap const & templates) const {
@@ -78,9 +73,6 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
         return fill(source.get_underlying_provider(), templates);
     }
 
-//    std::cerr << fmt::format("passthrough? {} {} ", typeid(T).name(), is_passthrough_provider_v<T>) << std::endl;
-
-//    std::cerr << fmt::format("filling template: '{}'", this->_tmpl) << std::endl;
 
     std::unique_ptr<Provider_Interface> provider_interface_unique_pointer;
     Provider_Interface * provider_interface_pointer;
@@ -106,6 +98,7 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
 
         if (this->compiled_substitutions.size() > i) {
             auto & data = this->compiled_substitutions[i];
+            data.current_template = this;
 
             if (data.template_name != "") {
                 if (templates.empty()) {
@@ -154,18 +147,7 @@ void Template::compile() const {
 
 
 
-/*
- * this isn't useable by std::regex, but can be pasted into regex101.com to work with
- * Then when you're done, trim out the whitespace and comments to generate the std::regex below
- * https://regex101.com/r/fz8g7j
-
- *** MISSING ***
- */
-
-    // DO NOT EDIT THIS DIRECTLY, EDIT THE COMMENTED VERSION ABOVE AND THEN COPY IT AND TRIM OUT THE WHITESPACE AND COMMENTS
-    static xl::RegexPcre r(R"(
-
-
+static xl::RegexPcre r(R"(
 
 (?(DEFINE)(?<NotEmptyAssertion>(?=(?:.|\n))))
 (?(DEFINE)(?<OpenDelimiterHead>\{))
@@ -186,29 +168,30 @@ void Template::compile() const {
 
 # Start Substitution
 (?:(?<Substitution>
-(?<OpenDelimiterHere>\{\{)
-\s*
- (?<IgnoreEmptyMarker><)?
-\s*
+    (?<OpenDelimiterHere>\{\{)
+    \s*
+    (?<IgnoreEmptyMarker><)?
+    \s*
 
-(?<TemplateInsertionMarker>!)?
+    (?<TemplateInsertionMarker>!)?
 
-# Everything up to the optional |
-(?:(?<SubstitutionName>(?:\\\}|\\\{|[^|%\s])*?)\s*(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||\%|$))
+    # Replacement name
+    (?:(?<SubstitutionName>(?:\\\}|\\\{|[^|%])*?)\s*(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||\%|$))
 
-(?:(?<JoinStringMarker>%)(?<JoinString>(?:\\\||[^|])*))?
+    # Join string, starting with %, if specified
+    (?:(?<JoinStringMarker>%)(?<JoinString>(?:\\\||[^|])*))?
 
- (?:[|]
+    # Everything after the | before the }}
+    (?:[|]
+        (?<InlineTemplateMarker>!)?
+        (?<IgnoreWhitespaceTilEndOfLine>!(?&UntilEndOfLine))?
+        (?<SubstitutionData>((?&UntilDoubleBrace)(?&Substitution)?)*)
 
-# Everything after the | before the }}
- (?<InlineTemplateMarker>!)?
- (?<IgnoreWhitespaceTilEndOfLine>!(?&UntilEndOfLine))?
-(?<SubstitutionData>((?&UntilDoubleBrace)(?&Substitution)?)*)
 
-   # end "stuff after |"
-)? # end PIPE
-  (?<CloseDelimiterHere>\}\})
- ) # end Substition
+    )? # end PIPE
+
+    (?<CloseDelimiterHere>\}\})
+) # end Substition
 | (?<UnmatchedOpen>\{\{) | (?<UnmatchedClose>\}\}) | $)
 
 

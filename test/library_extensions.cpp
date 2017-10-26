@@ -3,12 +3,29 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-
 #include "library_extensions.h"
 
 using namespace xl;
 using namespace std;
 
+struct NoInsertionOperator{};
+struct InsertionOperator {
+    int i = 5;
+};
+std::ostream & operator<<(std::ostream & os, InsertionOperator & io){
+    os << io.i;
+    return os;
+}
+
+TEST(LibraryExtensions, has_insertion_operator) {
+
+    EXPECT_TRUE(has_insertion_operator_v<int>);
+    EXPECT_TRUE(has_insertion_operator_v<bool>);
+
+//    EXPECT_FALSE(has_insertion_operator_v<NoInsertionOperator>);
+
+    EXPECT_TRUE(has_insertion_operator_v<InsertionOperator>);
+}
 
 TEST(LibraryExtensions, erase_if) {
     vector<int> vi{1,2,3,4,5};
@@ -79,11 +96,23 @@ TEST(LibraryExtensions, contains) {
     EXPECT_FALSE(contains(std::vector<int>{1,2,3}, 4));
 
 
-
     std::map<int, bool> map = {{1, true}, {2, false}};
     EXPECT_TRUE(contains(map, 1));
     EXPECT_FALSE(contains(map, 3));
 
     EXPECT_TRUE(contains(std::map<int, bool>{{1, true}, {2, false}}, 1));
     EXPECT_FALSE(contains(std::map<int, bool>{{1, true}, {2, false}}, 3));
+}
+
+
+TEST(FilteredVector, filtered_vector) {
+
+    FilteredVector<int> fv([](int i){return i%2;});
+    EXPECT_EQ(fv.size(), 0);
+
+    fv.push_back(1);
+    EXPECT_EQ(fv.size(), 1);
+    fv.push_back(2);
+    EXPECT_EQ(fv.size(), 1);
+
 }

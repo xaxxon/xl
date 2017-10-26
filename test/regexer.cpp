@@ -8,6 +8,7 @@ using namespace xl;
 #include "library_extensions.h"
 
 TEST(RegexPcre, SimpleMatch) {
+    std::cerr << fmt::format("{}", RegexPcre::info()) << std::endl;
     xl::Regex regex("(a)(b)");
     regex.match("ab");
 }
@@ -22,7 +23,6 @@ TEST(Regexer, EmptyRegex) {
 
 TEST(Regexer, EmptyString) {
     {
-
         auto result = regexer("a", ""_re);
         EXPECT_EQ(result.size(), 1);
     }
@@ -79,7 +79,43 @@ TEST(Regexer, RecursivePattern) {
     }
 }
 
+TEST(Regexer, Replace_DoNothing) {
+    {
+        auto result = RegexPcre("").replace("part1:part2", "");
+        EXPECT_EQ(result, "part1:part2");
+    }
+}
 
+
+TEST(Regexer, Replace) {
+    {
+        auto result = RegexPcre("(.*):(.*)").replace("part1:part2", "$2:$1");
+        EXPECT_EQ(result, "part2:part1");
+    }
+    {
+        auto result = RegexPcre("(.*):(.*)").replace("part1:part2", "");
+        EXPECT_EQ(result, "");
+    }
+    {
+        auto result = RegexPcre("^([^:]*):([^:]*)").replace("part1:part2:part3", "");
+        EXPECT_EQ(result, ":part3");
+    }
+    {
+        auto result = RegexPcre("^([^:]*):([^:]*)").replace("part1:part2:part3", "$1");
+        EXPECT_EQ(result, "part1:part3");
+    }
+    {
+        auto result = RegexPcre(":([^:]*):").replace("part1:part2:part3", ":");
+        EXPECT_EQ(result, "part1:part3");
+    }
+    {
+        EXPECT_THROW(RegexPcre("(.*):(.*)").replace("part1:part2", "$3"), RegexException);
+    }
+    {
+        EXPECT_THROW(RegexPcre("(.*):(.*)").replace("part1part2", ""), RegexException);
+    }
+
+}
 
 #endif
 

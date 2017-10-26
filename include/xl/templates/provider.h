@@ -11,6 +11,8 @@
 #include "exceptions.h"
 #include "template.h"
 #include "provider_data.h"
+
+
 namespace xl::templates {
 
 
@@ -347,7 +349,11 @@ public:
 //            for(auto const & [k,v] : this->map) {
 //                std::cerr << fmt::format("key: {}", k) << std::endl;
 //            }
-            throw TemplateException("unknown name`: '" + data.name + "'");
+            std::string template_text;
+            if (data.current_template != nullptr) {
+                template_text = data.current_template->c_str();
+            }
+            throw TemplateException("unknown name`: '" + data.name + "' - in template: '" + template_text + "'");
         }
     }
 };
