@@ -113,8 +113,6 @@ TEST(template, EmptyVectorReplacementIgnored) {
         auto result = Template("before\n{{<name|!!\n{{dummyname}}}}\nafter").fill(make_provider(std::pair("name", v)));
         EXPECT_EQ(result, "before\nafter");
     }
-
-
 }
 
 

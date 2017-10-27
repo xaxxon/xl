@@ -202,7 +202,7 @@ static xl::RegexPcre r(R"(
 
     // turn double curlies {{ or }} into { or } and anything with a backslash before it into just the thing
     //   after the backslash
-    static std::regex post_process_regex("(?:\\\\(.))");
+    static xl::RegexPcre post_process_regex("(?:\\\\(.))");
 
 
 
@@ -247,7 +247,7 @@ static xl::RegexPcre r(R"(
         std::string literal_string = matches["Literal"];
 //        std::cerr << fmt::format("postprocessing: '{}'", literal_string) << std::endl;
 
-        literal_string = std::regex_replace(literal_string, post_process_regex, "$1");
+        literal_string = post_process_regex.replace(literal_string, "$1");
 //        std::cerr << fmt::format("into: '{}'", literal_string) << std::endl;
 
 
@@ -296,7 +296,7 @@ static xl::RegexPcre r(R"(
 
 //std::cerr << fmt::format("remaining template: '{}'", remaining_template) << std::endl;
 //    std::cerr << fmt::format("pushing on remaining template: '{}'", std::regex_replace(remaining_template, post_process_regex, "$1")) << std::endl;
-    this->compiled_static_strings.push_back(std::regex_replace(remaining_template, post_process_regex, "$1"));
+    this->compiled_static_strings.push_back(post_process_regex.replace(remaining_template, "$1"));
 }
 
 } // end namespace xl

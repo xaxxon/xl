@@ -212,7 +212,7 @@ public:
 
         auto matches = this->match(source);
         if (!matches) {
-            throw RegexException("Replacement regex failed to match");
+            return source;
         }
 
 

@@ -8,7 +8,6 @@ using namespace xl;
 #include "library_extensions.h"
 
 TEST(RegexPcre, SimpleMatch) {
-    std::cerr << fmt::format("{}", RegexPcre::info()) << std::endl;
     xl::Regex regex("(a)(b)");
     regex.match("ab");
 }
@@ -112,7 +111,7 @@ TEST(Regexer, Replace) {
         EXPECT_THROW(RegexPcre("(.*):(.*)").replace("part1:part2", "$3"), RegexException);
     }
     {
-        EXPECT_THROW(RegexPcre("(.*):(.*)").replace("part1part2", ""), RegexException);
+        EXPECT_EQ(RegexPcre("(.*):(.*)").replace("part1part2", "$1$2$9"), "part1part2");
     }
 
 }
