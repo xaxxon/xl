@@ -70,7 +70,7 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
     }
 
     if constexpr(is_passthrough_provider_v<T>) {
-        std::cerr << fmt::format("fill got passthrough provider {}, recursively calling fill with underlying provider", source.get_name()) << std::endl;
+//        std::cerr << fmt::format("fill got passthrough provider {}, recursively calling fill with underlying provider", source.get_name()) << std::endl;
         return fill(source.get_underlying_provider(), templates);
     }
 
@@ -82,7 +82,7 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
     // used for consistent interface for assigning to reference later
     Provider_Interface * provider_interface_pointer;
     if constexpr(std::is_base_of_v<Provider_Interface, std::decay_t<T>>) {
-        std::cerr << fmt::format("**** already had provider interface") << std::endl;
+//        std::cerr << fmt::format("**** already had provider interface") << std::endl;
         provider_interface_pointer = & source;
     } else {
 
@@ -94,7 +94,7 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
 //        std::cerr << fmt::format("**** set provider interface pointer to {}", (void*)provider_interface_pointer) << std::endl;
     }
 
-    std::cerr << fmt::format("outside: provider interface pointer to {}", (void*)provider_interface_pointer) << std::endl;
+//    std::cerr << fmt::format("outside: provider interface pointer to {}", (void*)provider_interface_pointer) << std::endl;
 
 
 
@@ -102,21 +102,21 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
     Provider_Interface & provider = *provider_interface_pointer;
 
     std::string result{""};
-    std::cerr << fmt::format("just created variable 'result': '{}'", result) << std::endl;
+//    std::cerr << fmt::format("just created variable 'result': '{}'", result) << std::endl;
 //    result.reserve(this->minimum_result_length);
 
 
     for(int i = 0; i < this->compiled_static_strings.size(); i++) {
 
         result.insert(result.end(), this->compiled_static_strings[i].begin(), this->compiled_static_strings[i].end());
-        std::cerr << fmt::format("fill: just added static section {}: '{}'", i, result) << std::endl;
+//        std::cerr << fmt::format("fill: just added static section {}: '{}'", i, result) << std::endl;
 
         if (this->compiled_substitutions.size() > i) {
             ProviderData data(this->compiled_substitutions[i]);
-            std::cerr << fmt::format("grabbed data for compiled_subsitution {} - it has name {}", i, data.name) << std::endl;
+//            std::cerr << fmt::format("grabbed data for compiled_subsitution {} - it has name {}", i, data.name) << std::endl;
             data.templates = &templates;
             data.current_template = this;
-            std::cerr << fmt::format("substitution instantiation data.name: '{}'", data.name) << std::endl;
+//            std::cerr << fmt::format("substitution instantiation data.name: '{}'", data.name) << std::endl;
 
             // substituting another template in
             if (data.template_name != "") {
@@ -137,11 +137,11 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
             // filling a template
             else {
 
-                std::cerr << fmt::format("created ProviderData data on the stack at {}", (void*) &data) << std::endl;
+//                std::cerr << fmt::format("created ProviderData data on the stack at {}", (void*) &data) << std::endl;
 
-                std::cerr << fmt::format("about to call provider() at {}", (void*)&provider) << std::endl;
+//                std::cerr << fmt::format("about to call provider() at {}", (void*)&provider) << std::endl;
                 auto substitution_result = provider(data);
-                std::cerr << fmt::format("got substitution result: '{}'", substitution_result) << std::endl;
+//                std::cerr << fmt::format("got substitution result: '{}'", substitution_result) << std::endl;
                 if (!data.contingent_leading_content.empty()) {
                     if (!substitution_result.empty()) {
 //                        std::cerr << fmt::format("adding contingent data: {}", data.contingent_leading_content)
@@ -310,7 +310,7 @@ void Template::compile() const {
         data.ignore_empty_replacements = ignore_empty_replacements;
 
         if (matches.has("InlineTemplateMarker")) {
-            std::cerr << fmt::format("Template::compile - creating inline template from '{}'", matches["SubstitutionData"]) << std::endl;
+//            std::cerr << fmt::format("Template::compile - creating inline template from '{}'", matches["SubstitutionData"]) << std::endl;
             data.inline_template = Template(matches["SubstitutionData"]);
         }
 
