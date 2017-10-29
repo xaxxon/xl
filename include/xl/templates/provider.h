@@ -22,12 +22,13 @@ struct DefaultProviders {
 
     template<class T, class = void>
     class Provider {
-        using NoRefT = std::remove_reference_t<T>;
-        Provider(NoRefT &&);
-        Provider(NoRefT &);
+        static_assert(!std::is_pointer_v<T>, "make sure the type of the dereferenced pointer has a get_provider method for it");
+        Provider(T &&);
+        Provider(T &);
+        Provider(T *);
     };
 
-//
+
 //    template<class... Keys, class... Values>
 //    Provider(std::pair<Keys, Values>
 //        &&...) ->
@@ -157,15 +158,13 @@ struct DefaultProviders {
             new Provider<std::map<std::string, ProviderPtr>>(std::forward<Ts>(pairs)...));
     };
 
-//    template<class... Keys, class... Values, std::enable_if_t<!(sizeof...(Keys) <= 1), int> = 0>
-//    static std::unique_ptr<Provider_Interface> make_provider(std::pair<Keys, Values> && ... pairs) {
-//        return ProviderPtr(
-//            new Provider<std::map<std::string, ProviderPtr>>(
-//                std::forward<std::pair<Keys, Values> &&>(pairs)...));
-//    }
-//
 
-    // Is T callable and returns a type which can be made into a Provider?
+
+
+    /**
+     * Callback Provider
+     * @tparam T Callback type
+     */
     template<class T>
     class Provider<T, std::enable_if_t<is_provider_callback_type_v<T>>> : public Provider_Interface {
 
@@ -203,6 +202,8 @@ struct DefaultProviders {
     };
 
 
+
+
     template<class T>
     static std::unique_ptr<Provider_Interface> make_provider(T && t) {
         if constexpr(std::is_same_v<std::remove_reference_t<T>, std::unique_ptr<Provider_Interface>>) {
@@ -232,10 +233,15 @@ struct DefaultProviders {
     };
 
 
-    // Does T have a get_provider method on it?
+
+    /**
+     * get_provider Provider
+     * @tparam T type which can have get_provider called with/on it
+     */
     template<class T>
     class Provider<T, std::enable_if_t<can_get_provider_for_type_v<T>>> : public Provider_Interface {
         using NoRefT = std::remove_reference_t<T>;
+        static_assert(!std::is_pointer_v<T>, "do not make get_provider for pointer types");
     private:
         xl::magic_ptr<NoRefT> t;
 
@@ -284,6 +290,12 @@ struct DefaultProviders {
     };
 
 
+
+    /**
+     * Unique_ptr Provider
+     * @tparam T
+     * @tparam Deleter
+     */
     template<class T, class Deleter>
     class Provider<std::unique_ptr<T, Deleter>> : public Provider_Interface {
         T & t;
@@ -312,6 +324,13 @@ struct DefaultProviders {
 
     static_assert(is_passthrough_provider_v < Provider < std::unique_ptr<int>>>);
 
+
+
+    /**
+     * const unique_ptr Provider
+     * @tparam T
+     * @tparam Deleter
+     */
     template<class T, class Deleter>
     class Provider<std::unique_ptr<T, Deleter> const> : public Provider_Interface {
         T const & t;
@@ -342,6 +361,42 @@ struct DefaultProviders {
     static_assert(is_passthrough_provider_v < Provider < std::unique_ptr<int> const>>);
 
 
+    /**
+     * Pointer Provider -- except char (const) *
+     * @tparam T
+     */
+    template<class T>
+    class Provider<T, std::enable_if_t<
+            std::is_pointer_v<T> &&
+            !std::is_same_v<std::decay_t<std::remove_pointer_t<T>>, char>>
+        > : public Provider_Interface
+    {
+
+        using NoPtrT = std::remove_pointer_t<T>;
+
+        NoPtrT * const t;
+        static_assert(is_provider_type_v<NoPtrT>);
+
+    public:
+        Provider(NoPtrT * const t) : t(t) {
+            XL_TEMPLATE_LOG("Creating pointer provider with pointer to {}", (void*)this->t);
+        }
+
+        std::string operator()(ProviderData const & data) override {
+            return Provider<NoPtrT>(*t)(data);
+        }
+
+        std::string get_name() const override {
+            return "Pointer provider";
+        }
+
+    };
+
+
+    /**
+     * Container Provider
+     * @tparam T Container type
+     */
     template<class T>
     class Provider<T, std::enable_if_t<xl::is_range_for_loop_able_v<T> &&
                                        !std::is_convertible_v<T, std::string> && // std::string is iteratable
@@ -350,7 +405,7 @@ struct DefaultProviders {
 
         using NoRefT = std::remove_reference_t<T>;
     private:
-        magic_ptr <std::remove_reference_t<T>> t;
+        magic_ptr<NoRefT> t;
     public:
 
         Provider(NoRefT & t) : t(t) {}
@@ -419,6 +474,12 @@ struct DefaultProviders {
     };
 
 
+
+    /**
+     * Map Provider
+     * @tparam Key
+     * @tparam Value
+     */
     template<class Key, class Value>
     class Provider<std::map<Key, Value>> : public Provider_Interface {
     public:

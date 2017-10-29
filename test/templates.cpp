@@ -471,7 +471,15 @@ TEST(template, ProviderContainers) {
 }
 
 
+// test the T* Provider
+TEST(template, ContainerOfPointers) {
+    HasProvider a("a"), b("b"), c("c"), d("d");
+    std::vector<HasProvider *> v{&a, &b, &c, &d};
 
+    auto result = Template("{{vector% |!{{string}}}}").fill(make_provider(std::pair("vector", v)));
+
+    EXPECT_EQ(result, "a b c d");
+}
 
 
 

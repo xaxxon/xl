@@ -157,9 +157,9 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
 
                 XL_TEMPLATE_LOG("created ProviderData data on the stack at {}", (void*) &data);
 
-                XL_TEMPLATE_LOG("about to call provider() at {}", (void*)&provider);
+                XL_TEMPLATE_LOG("about to call provider() named '{}' at {}", provider.get_name(), (void*)&provider);
                 auto substitution_result = provider(data);
-                XL_TEMPLATE_LOG("got substitution result: '{}'", substitution_result);
+                XL_TEMPLATE_LOG("provider() named {} returned: '{}'", provider.get_name(), substitution_result);
                 if (!data.contingent_leading_content.empty()) {
                     if (!substitution_result.empty()) {
                         XL_TEMPLATE_LOG("adding contingent data: {}", data.contingent_leading_content);
