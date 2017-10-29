@@ -42,7 +42,7 @@ public:
 
 //    std::string fill(Provider_Interface const & interface = EmptyProvider{}, std::map<std::string, Template> const & templates = {});
 
-    template<class T = std::string>
+    template<class ProviderContainer = void, class T = std::string>
     std::string fill(T && source = T{}, std::map<std::string, Template> const & templates = {}) const;
 
     // compiles the template for faster processing
@@ -63,43 +63,62 @@ using TemplateMap = std::map<std::string, Template>;
 namespace xl::templates {
 
 
-template<class T>
+template<typename ProviderContainer, class T>
 std::string Template::fill(T && source, TemplateMap const & templates) const {
     if (!this->is_compiled()) {
         this->compile();
     }
 
     if constexpr(is_passthrough_provider_v<T>) {
+        std::cerr << fmt::format("fill got passthrough provider {}, recursively calling fill with underlying provider", source.get_name()) << std::endl;
         return fill(source.get_underlying_provider(), templates);
     }
 
 
+
+    // used for storing the provider if necessary
     std::unique_ptr<Provider_Interface> provider_interface_unique_pointer;
+
+    // used for consistent interface for assigning to reference later
     Provider_Interface * provider_interface_pointer;
     if constexpr(std::is_base_of_v<Provider_Interface, std::decay_t<T>>) {
+        std::cerr << fmt::format("**** already had provider interface") << std::endl;
         provider_interface_pointer = & source;
     } else {
-        provider_interface_unique_pointer = make_provider(source);
+
+        // need to store the unique_ptr to maintain object lifetime then assign to normal pointer
+        //   so there is a common way to get the object below for assignment to reference type
+        provider_interface_unique_pointer = DefaultProviders<ProviderContainer>::template make_provider(source);
+//        std::cerr << fmt::format("**** got unique ptr at {}", (void*)provider_interface_unique_pointer.get()) << std::endl;
         provider_interface_pointer = provider_interface_unique_pointer.get();
+//        std::cerr << fmt::format("**** set provider interface pointer to {}", (void*)provider_interface_pointer) << std::endl;
     }
 
+    std::cerr << fmt::format("outside: provider interface pointer to {}", (void*)provider_interface_pointer) << std::endl;
 
 
+
+    // whichever way the object was provided, get a reference to the object for convenience here
     Provider_Interface & provider = *provider_interface_pointer;
-//    std::cerr << fmt::format("providers vector size: {}", this->providers.size()) << std::endl;
 
-    std::string result{};
-    result.reserve(this->minimum_result_length);
+    std::string result{""};
+    std::cerr << fmt::format("just created variable 'result': '{}'", result) << std::endl;
+//    result.reserve(this->minimum_result_length);
 
 
     for(int i = 0; i < this->compiled_static_strings.size(); i++) {
 
         result.insert(result.end(), this->compiled_static_strings[i].begin(), this->compiled_static_strings[i].end());
+        std::cerr << fmt::format("fill: just added static section {}: '{}'", i, result) << std::endl;
 
         if (this->compiled_substitutions.size() > i) {
-            auto & data = this->compiled_substitutions[i];
+            ProviderData data(this->compiled_substitutions[i]);
+            std::cerr << fmt::format("grabbed data for compiled_subsitution {} - it has name {}", i, data.name) << std::endl;
+            data.templates = &templates;
             data.current_template = this;
+            std::cerr << fmt::format("substitution instantiation data.name: '{}'", data.name) << std::endl;
 
+            // substituting another template in
             if (data.template_name != "") {
                 if (templates.empty()) {
                     throw TemplateException("Cannot refer to another template if no other templates specified: " + data.template_name);
@@ -114,11 +133,15 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
                 }
                 result.insert(result.end(), begin(inline_template_result), end(inline_template_result));
 
-            } else {
+            }
+            // filling a template
+            else {
 
-                auto new_data = data;
-                new_data.templates = &templates;
-                auto substitution_result = provider(new_data);
+                std::cerr << fmt::format("created ProviderData data on the stack at {}", (void*) &data) << std::endl;
+
+                std::cerr << fmt::format("about to call provider() at {}", (void*)&provider) << std::endl;
+                auto substitution_result = provider(data);
+                std::cerr << fmt::format("got substitution result: '{}'", substitution_result) << std::endl;
                 if (!data.contingent_leading_content.empty()) {
                     if (!substitution_result.empty()) {
 //                        std::cerr << fmt::format("adding contingent data: {}", data.contingent_leading_content)
@@ -145,9 +168,10 @@ bool Template::is_compiled() const {
 
 void Template::compile() const {
 
-
-
-static xl::RegexPcre r(R"(
+    // regex used to parse sections of a template into 0 or more pairs of leading string literal (may be empty)
+    //   and a following substitution (optional)
+    // Development and testing of this regex can be done at regex101.com
+    static xl::RegexPcre r(R"(
 
 (?(DEFINE)(?<NotEmptyAssertion>(?=(?:.|\n))))
 (?(DEFINE)(?<OpenDelimiterHead>\{))
@@ -173,6 +197,7 @@ static xl::RegexPcre r(R"(
     (?<IgnoreEmptyMarker><)?
     \s*
 
+    # If there's a leading !, then another template is inserted here instead of a value from a provider
     (?<TemplateInsertionMarker>!)?
 
     # Replacement name
@@ -194,18 +219,15 @@ static xl::RegexPcre r(R"(
 ) # end Substition
 | (?<UnmatchedOpen>\{\{) | (?<UnmatchedClose>\}\}) | $)
 
-
 )",
         xl::OPTIMIZE | xl::EXTENDED | xl::DOTALL);
 
 
-
-    // turn double curlies {{ or }} into { or } and anything with a backslash before it into just the thing
-    //   after the backslash
-    static xl::RegexPcre post_process_regex("(?:\\\\(.))");
+    // find all escaped characters - anything following a backslash
+    static xl::RegexPcre post_process_regex("(?:\\\\(.))", xl::OPTIMIZE);
 
 
-
+    // the portion of the template string which hasn't yet been parsed by the main regex
     std::string remaining_template = this->c_str();
 //    std::cerr << fmt::format("compiling template: '{}'", this->_tmpl.c_str()) << std::endl;
 
@@ -251,7 +273,7 @@ static xl::RegexPcre r(R"(
 //        std::cerr << fmt::format("into: '{}'", literal_string) << std::endl;
 
 
-        bool ignore_empty_replacements = matches.length("IgnoreEmptyMarker");
+        bool ignore_empty_replacements = matches.has("IgnoreEmptyMarker");
 //        std::cerr << fmt::format("ignoring empty replacements? {}", ignore_empty_replacements) << std::endl;
         std::string contingent_leading_content;
         if (ignore_empty_replacements) {
@@ -268,29 +290,44 @@ static xl::RegexPcre r(R"(
         this->compiled_static_strings.push_back(literal_string);
         this->minimum_result_length += this->compiled_static_strings.back().size();
 
-        std::string join_string = "\n";
+
+        ProviderData data;
+
+        if (!matches.has("TemplateInsertionMarker")) {
+            data.name = matches["SubstitutionName"];
+        }
+
         if (matches.length("JoinStringMarker")) {
-            join_string = matches["JoinString"];
+            data.join_string = matches["JoinString"];
         }
 
-//        // if there was an inline template specified
-        if (matches.length("TemplateInsertionMarker") == 1) {
-            this->compiled_substitutions.emplace_back("", nullptr, "", std::optional<Template>(), matches["SubstitutionName"], contingent_leading_content, join_string).set_ignore_empty_replacements(ignore_empty_replacements);
-        }else if (matches.length("InlineTemplateMarker") == 1) {
-            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, "", Template(matches["SubstitutionData"]), "", contingent_leading_content, join_string).set_ignore_empty_replacements(ignore_empty_replacements);
-        } else {
-            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], nullptr, matches["SubstitutionData"], std::optional<Template>(), "", contingent_leading_content, join_string).set_ignore_empty_replacements(ignore_empty_replacements);
+        if (!matches.has("InlineTemplateMarker")) {
+            data.parameters = matches["SubstitutionData"];
         }
 
-//            if (!provider.provides(matches[REPLACEMENT_NAME_INDEX])) {
-//                throw TemplateException(
-//                    fmt::format("Provider doesn't provide value for name: '{}'", matches[REPLACEMENT_NAME_INDEX]));
-//            }
+        data.contingent_leading_content = contingent_leading_content;
 
-//            if (matches[REPLACEMENT_OPTIONS_INDEX].str() != "") {
-//                std::cerr << fmt::format("GOT REPLACEMENT OPTIONS: {}", matches[REPLACEMENT_OPTIONS_INDEX].str()) << std::endl;
-//            }
+        data.ignore_empty_replacements = ignore_empty_replacements;
 
+        if (matches.has("InlineTemplateMarker")) {
+            std::cerr << fmt::format("Template::compile - creating inline template from '{}'", matches["SubstitutionData"]) << std::endl;
+            data.inline_template = Template(matches["SubstitutionData"]);
+        }
+
+        if (matches.has("TemplateInsertionMarker")) {
+            data.template_name = matches["SubstitutionName"];
+        }
+
+        this->compiled_substitutions.emplace_back(std::move(data));
+
+//
+//        if (matches.length("TemplateInsertionMarker") == 1) {
+//            this->compiled_substitutions.emplace_back(""                         , ""                         , std::optional<Template>()            , matches["SubstitutionName"], contingent_leading_content, join_string).set_ignore_empty_replacements(ignore_empty_replacements);
+//        }else if (matches.length("InlineTemplateMarker") == 1) {
+//            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], ""                         , Template(matches["SubstitutionData"]), ""                         , contingent_leading_content, join_string).set_ignore_empty_replacements(ignore_empty_replacements);
+//        } else {
+//            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], matches["SubstitutionData"], std::optional<Template>()            , ""                         , contingent_leading_content, join_string).set_ignore_empty_replacements(ignore_empty_replacements);
+//        }
 
     }
 

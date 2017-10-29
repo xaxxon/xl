@@ -23,7 +23,7 @@ TEST(template, NoSubstitutionTemplate) {
     EXPECT_EQ(Template(template_string).fill(), template_string);
 }
 TEST(template, SimpleSubstitutionTemplate) {
-    EXPECT_EQ(Template("replace: {{TEST}}").fill(Provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(Template("replace: {{TEST}}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
     EXPECT_EQ(Template("replace: {{ TEST}}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
     EXPECT_EQ(Template("replace: {{TEST }}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
     EXPECT_EQ(Template("replace: {{ TEST }}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
@@ -128,18 +128,34 @@ std::unique_ptr<Provider_Interface> get_provider(A const & a) {
     return make_provider(std::pair{"I", [a]{return fmt::format("{}", a.i);}}, std::pair{"J", "6"});
 }
 
-static_assert(can_get_provider_for_type_v<A>);
+static_assert(DefaultProviders<void>::can_get_provider_for_type_v<A>);
 struct B {
+    B(){
+//        std::cerr << fmt::format("created B at {}", (void*)this) << std::endl;
+    }
+    ~B(){
+//        std::cerr << fmt::format("B Destructor at {}", (void*)this) << std::endl;
+    }
     std::string name = "B name";
     std::vector<A> vec_a{1,2,3,4,5};
 
-    std::vector<A> const & get_vec_a(){return this->vec_a;};
+    std::vector<A> const & get_vec_a() {
+        std::cerr << fmt::format("get_vec_a  -- this: {}", (void*)this) << std::endl;
+        return this->vec_a;}
+
+    B(B&&) = delete;
+
     std::unique_ptr<Provider_Interface> get_provider() {
+//        std::cerr << fmt::format("B::get_provider called with this: {}", (void*)this) << std::endl;
         return make_provider(std::pair{"NAME", this->name},
-                             std::pair("GET_VEC_A", std::bind(&B::get_vec_a, this)));
+                             //std::pair("GET_VEC_A", std::bind(&B::get_vec_a, this)));
+                             std::pair("GET_VEC_A", [&]()->std::vector<A>{
+//                                 std::cerr << fmt::format("B::lambda callback this: {}", (void*)this) << std::endl;
+//                                 std::cerr << fmt::format("{}", this->vec_a[0].i) << std::endl;
+                                 return std::vector<A>{1, 2, 3, 4, 5};}));
     }
 };
-static_assert(can_get_provider_for_type_v<B>);
+static_assert(DefaultProviders<void>::can_get_provider_for_type_v<B>);
 
 static_assert(xl::is_range_for_loop_able_v<vector<int>>);
 
@@ -166,25 +182,6 @@ TEST(template, VectorCallbackTemplate) {
     EXPECT_EQ(Template("replace: {{TEST1%, |A1}}").fill(make_provider(std::pair{"TEST1", make_provider(vector_object_callback)}), templates),
     "replace: {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -333,6 +330,10 @@ public:
 };
 
 
+/**
+ * Class for making sure that uncopyable objects can be used as can_get_provider Providers
+ * Substitutes:A => B, C => D, and strings => vector of providers with the key "string" mapped to the parameterized value in its constructor
+ */
 class Uncopyable {
     std::unique_ptr<int> upi;
     vector<HasProvider> strings = {HasProvider("string1"), HasProvider("string2")};
@@ -345,6 +346,9 @@ public:
 };
 
 
+/**
+ * Provides a vector of Uncopyable objects
+ */
 class UncopyableHolder {
     vector<unique_ptr<Uncopyable>> v;
 
@@ -385,6 +389,8 @@ TEST(template, ExpandVectorInline) {
 
     templates.emplace("uncopyable", Template("{{strings|!{{string}}}}"));
 
+    // v - vector of Uncopyable objects
+    // uncopyable - name of external template to fill with each element in v
     auto result = Template("{{v|uncopyable}}").fill(UncopyableHolder(), templates);
     EXPECT_EQ(result, "string1\nstring2\nstring1\nstring2");
 }
@@ -407,7 +413,68 @@ TEST(template, VectorOfUniquePointer){
 
 
     auto result = Template("{{vector|!!\n"
-                 " * @param \\{{{A}}\\} {{C}}}}").fill(Provider(std::pair("vector", make_provider(cvupc))));
+                 " * @param \\{{{A}}\\} {{C}}}}").fill(make_provider(std::pair("vector", make_provider(cvupc))));
 
     EXPECT_EQ(result, " * @param {B} D\n * @param {B} D");
 }
+
+
+
+class ProviderContainerTypeA{};
+class ProviderContainerTypeB{};
+
+
+
+struct Impl1 {
+
+    static auto get_provider(ProviderContainerTypeA const &) {
+        return make_provider("Impl1 for A");
+    }
+    static auto get_provider(ProviderContainerTypeB const &) {
+        return make_provider("Impl1 for B");
+    }
+};
+
+
+struct Impl2 {
+
+    static auto get_provider(ProviderContainerTypeA const &) {
+        return make_provider("Impl2 for A");
+    }
+    static auto get_provider(ProviderContainerTypeB const &) {
+        return make_provider("Impl2 for B");
+    }
+};
+
+static_assert(DefaultProviders<Impl1>::has_get_provider_in_provider_container_v<ProviderContainerTypeA>);
+static_assert(DefaultProviders<Impl1>::can_get_provider_for_type_v<ProviderContainerTypeA>);
+static_assert(DefaultProviders<Impl1>::has_get_provider_in_provider_container_v<ProviderContainerTypeB>);
+static_assert(DefaultProviders<Impl1>::can_get_provider_for_type_v<ProviderContainerTypeB>);
+
+
+
+TEST(template, ProviderContainers) {
+    {
+        auto result = Template("{{A}} {{B}}").fill<Impl1>(make_provider<Impl1>(
+            std::pair("A", ProviderContainerTypeA()),
+            std::pair("B", ProviderContainerTypeB())
+        ));
+        EXPECT_EQ(result, "Impl1 for A Impl1 for B");
+    }
+    {
+        auto result = Template("{{A}} {{B}}").fill<Impl2>(make_provider<Impl2>(
+            std::pair("A", ProviderContainerTypeA()),
+            std::pair("B", ProviderContainerTypeB())
+        ));
+        EXPECT_EQ(result, "Impl2 for A Impl2 for B");
+    }
+}
+
+
+
+
+
+
+
+
+

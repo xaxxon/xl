@@ -47,6 +47,54 @@ template<typename T, typename V>
 constexpr bool has_find_for_v = has_find_for<T, V>::value;
 
 
+
+/**
+ * Type trait for whether the specified type is an instantiation of the given template
+ * @tparam tmpl template to check against
+ * @tparam T type to check against
+ */
+template<template<class...> class tmpl, typename T>
+struct _is_template_for : public std::false_type {};
+
+template<template<class...> class tmpl, class... Args>
+struct _is_template_for<tmpl, tmpl<Args...>> : public std::true_type {};
+
+template<template<class...> class tmpl, typename... Ts>
+struct is_template_for : public std::conjunction<_is_template_for<tmpl, std::decay_t<Ts>>...> {};
+
+template<template<class...> class tmpl, typename... Ts>
+constexpr bool is_template_for_v = is_template_for<tmpl, Ts...>::value;
+
+
+
+template<typename T, typename = void>
+struct is_map : public is_template_for<std::map, T> {};
+
+template <typename T>
+constexpr bool is_map_v = is_map<T>::value;
+
+
+template<typename T, typename = void>
+struct is_pair : public is_template_for<std::pair, T> {};
+
+
+template <typename T>
+constexpr bool is_pair_v = is_pair<T>::value;
+
+
+
+template<typename... Ts>
+struct map_for_pair;
+
+template<typename T1, typename T2, typename... Args>
+struct map_for_pair<std::pair<T1, T2>, Args...> {
+    using type = std::map<std::string, T2>;
+};
+
+template<typename... Ts>
+using map_for_pair_t = typename map_for_pair<Ts...>::type;
+
+
 /**
  * returns whether the container contains the specified value
  * @tparam C Container type to look in

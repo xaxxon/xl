@@ -74,6 +74,12 @@ public:
         return result;
     }
 
+    // returns true if the specified named capture has a non-zero length
+    bool has(xl::zstring_view name) const {
+        auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name.c_str());
+        // std::cerr << fmt::format("Looked up named capture '{}' => {}", name.c_str(), index) << std::endl;
+        return this->length(index) > 0;
+    }
 
     size_t length(xl::zstring_view name) const {
         auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name.c_str());

@@ -12,60 +12,52 @@ class Template;
 
 using TemplateMap = std::map<std::string, Template>;
 
+
+/**
+ * All the data needed to complete a specific replacement.  Initially created during Template compilation
+ *   and then used each time the template is filled
+ */
 struct ProviderData {
 
     /// name to look up in the provider for a replacement value
-    std::string name;
+    std::string name = "";
 
+    /// string to put between multiple replcaements of the same template via a container provider
     std::string join_string = "\n";
 
     /// map of template names to templates
-    TemplateMap const * templates;
+    TemplateMap const * templates = nullptr;
 
     /// any other data associated with the substitution
-    std::string parameters;
+    std::string parameters = "";
 
     /// content which may or may not be shown
-    std::string contingent_leading_content;
+    std::string contingent_leading_content = "";
 
+    /// if true, then if the replcaement is the empty string, the replacement will act like it never existed
     bool ignore_empty_replacements = false;
 
     /// an inline template, if specified
     std::optional<Template> inline_template;
-    std::string template_name;
+
+    // name to look up in template map to get template to insert in place - useful to insert long literal strings
+    std::string template_name = "";
 
     /// stores the current template being processed - useful for debugging information if something goes wrong in provider
-    Template const * current_template;
+    Template const * current_template = nullptr;
 
-    ProviderData(std::string const & name,
-                 TemplateMap const * templates = nullptr,
-                 std::string parameters = "",
-                 std::optional<Template> inline_template = std::optional<Template>{},
-                 std::string template_name = "",
-                 std::string contingent_leading_content = "",
-                 std::string join_string = "\n"
-    ) :
-        name(name),
-        templates(templates),
-        parameters(parameters),
-        inline_template(inline_template),
-        template_name(template_name),
-        contingent_leading_content(std::move(contingent_leading_content)),
-        join_string(join_string)
-    {}
+
+    ProviderData() {
+//        std::cerr << fmt::format("Created ProviderData at {}", (void*)this) << std::endl;
+    }
+
+
+    ~ProviderData(){
+//        std::cerr << fmt::format("providerdata destructor for {}", (void*)this) << std::endl;
+    }
+
 
     ProviderData(ProviderData const &) = default;
-
-    ProviderData && set_ignore_empty_replacements(bool ignore) && {
-        this->ignore_empty_replacements = ignore;
-        return std::move(*this);
-    }
-
-    ProviderData & set_ignore_empty_replacements(bool ignore) & {
-        this->ignore_empty_replacements = ignore;
-        return *this;
-    }
-
 };
 
 
@@ -76,6 +68,12 @@ struct ProviderData {
 class Provider_Interface {
 public:
     virtual std::string operator()(ProviderData const & data) = 0;
+
+    /**
+     * A string useful for a human to figure out what Provider this is
+     * @return Returns a human-readable, useful name for the type of the provider
+     */
+    virtual std::string get_name() const = 0;
 };
 
 class EmptyProvider : public Provider_Interface {
