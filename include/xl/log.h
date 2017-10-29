@@ -167,6 +167,13 @@ public:
         log(Levels::Levels::Info, subject, message);
     }
 
+    template<class L = Levels, class S = Subjects,
+             std::enable_if_t<(int)L::Levels::Info >= 0 && (int)S::Subjects::Default >= 0, int> = 0>
+    void info(xl::zstring_view message) {
+        log(Levels::Levels::Info, Subjects::Subjects::Default, message);
+    }
+
+
     template<class T = Levels, std::enable_if_t<(int)T::Levels::Warn >= 0, int> = 0>
     void warn(typename Subjects::Subjects subject, xl::zstring_view message) {
         log(Levels::Levels::Warn, subject, message);
@@ -191,6 +198,12 @@ public:
     void log(typename Levels::Levels level, typename Subjects::Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
         log(level, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
     }
+    template<class L = Levels, class S = Subjects, class... Ts,
+        std::enable_if_t<(int)L::Levels::Info >= 0 && (int)S::Subjects::Default >= 0, int> = 0>
+    void info(xl::zstring_view format_string, Ts&&... ts) {
+        log(Levels::Levels::Info, Subjects::Subjects::Default, fmt::format(format_string.c_str(), std::forward<Ts>(ts)...));
+    }
+
     template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Levels::Info >= 0, int> = 0>
     void info(typename Subjects::Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
         log(Levels::Levels::Info, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));

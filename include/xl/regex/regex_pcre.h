@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sstream>
+
 #if defined XL_USE_PCRE
 
 #include <pcre.h>

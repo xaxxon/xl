@@ -3,6 +3,7 @@
 #include <utility>
 #include <type_traits>
 #include <vector>
+#include <map>
 
 #include "magic_ptr.h"
 #include "fmt/format.h"

@@ -294,7 +294,7 @@ struct DefaultProviders {
             t(*t) {}
 
         ~Provider() {
-//            std::cerr << fmt::format("unique_ptr provider destructor called") << std::endl;
+            XL_TEMPLATE_LOG("unique_ptr provider destructor called");
         }
 
         std::string operator()(ProviderData const & data) override {
@@ -323,7 +323,7 @@ struct DefaultProviders {
             t(*t) {}
 
         ~Provider() {
-//            std::cerr << fmt::format("const unique_ptr provider destructor called") << std::endl;
+            XL_TEMPLATE_LOG("const unique_ptr provider destructor called");
         }
 
         std::string operator()(ProviderData const & data) override {
@@ -358,22 +358,20 @@ struct DefaultProviders {
         Provider(NoRefT && t) : t(std::move(t)) {}
 
         ~Provider() {
-//            std::cerr << fmt::format("container provider destructor called") << std::endl;
+            XL_TEMPLATE_LOG("container provider destructor called");
         }
 
 
         std::string operator()(ProviderData const & data) override {
-//        std::cerr << fmt::format("container provider looking at substution data for: {}, {}", data.name, (bool)data.inline_template) << std::endl;
+            XL_TEMPLATE_LOG("container provider looking at substution data for: {}, {}", data.name, (bool)data.inline_template);
             std::stringstream result;
 
 
-//        std::cerr << fmt::format("inline template exists? {}", (bool)data.inline_template) << std::endl;
+            XL_TEMPLATE_LOG("inline template exists? {}", (bool)data.inline_template);
             Template const & tmpl = [&] {
                 if (data.inline_template) {
                     return *data.inline_template;
                 } else {
-//        std::cerr << fmt::format("looking up template named: '{}'", matches[TEMPLATE_NAME_INDEX].str()) << std::endl;
-//        std::cerr << fmt::format("join string: '{}'", join_string) << std::endl;
                     auto template_iterator = data.templates->find(data.parameters);
                     if (template_iterator == data.templates->end()) {
                         if (data.templates->empty()) {
@@ -396,18 +394,16 @@ struct DefaultProviders {
 
                 if (needs_join_string) {
                     result << data.join_string;
-//                std::cerr << fmt::format("inserting join string '{}' on subsequent pass", join_string) << std::endl;
-
+                    XL_TEMPLATE_LOG("inserting join string '{}' on subsequent pass", data.join_string);
                 } else {
-//                std::cerr << fmt::format("skipping join string '{}' on first pass", join_string) << std::endl;
-
+                    XL_TEMPLATE_LOG("skipping join string '{}' on first pass", data.join_string);
                 }
 
 
                 needs_join_string = true;
                 auto fill_result = tmpl.fill(p, *data.templates);
 
-//            std::cerr << fmt::format("replacement is {}, ignore is {}", fill_result, data.ignore_empty_replacements) << std::endl;
+                XL_TEMPLATE_LOG("replacement is {}, ignore is {}", fill_result, data.ignore_empty_replacements);
                 if (fill_result == "" && data.ignore_empty_replacements) {
                     needs_join_string = false;
                 }
@@ -436,27 +432,27 @@ struct DefaultProviders {
 
             (this->map.emplace(std::move(pairs.first), make_provider(pairs.second)),...);
 
-//            std::cerr << fmt::format("done adding pairs to map at: {}", (void*)this) << std::endl;
-//            std::cerr << fmt::format("map size: {}", this->map.size()) << std::endl;
-//            for(auto const & [a,b] : this->map) {
-//                std::cerr << fmt::format("{}: {}", a, (void*)b.get()) << std::endl;
-//            }
+            XL_TEMPLATE_LOG("done adding pairs to map at: {}", (void*)this);
+            XL_TEMPLATE_LOG("map size: {}", this->map.size());
+            for(auto const & [a,b] : this->map) {
+                XL_TEMPLATE_LOG("{}: {}", a, (void*)b.get());
+            }
         }
 
         Provider(std::map<std::string, Value> map) :
             map(std::move(map))
         {
-//            std::cerr << fmt::format("added entire map into map provider") << std::endl;
+            XL_TEMPLATE_LOG("added entire map into map provider");
 
-//            std::cerr << fmt::format("done moving map into map") << std::endl;
-//            std::cerr << fmt::format("map size: {}", this->map.size()) << std::endl;
-//            for(auto const & [a,b] : this->map) {
-//                std::cerr << fmt::format("{}: {}", a, (void*)&b) << std::endl;
-//            }
+            XL_TEMPLATE_LOG("done moving map into map");
+            XL_TEMPLATE_LOG("map size: {}", this->map.size());
+            for(auto const & [a,b] : this->map) {
+                XL_TEMPLATE_LOG("{}: {}", a, (void*)&b);
+            }
         }
 
         ~Provider() {
-//            std::cerr << fmt::format("std::map provider destructor called") << std::endl;
+            XL_TEMPLATE_LOG("std::map provider destructor called");
         }
 
 
@@ -465,21 +461,21 @@ struct DefaultProviders {
             if (provider_iterator != this->map.end()) {
 
                 if constexpr(std::is_base_of_v<Provider_Interface, Value>) {
-//                    std::cerr << fmt::format("value is a provider interface") << std::endl;
+                    XL_TEMPLATE_LOG("value is a provider interface");
                     return provider_iterator->second()(data);
                 } else if constexpr(std::is_same_v<std::unique_ptr<Provider_Interface>, Value>) {
-//                    std::cerr << fmt::format("value is a unique_ptr<provider interface>") << std::endl;
+                    XL_TEMPLATE_LOG("value is a unique_ptr<provider interface>");
                     return provider_iterator->second->operator()(data);
                 } else {
-//                    std::cerr << fmt::format("value needs to be converted to provider") << std::endl;
+                    XL_TEMPLATE_LOG("value needs to be converted to provider");
                     return Provider<Value>(provider_iterator->second)(data);
                 }
 
             } else {
-//            std::cerr << fmt::format("in map:") << std::endl;
-//            for(auto const & [k,v] : this->map) {
-//                std::cerr << fmt::format("key: {}", k) << std::endl;
-//            }
+                XL_TEMPLATE_LOG("in map:");
+            for(auto const & [k,v] : this->map) {
+                    XL_TEMPLATE_LOG("key: {}", k);
+            }
                 std::string template_text = "<unknown template name>";
                 if (data.current_template != nullptr) {
                     template_text = data.current_template->c_str();

@@ -12,10 +12,27 @@
 #include <fmt/ostream.h>
 
 #include "../regex/regexer.h"
+#include "../log.h"
 #include "../library_extensions.h"
 
 
+// TODO: Don't hard code this here
+#define XL_TEMPLATE_LOG_ENABLE
+
+
+#if defined XL_TEMPLATE_LOG_ENABLE
+#define XL_TEMPLATE_LOG(format_string, ...) \
+    xl::templates::log.info(format_string, ##__VA_ARGS__);
+#else
+#define XL_TEMPLATE_LOG(format_string, ...)
+#endif
+
+
+
 namespace xl::templates {
+
+using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+inline LogT log;
 
 class ProviderData;
 class Provider_Interface;
@@ -40,7 +57,6 @@ public:
 
     inline char const * c_str() const { return this->_tmpl.c_str(); }
 
-//    std::string fill(Provider_Interface const & interface = EmptyProvider{}, std::map<std::string, Template> const & templates = {});
 
     template<class ProviderContainer = void, class T = std::string>
     std::string fill(T && source = T{}, std::map<std::string, Template> const & templates = {}) const;
@@ -56,6 +72,8 @@ using TemplateMap = std::map<std::string, Template>;
 
 } // end namespace xl
 
+
+
 #include "provider_data.h"
 #include "provider.h"
 #include "directory_loader.h"
@@ -70,7 +88,7 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
     }
 
     if constexpr(is_passthrough_provider_v<T>) {
-//        std::cerr << fmt::format("fill got passthrough provider {}, recursively calling fill with underlying provider", source.get_name()) << std::endl;
+        XL_TEMPLATE_LOG("fill got passthrough provider {}, recursively calling fill with underlying provider", source.get_name());
         return fill(source.get_underlying_provider(), templates);
     }
 
@@ -89,12 +107,12 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
         // need to store the unique_ptr to maintain object lifetime then assign to normal pointer
         //   so there is a common way to get the object below for assignment to reference type
         provider_interface_unique_pointer = DefaultProviders<ProviderContainer>::template make_provider(source);
-//        std::cerr << fmt::format("**** got unique ptr at {}", (void*)provider_interface_unique_pointer.get()) << std::endl;
+        XL_TEMPLATE_LOG("**** got unique ptr at {}", (void*)provider_interface_unique_pointer.get());
         provider_interface_pointer = provider_interface_unique_pointer.get();
-//        std::cerr << fmt::format("**** set provider interface pointer to {}", (void*)provider_interface_pointer) << std::endl;
+        XL_TEMPLATE_LOG("**** set provider interface pointer to {}", (void*)provider_interface_pointer);
     }
 
-//    std::cerr << fmt::format("outside: provider interface pointer to {}", (void*)provider_interface_pointer) << std::endl;
+    XL_TEMPLATE_LOG("outside: provider interface pointer to {}", (void*)provider_interface_pointer);
 
 
 
@@ -102,21 +120,21 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
     Provider_Interface & provider = *provider_interface_pointer;
 
     std::string result{""};
-//    std::cerr << fmt::format("just created variable 'result': '{}'", result) << std::endl;
-//    result.reserve(this->minimum_result_length);
+    XL_TEMPLATE_LOG("just created variable 'result': '{}'", result);
+    result.reserve(this->minimum_result_length);
 
 
     for(int i = 0; i < this->compiled_static_strings.size(); i++) {
 
         result.insert(result.end(), this->compiled_static_strings[i].begin(), this->compiled_static_strings[i].end());
-//        std::cerr << fmt::format("fill: just added static section {}: '{}'", i, result) << std::endl;
+        XL_TEMPLATE_LOG("fill: just added static section {}: '{}'", i, result);
 
         if (this->compiled_substitutions.size() > i) {
             ProviderData data(this->compiled_substitutions[i]);
-//            std::cerr << fmt::format("grabbed data for compiled_subsitution {} - it has name {}", i, data.name) << std::endl;
+            XL_TEMPLATE_LOG("grabbed data for compiled_subsitution {} - it has name {}", i, data.name);
             data.templates = &templates;
             data.current_template = this;
-//            std::cerr << fmt::format("substitution instantiation data.name: '{}'", data.name) << std::endl;
+            XL_TEMPLATE_LOG("substitution instantiation data.name: '{}'", data.name);
 
             // substituting another template in
             if (data.template_name != "") {
@@ -137,20 +155,19 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
             // filling a template
             else {
 
-//                std::cerr << fmt::format("created ProviderData data on the stack at {}", (void*) &data) << std::endl;
+                XL_TEMPLATE_LOG("created ProviderData data on the stack at {}", (void*) &data);
 
-//                std::cerr << fmt::format("about to call provider() at {}", (void*)&provider) << std::endl;
+                XL_TEMPLATE_LOG("about to call provider() at {}", (void*)&provider);
                 auto substitution_result = provider(data);
-//                std::cerr << fmt::format("got substitution result: '{}'", substitution_result) << std::endl;
+                XL_TEMPLATE_LOG("got substitution result: '{}'", substitution_result);
                 if (!data.contingent_leading_content.empty()) {
                     if (!substitution_result.empty()) {
-//                        std::cerr << fmt::format("adding contingent data: {}", data.contingent_leading_content)
-//                                  << std::endl;
+                        XL_TEMPLATE_LOG("adding contingent data: {}", data.contingent_leading_content);
+
                         result.insert(result.end(), data.contingent_leading_content.begin(),
                                       data.contingent_leading_content.end());
                     } else {
-//                        std::cerr << fmt::format("skipping contingent data: {}", data.contingent_leading_content)
-//                                  << std::endl;
+                        XL_TEMPLATE_LOG("skipping contingent data: {}", data.contingent_leading_content);
                     }
                 }
                 result.insert(result.end(), substitution_result.begin(), substitution_result.end());
@@ -229,7 +246,7 @@ void Template::compile() const {
 
     // the portion of the template string which hasn't yet been parsed by the main regex
     std::string remaining_template = this->c_str();
-//    std::cerr << fmt::format("compiling template: '{}'", this->_tmpl.c_str()) << std::endl;
+    XL_TEMPLATE_LOG("compiling template: '{}'", this->_tmpl.c_str());
 
     while (auto matches = r.match(remaining_template)) {
 
@@ -267,14 +284,14 @@ void Template::compile() const {
         remaining_template = matches.suffix();
 
         std::string literal_string = matches["Literal"];
-//        std::cerr << fmt::format("postprocessing: '{}'", literal_string) << std::endl;
+        XL_TEMPLATE_LOG("postprocessing: '{}'", literal_string);
 
         literal_string = post_process_regex.replace(literal_string, "$1");
-//        std::cerr << fmt::format("into: '{}'", literal_string) << std::endl;
+        XL_TEMPLATE_LOG("into: '{}'", literal_string);
 
 
         bool ignore_empty_replacements = matches.has("IgnoreEmptyMarker");
-//        std::cerr << fmt::format("ignoring empty replacements? {}", ignore_empty_replacements) << std::endl;
+        XL_TEMPLATE_LOG("ignoring empty replacements? {}", ignore_empty_replacements);
         std::string contingent_leading_content;
         if (ignore_empty_replacements) {
             // trim off everything after the last newline on the static and put it in the template
@@ -284,7 +301,6 @@ void Template::compile() const {
                 literal_string = results[1];
                 contingent_leading_content = results[2];
             }
-//            std::cerr << fmt::format("start: '{}', last line: '{}'", beginning_of_literal, contingent_leading_content) << std::endl;
         }
 
         this->compiled_static_strings.push_back(literal_string);
@@ -310,7 +326,7 @@ void Template::compile() const {
         data.ignore_empty_replacements = ignore_empty_replacements;
 
         if (matches.has("InlineTemplateMarker")) {
-//            std::cerr << fmt::format("Template::compile - creating inline template from '{}'", matches["SubstitutionData"]) << std::endl;
+            XL_TEMPLATE_LOG("Template::compile - creating inline template from '{}'", matches["SubstitutionData"]);
             data.inline_template = Template(matches["SubstitutionData"]);
         }
 
@@ -319,16 +335,6 @@ void Template::compile() const {
         }
 
         this->compiled_substitutions.emplace_back(std::move(data));
-
-//
-//        if (matches.length("TemplateInsertionMarker") == 1) {
-//            this->compiled_substitutions.emplace_back(""                         , ""                         , std::optional<Template>()            , matches["SubstitutionName"], contingent_leading_content, join_string).set_ignore_empty_replacements(ignore_empty_replacements);
-//        }else if (matches.length("InlineTemplateMarker") == 1) {
-//            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], ""                         , Template(matches["SubstitutionData"]), ""                         , contingent_leading_content, join_string).set_ignore_empty_replacements(ignore_empty_replacements);
-//        } else {
-//            this->compiled_substitutions.emplace_back(matches["SubstitutionName"], matches["SubstitutionData"], std::optional<Template>()            , ""                         , contingent_leading_content, join_string).set_ignore_empty_replacements(ignore_empty_replacements);
-//        }
-
     }
 
 //std::cerr << fmt::format("remaining template: '{}'", remaining_template) << std::endl;

@@ -1,14 +1,14 @@
 #pragma once
 
-
+#if !defined XL_FORCE_NO_DEMANGLE_NAMES
 // if it can be determined safely that cxxabi.h is available, include it for name demangling
 #if defined __has_include
 #if __has_include(<cxxabi.h>)
-#  define V8TOOLKIT_DEMANGLE_NAMES
+#  define XL_DEMANGLE_NAMES
 #  include <cxxabi.h>
 #endif
 #endif
-
+#endif
 
 namespace xl {
 
@@ -18,7 +18,7 @@ namespace xl {
  */
 inline std::string demangle_typeid_name(const std::string & mangled_name) {
 
-#ifdef V8TOOLKIT_DEMANGLE_NAMES
+#ifdef XL_DEMANGLE_NAMES
     //    printf("Starting name demangling\n");
     std::string result;
     int status;
@@ -51,6 +51,10 @@ inline std::string demangle_typeid_name(const std::string & mangled_name) {
 
 template<class T>
 std::string & demangle() {
+#if defined XL_FORCE_NO_DEMANGLE_NAMES
+    static std::string result("NO NAME MANGLING AVAILABLE");
+    return result;
+#else
     static std::string cached_name;
     std::atomic<bool> cache_set = false;
 
@@ -70,6 +74,7 @@ std::string & demangle() {
     }
 
     return cached_name;
+#endif
 }
 
 } // end namespace xl
