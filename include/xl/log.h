@@ -135,6 +135,13 @@ public:
         return *this->callbacks.back();
     }
 
+    CallbackT & add_callback(std::ostream & ostream) {
+        this->add_callback([&ostream](LogMessage const & message) {
+            ostream << message.string << std::endl;
+        });
+        return *this->callbacks.back();
+    }
+
     /**
      * If the callback was passed in as a reference wrapper, this can find any corresponding entries and remove them
      * @param t pass in the object to find (not as a reference wrapper)

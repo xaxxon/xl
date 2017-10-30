@@ -204,3 +204,14 @@ TEST(log, CustomLog) {
     my_stringstream << c << s;
 }
 
+TEST(log, OstreamCallbackHelper) {
+    using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+    LogT log;
+    std::stringstream output;
+    log.add_callback(output);
+    log.info("test");
+    EXPECT_EQ(output.str(), "test\n");
+}
+
+
+

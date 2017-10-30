@@ -116,3 +116,27 @@ TEST(FilteredVector, filtered_vector) {
     EXPECT_EQ(fv.size(), 1);
 
 }
+
+
+TEST(FilteredVector, unique_ptr_type) {
+    {
+        auto result = std::is_same_v<unique_ptr_type_t<std::unique_ptr<int>>, int>;
+        EXPECT_TRUE(result);
+    }
+    {
+        auto result = std::is_same_v<unique_ptr_type_t<std::unique_ptr<int> const>, int>;
+        EXPECT_TRUE(result);
+    }
+    {
+        auto result = std::is_same_v<unique_ptr_type_t<std::unique_ptr<int> &>, int>;
+        EXPECT_TRUE(result);
+    }
+    {
+        auto result = std::is_same_v<unique_ptr_type_t<std::unique_ptr<int> &&>, int>;
+        EXPECT_TRUE(result);
+    }
+    {
+        auto result = std::is_same_v<unique_ptr_type_t<std::unique_ptr<int> const volatile &&>, int>;
+        EXPECT_TRUE(result);
+    }
+}

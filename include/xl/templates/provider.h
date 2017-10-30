@@ -296,13 +296,14 @@ struct DefaultProviders {
      * @tparam T
      * @tparam Deleter
      */
-    template<class T, class Deleter>
-    class Provider<std::unique_ptr<T, Deleter>> : public Provider_Interface {
+    template<class UniquePtrT>
+    class Provider<UniquePtrT, std::enable_if_t<is_template_for_v<std::unique_ptr, UniquePtrT>>> : public Provider_Interface {
+        using T = unique_ptr_type_t<UniquePtrT>;
         T & t;
     public:
         using XL_TEMPLATES_PASSTHROUGH_TYPE = T;
 
-        Provider(std::unique_ptr<T, Deleter> & t) :
+        Provider(UniquePtrT & t) :
             t(*t) {}
 
         ~Provider() {
@@ -314,7 +315,7 @@ struct DefaultProviders {
         }
 
         auto get_underlying_provider() {
-            return Provider < T > (t);
+            return Provider<T>(t);
         }
         std::string get_name() const override {
             return fmt::format("Provider: unique_ptr<{}> passthrough", demangle<T>());
@@ -322,43 +323,9 @@ struct DefaultProviders {
 
     };
 
-    static_assert(is_passthrough_provider_v < Provider < std::unique_ptr<int>>>);
+    static_assert(is_passthrough_provider_v<Provider<std::unique_ptr<int>>>);
+    static_assert(is_passthrough_provider_v<Provider<std::unique_ptr<int> const>>);
 
-
-
-    /**
-     * const unique_ptr Provider
-     * @tparam T
-     * @tparam Deleter
-     */
-    template<class T, class Deleter>
-    class Provider<std::unique_ptr<T, Deleter> const> : public Provider_Interface {
-        T const & t;
-    public:
-
-        using XL_TEMPLATES_PASSTHROUGH_TYPE = T;
-
-        Provider(std::unique_ptr<T, Deleter> const & t) :
-            t(*t) {}
-
-        ~Provider() {
-            XL_TEMPLATE_LOG("const unique_ptr provider destructor called");
-        }
-
-        std::string operator()(ProviderData const & data) override {
-            return make_provider(t)->operator()(data);
-        }
-
-        auto get_underlying_provider() {
-            return Provider < T const>(t);
-        }
-
-        std::string get_name() const override {
-            return fmt::format("Provider: const unique_ptr<{}> passthrough", demangle<T>());
-        }
-    };
-
-    static_assert(is_passthrough_provider_v < Provider < std::unique_ptr<int> const>>);
 
 
     /**
@@ -390,6 +357,11 @@ struct DefaultProviders {
             return "Pointer provider";
         }
 
+        using XL_TEMPLATES_PASSTHROUGH_TYPE = T;
+
+        auto get_underlying_provider() {
+            return Provider<NoPtrT>(*t);
+        }
     };
 
 
@@ -534,9 +506,9 @@ struct DefaultProviders {
 
             } else {
                 XL_TEMPLATE_LOG("in map:");
-            for(auto const & [k,v] : this->map) {
+                for(auto const & [k,v] : this->map) {
                     XL_TEMPLATE_LOG("key: {}", k);
-            }
+                }
                 std::string template_text = "<unknown template name>";
                 if (data.current_template != nullptr) {
                     template_text = data.current_template->c_str();

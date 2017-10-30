@@ -37,7 +37,19 @@ struct has_find_for : public std::false_type {};
 template<typename T, typename V>
 struct has_find_for<T, V, std::void_t<decltype(std::declval<T>().find(std::declval<V>()))>> : public std::true_type {};
 
+template<class T>
+struct _unique_ptr_type;
 
+template<class T, class... Args>
+struct _unique_ptr_type<std::unique_ptr<T, Args...>> {
+    using type = T;
+};
+
+template<class T>
+struct unique_ptr_type : public _unique_ptr_type<std::decay_t<T>> {};
+
+template<class T>
+using unique_ptr_type_t = typename unique_ptr_type<T>::type;
 
 /**
  * Whether type T has a member function `find` which can take a type V
