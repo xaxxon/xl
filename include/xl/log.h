@@ -135,9 +135,9 @@ public:
         return *this->callbacks.back();
     }
 
-    CallbackT & add_callback(std::ostream & ostream) {
-        this->add_callback([&ostream](LogMessage const & message) {
-            ostream << message.string << std::endl;
+    CallbackT & add_callback(std::ostream & ostream, std::string prefix) {
+        this->add_callback([&](LogMessage const & message) {
+            ostream << prefix << message.string << std::endl;
         });
         return *this->callbacks.back();
     }

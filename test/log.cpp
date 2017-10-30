@@ -208,9 +208,14 @@ TEST(log, OstreamCallbackHelper) {
     using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
     LogT log;
     std::stringstream output;
-    log.add_callback(output);
+    log.add_callback(output, "PREFIX: ");
+    std::stringstream output2;
+    log.add_callback(output2, "");
+
     log.info("test");
-    EXPECT_EQ(output.str(), "test\n");
+    EXPECT_EQ(output.str(), "PREFIX: test\n");
+    EXPECT_EQ(output2.str(), "test\n");
+
 }
 
 
