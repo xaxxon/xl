@@ -4,11 +4,11 @@ A bunch of general-purpose C++ utilities used across my different projects.
 
 ### Regexer
 
-std::regex and PCRE agnostic regex library
+std::regex and PCRE agnostic regex library with a very simple syntax.   Supports both matching and replacing.  
 
 ### Template
 
-String template substitution engine
+Powerful, expressive string template substitution engine
 
 ### AlignedString
 
@@ -22,7 +22,7 @@ which require a NUL terminated string to be able to take char* or std::string in
 ### Library extensions
 
 Convenient additions to std::algorithm which operate on entire containers instead of having to pass begin and end.
-Some handy type traits as well.
+Some handy type traits as well.  Also has many useful type traits, such as is_template_for_v<std::vector, std::vector<int>>
 
 ### Log
 
