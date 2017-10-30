@@ -150,7 +150,10 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
                     result.insert(result.end(), data.contingent_leading_content.begin(), data.contingent_leading_content.end());
                 }
                 result.insert(result.end(), begin(inline_template_result), end(inline_template_result));
-
+                if (!inline_template_result.empty()) {
+                    std::cerr << fmt::format("inserting trailing content: {}", data.contingent_trailing_content) << std::endl;
+                    result.insert(result.end(), data.contingent_trailing_content.begin(), data.contingent_trailing_content.end());
+                }
             }
             // filling a template
             else {
@@ -171,6 +174,10 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
                     }
                 }
                 result.insert(result.end(), substitution_result.begin(), substitution_result.end());
+                if (!substitution_result.empty()) {
+                    std::cerr << fmt::format("inserting trailing content: {}", data.contingent_trailing_content) << std::endl;
+                    result.insert(result.end(), data.contingent_trailing_content.begin(), data.contingent_trailing_content.end());
+                }
             }
         }
     }
@@ -199,7 +206,7 @@ void Template::compile() const {
 (?(DEFINE)(?<OpenDelimiter>(?&OpenDelimiterHead)(?&OpenDelimiterTail)))
 (?(DEFINE)(?<CloseDelimiter>(?&CloseDelimiterHead)(?&CloseDelimiterTail)))
 (?(DEFINE)(?<EitherDelimiter>( (?&OpenDelimiter) | (?&CloseDelimiter))))
-(?(DEFINE)(?<UntilDoubleBrace>(?:\s|\\(?&OpenDelimiterHead)|\\(?&CloseDelimiterHead)|[^{}]|[{](?!\{)|[}](?!\}))*))
+(?(DEFINE)(?<UntilDoubleBrace>(?:\s|\\(?&OpenDelimiterHead)|\\(?&CloseDelimiterHead)|[^{}>]|[{](?!\{)|[}](?!\})|>(?!\}\}))*))
 (?(DEFINE)(?<UntilEndOfLine>[^\n]*\n))
 
 
@@ -211,17 +218,17 @@ void Template::compile() const {
 (?:(?<Substitution>
     (?<OpenDelimiterHere>\{\{)
     \s*
-    (?<IgnoreEmptyMarker><)?
+    (?<IgnoreEmptyBeforeMarker><)?
     \s*
 
     # If there's a leading !, then another template is inserted here instead of a value from a provider
     (?<TemplateInsertionMarker>!)?
 
     # Replacement name
-    (?:(?<SubstitutionName>(?:\\\}|\\\{|[^|%])*?)\s*(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||\%|$))
+    (?:(?<SubstitutionName>(?:\\\}|\\\{|[^|%>]|>(?!}}))*?)\s*(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||\%|>|$))
 
     # Join string, starting with %, if specified
-    (?:(?<JoinStringMarker>%)(?<JoinString>(?:\\\||[^|])*))?
+    (?:(?<JoinStringMarker>%)(?<JoinString>(?:\\\||>(?!}})|[^|>])*))?
 
     # Everything after the | before the }}
     (?:[|]
@@ -231,10 +238,13 @@ void Template::compile() const {
 
 
     )? # end PIPE
+    (?<IgnoreEmptyAfterMarker>>)?
+
 
     (?<CloseDelimiterHere>\}\})
 ) # end Substition
 | (?<UnmatchedOpen>\{\{) | (?<UnmatchedClose>\}\}) | $)
+
 
 )",
         xl::OPTIMIZE | xl::EXTENDED | xl::DOTALL);
@@ -247,6 +257,8 @@ void Template::compile() const {
     // the portion of the template string which hasn't yet been parsed by the main regex
     std::string remaining_template = this->c_str();
     XL_TEMPLATE_LOG("compiling template: '{}'", this->_tmpl.c_str());
+
+    bool first_line_belongs_to_last_substitution = false;
 
     while (auto matches = r.match(remaining_template)) {
 
@@ -274,12 +286,6 @@ void Template::compile() const {
         }
 
 
-        // if no substitution found, everything was a literal and is handled as a "trailing literal" outside
-        //   this loop
-        if (matches.length("Substitution") == 0) {
-            break;
-        }
-
 
         remaining_template = matches.suffix();
 
@@ -290,10 +296,26 @@ void Template::compile() const {
         XL_TEMPLATE_LOG("into: '{}'", literal_string);
 
 
-        bool ignore_empty_replacements = matches.has("IgnoreEmptyMarker");
-        XL_TEMPLATE_LOG("ignoring empty replacements? {}", ignore_empty_replacements);
+        bool ignore_empty_replacements_before = matches.has("IgnoreEmptyBeforeMarker");
+        XL_TEMPLATE_LOG("ignoring empty replacements? {}", ignore_empty_replacements_before);
         std::string contingent_leading_content;
-        if (ignore_empty_replacements) {
+
+        if (first_line_belongs_to_last_substitution) {
+            first_line_belongs_to_last_substitution = false;
+            static Regex first_line_regex(R"(^([^\n]*\n?)(.*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
+            if (auto results = first_line_regex.match(literal_string)) {
+                literal_string = results[2];
+
+                std::cerr << fmt::format("new literal string: {}", literal_string) << std::endl;
+                std::cerr << fmt::format("contingent trailing: {}", results[1]) << std::endl;
+                // get previous substitution
+                this->compiled_substitutions.back().contingent_trailing_content = results[1];
+            } else {
+                assert(false);
+            }
+        }
+
+        if (ignore_empty_replacements_before) {
             // trim off everything after the last newline on the static and put it in the template
             static Regex last_line_regex(R"(^(.*?)(\n?[^\n]*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
             auto results = last_line_regex.match(literal_string);
@@ -303,8 +325,22 @@ void Template::compile() const {
             }
         }
 
+        bool ignore_empty_replacements_after = matches.has("IgnoreEmptyAfterMarker");
+        if (ignore_empty_replacements_after) {
+            first_line_belongs_to_last_substitution = true;
+        }
+
+
         this->compiled_static_strings.push_back(literal_string);
         this->minimum_result_length += this->compiled_static_strings.back().size();
+
+
+
+        // if no substitution found, everything was a literal and is handled as a "trailing literal" outside
+        //   this loop
+        if (matches.length("Substitution") == 0) {
+            break;
+        }
 
 
         ProviderData data;
@@ -323,7 +359,7 @@ void Template::compile() const {
 
         data.contingent_leading_content = contingent_leading_content;
 
-        data.ignore_empty_replacements = ignore_empty_replacements;
+        data.ignore_empty_replacements = ignore_empty_replacements_before;
 
         if (matches.has("InlineTemplateMarker")) {
             XL_TEMPLATE_LOG("Template::compile - creating inline template from '{}'", matches["SubstitutionData"]);
@@ -337,9 +373,10 @@ void Template::compile() const {
         this->compiled_substitutions.emplace_back(std::move(data));
     }
 
+    assert(remaining_template.empty());
 //std::cerr << fmt::format("remaining template: '{}'", remaining_template) << std::endl;
 //    std::cerr << fmt::format("pushing on remaining template: '{}'", std::regex_replace(remaining_template, post_process_regex, "$1")) << std::endl;
-    this->compiled_static_strings.push_back(post_process_regex.replace(remaining_template, "$1"));
+    //this->compiled_static_strings.push_back(post_process_regex.replace(remaining_template, "$1"));
 }
 
 } // end namespace xl

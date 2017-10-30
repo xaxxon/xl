@@ -31,8 +31,11 @@ struct ProviderData {
     /// any other data associated with the substitution
     std::string parameters = "";
 
-    /// content which may or may not be shown
+    /// content preceeding the substitution which may or may not be shown
     std::string contingent_leading_content = "";
+
+    /// content trailing the substitution which may or may not be shown
+    std::string contingent_trailing_content = "";
 
     /// if true, then if the replcaement is the empty string, the replacement will act like it never existed
     bool ignore_empty_replacements = false;

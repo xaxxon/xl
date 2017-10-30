@@ -69,20 +69,42 @@ TEST(template, CallbackSubstitutionTemplate) {
 
 TEST(template, SingleLineIgnoreEmpty) {
     {
-        auto result = Template("Stuff on same line {{name|!{{name}}}}").fill(make_provider(std::pair("name", "")));
-        EXPECT_EQ(result, "Stuff on same line ");
+        auto result = Template("BEFORE {{name|!{{name}}}}").fill(make_provider(std::pair("name", "")));
+        EXPECT_EQ(result, "BEFORE ");
     }
     {
-        auto result = Template("Stuff on same line {{<name|!{{name}}}}").fill(make_provider(std::pair("name", "")));
+        auto result = Template("BEFORE {{<name|!{{name}}}}").fill(make_provider(std::pair("name", "")));
         EXPECT_EQ(result, "");
     }
     {
-        auto result = Template("Stuff on same line {{<name}}").fill(make_provider(std::pair("name", "")));
+        auto result = Template("BEFORE {{<name}} AFTER").fill(make_provider(std::pair("name", "")));
+        EXPECT_EQ(result, " AFTER");
+    }
+    {
+        auto result = Template("BEFORE {{name>}} AFTER").fill(make_provider(std::pair("name", "")));
+        EXPECT_EQ(result, "BEFORE ");
+    }
+    {
+        auto result = Template("BEFORE {{<name>}} AFTER").fill(make_provider(std::pair("name", "")));
         EXPECT_EQ(result, "");
     }
     {
-        auto result = Template("Stuff on same line {{<name}}").fill(make_provider(std::pair("name", "content")));
-        EXPECT_EQ(result, "Stuff on same line content");
+        auto result = Template("BEFORE {{<name}} AFTER").fill(make_provider(std::pair("name", "X")));
+        EXPECT_EQ(result, "BEFORE X AFTER");
+    }
+    {
+        auto result = Template("BEFORE {{name>}} AFTER").fill(make_provider(std::pair("name", "X")));
+        EXPECT_EQ(result, "BEFORE X AFTER");
+    }
+    {
+        auto result = Template("BEFORE {{<name>}} AFTER").fill(make_provider(std::pair("name", "X")));
+        EXPECT_EQ(result, "BEFORE X AFTER");
+    }
+
+
+    {
+        auto result = Template("BEFORE {{<name}}").fill(make_provider(std::pair("name", "content")));
+        EXPECT_EQ(result, "BEFORE content");
     }
 }
 
@@ -480,7 +502,6 @@ TEST(template, ContainerOfPointers) {
 
     EXPECT_EQ(result, "a b c d");
 }
-
 
 
 
