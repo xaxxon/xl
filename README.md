@@ -27,7 +27,7 @@ Some handy type traits as well.  Also has many useful type traits, such as is_te
 ### Log
 
 Logging library which calls user defined callbacks when data is provided.   Has log levels and subjects which can be
-turned on/off at runtime.
+turned on/off at runtime.  When used in an upstream dependency, makes it very easy to hook into the logging framework of the executable (or downstream library).
 
 ### magic_ptr
 
