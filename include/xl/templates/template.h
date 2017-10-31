@@ -16,10 +16,6 @@
 #include "../library_extensions.h"
 
 
-// TODO: Don't hard code this here
-#define XL_TEMPLATE_LOG_ENABLE
-
-
 #if defined XL_TEMPLATE_LOG_ENABLE
 #define XL_TEMPLATE_LOG(format_string, ...) \
     xl::templates::log.info(format_string, ##__VA_ARGS__);
@@ -89,7 +85,7 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
 
     if constexpr(is_passthrough_provider_v<T>) {
         XL_TEMPLATE_LOG("fill got passthrough provider {}, recursively calling fill with underlying provider", source.get_name());
-        return fill(source.get_underlying_provider(), templates);
+        return fill<ProviderContainer>(source.get_underlying_provider(), templates);
     }
 
 
@@ -127,7 +123,7 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
     for(int i = 0; i < this->compiled_static_strings.size(); i++) {
 
         result.insert(result.end(), this->compiled_static_strings[i].begin(), this->compiled_static_strings[i].end());
-        XL_TEMPLATE_LOG("fill: just added static section {}: '{}'", i, result);
+        XL_TEMPLATE_LOG("fill: just added static section {}: '{}'", i, this->compiled_static_strings[i]);
 
         if (this->compiled_substitutions.size() > i) {
             ProviderData data(this->compiled_substitutions[i]);
@@ -145,13 +141,12 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
                 if (template_iterator == templates.end()) {
                     throw TemplateException("No template found named: " + data.template_name);
                 }
-                auto inline_template_result = template_iterator->second.fill(provider, templates);
+                auto inline_template_result = template_iterator->second.fill<ProviderContainer>(provider, templates);
                 if (!inline_template_result.empty()) {
                     result.insert(result.end(), data.contingent_leading_content.begin(), data.contingent_leading_content.end());
                 }
                 result.insert(result.end(), begin(inline_template_result), end(inline_template_result));
                 if (!inline_template_result.empty()) {
-                    std::cerr << fmt::format("inserting trailing content: {}", data.contingent_trailing_content) << std::endl;
                     result.insert(result.end(), data.contingent_trailing_content.begin(), data.contingent_trailing_content.end());
                 }
             }
@@ -163,19 +158,15 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
                 XL_TEMPLATE_LOG("about to call provider() named '{}' at {}", provider.get_name(), (void*)&provider);
                 auto substitution_result = provider(data);
                 XL_TEMPLATE_LOG("provider() named {} returned: '{}'", provider.get_name(), substitution_result);
-                if (!data.contingent_leading_content.empty()) {
-                    if (!substitution_result.empty()) {
-                        XL_TEMPLATE_LOG("adding contingent data: {}", data.contingent_leading_content);
+                if (!data.contingent_leading_content.empty() && !substitution_result.empty()) {
+                    XL_TEMPLATE_LOG("adding contingent data: {}", data.contingent_leading_content);
 
-                        result.insert(result.end(), data.contingent_leading_content.begin(),
-                                      data.contingent_leading_content.end());
-                    } else {
-                        XL_TEMPLATE_LOG("skipping contingent data: {}", data.contingent_leading_content);
-                    }
+                    result.insert(result.end(), data.contingent_leading_content.begin(),
+                                  data.contingent_leading_content.end());
                 }
                 result.insert(result.end(), substitution_result.begin(), substitution_result.end());
-                if (!substitution_result.empty()) {
-                    std::cerr << fmt::format("inserting trailing content: {}", data.contingent_trailing_content) << std::endl;
+                if (!data.contingent_trailing_content.empty() && !substitution_result.empty()) {
+                    XL_TEMPLATE_LOG("inserting trailing content: {}", data.contingent_trailing_content);
                     result.insert(result.end(), data.contingent_trailing_content.begin(), data.contingent_trailing_content.end());
                 }
             }
@@ -306,8 +297,6 @@ void Template::compile() const {
             if (auto results = first_line_regex.match(literal_string)) {
                 literal_string = results[2];
 
-                std::cerr << fmt::format("new literal string: {}", literal_string) << std::endl;
-                std::cerr << fmt::format("contingent trailing: {}", results[1]) << std::endl;
                 // get previous substitution
                 this->compiled_substitutions.back().contingent_trailing_content = results[1];
             } else {

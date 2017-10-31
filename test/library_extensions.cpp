@@ -117,8 +117,16 @@ TEST(FilteredVector, filtered_vector) {
 
 }
 
+TEST(is_template_for, is_template_for) {
+    {
+        using UPI = std::unique_ptr<int>;
+        auto result = is_template_for_v<std::unique_ptr, UPI>;
+        EXPECT_TRUE(result);
+    }
+}
 
-TEST(FilteredVector, unique_ptr_type) {
+
+TEST(unique_ptr_type, unique_ptr_type) {
     {
         auto result = std::is_same_v<unique_ptr_type_t<std::unique_ptr<int>>, int>;
         EXPECT_TRUE(result);
@@ -139,4 +147,10 @@ TEST(FilteredVector, unique_ptr_type) {
         auto result = std::is_same_v<unique_ptr_type_t<std::unique_ptr<int> const volatile &&>, int>;
         EXPECT_TRUE(result);
     }
+    {
+        using UPI = std::unique_ptr<int>;
+        auto result = std::is_same_v<unique_ptr_type_t<UPI const volatile &&>, int>;
+        EXPECT_TRUE(result);
+    }
+
 }

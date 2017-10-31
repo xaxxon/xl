@@ -32,7 +32,7 @@ struct DefaultProviders {
 //    template<class... Keys, class... Values>
 //    Provider(std::pair<Keys, Values>
 //        &&...) ->
-//    Provider<std::map<std::string, std::unique_ptr<Provider_Interface>>>;
+//    Provider<std::map<std::string, ProviderPtr>>;
 
 
     template<class T, class = ProviderContainer, class = void>
@@ -88,7 +88,7 @@ struct DefaultProviders {
     };
     template<class T>
     struct has_get_provider_member<T, std::enable_if_t<std::is_same_v<
-        std::unique_ptr<Provider_Interface>,
+        ProviderPtr,
         decltype(std::declval<T>().get_provider())>>> : public std::true_type {
     };
 
@@ -102,7 +102,7 @@ struct DefaultProviders {
 
     template<class T>
     struct has_get_provider_free_function<T, std::enable_if_t<std::is_same_v<
-        std::unique_ptr<Provider_Interface>,
+        ProviderPtr,
         decltype(get_provider(std::declval<T>()))> // end is_same
     > // end enable_if
     > : public std::true_type {
@@ -136,10 +136,12 @@ struct DefaultProviders {
         std::string string;
 
     public:
-        Provider(T string) : string(std::move(string)) {}
+        Provider(T string) : string(std::move(string)) {
+            XL_TEMPLATE_LOG("Created string provider with: '{}'", this->string);
+        }
 
         ~Provider() {
-//            std::cerr << fmt::format("string convertible provider destructor called") << std::endl;
+            XL_TEMPLATE_LOG("Destroyed string provider for string '{}'", this->string);
         }
 
         std::string operator()(ProviderData const & data) override {
@@ -153,7 +155,7 @@ struct DefaultProviders {
 
 
     template<class... Ts, std::enable_if_t<std::conjunction_v<is_pair<Ts>...> && !(sizeof...(Ts) <= 1), int> = 0>
-    static std::unique_ptr<Provider_Interface> make_provider(Ts&&... pairs) {
+    static ProviderPtr make_provider(Ts&&... pairs) {
         return ProviderPtr(
             new Provider<std::map<std::string, ProviderPtr>>(std::forward<Ts>(pairs)...));
     };
@@ -175,19 +177,15 @@ struct DefaultProviders {
 
     public:
         Provider(std::remove_reference_t<T> && callback) : callback(std::move(callback)) {
-//            std::cerr << fmt::format("created Callback provider at {} for type {} (RVALUE)", (void*)this,  demangle<T>()) << std::endl;
-//            std::cerr << fmt::format("T is reference?  {}", std::is_reference_v<T>) << std::endl;
-//            std::cerr << fmt::format("rvalue callback at {}",(void*)&callback) << std::endl;
+            XL_TEMPLATE_LOG("Created callback provider with rvalue callback");
         }
 
         Provider(std::remove_reference_t<T> & callback) : callback(callback) {
-//            std::cerr << fmt::format("created Callback provider at {} for type {} (LVALUE)", (void*)this,  demangle<T>()) << std::endl;
-//            std::cerr << fmt::format("T is reference?  {}", std::is_reference_v<T>) << std::endl;
-//            std::cerr << fmt::format("lvalue callback at {}",(void*)&callback) << std::endl;
+            XL_TEMPLATE_LOG("Created callback provider with lvalue callback");
         }
         
         ~Provider() {
-//            std::cerr << fmt::format("callback provider destructor called") << std::endl;
+            XL_TEMPLATE_LOG("Destroyed callback provider");
         }
 
 
@@ -205,8 +203,8 @@ struct DefaultProviders {
 
 
     template<class T>
-    static std::unique_ptr<Provider_Interface> make_provider(T && t) {
-        if constexpr(std::is_same_v<std::remove_reference_t<T>, std::unique_ptr<Provider_Interface>>) {
+    static ProviderPtr make_provider(T && t) {
+        if constexpr(std::is_same_v<std::decay_t<T>, ProviderPtr>) {
             return std::move(t);
         } else if constexpr(is_pair_v<T>) {
             std::map<std::string, decltype(t.second)> map;
@@ -221,15 +219,15 @@ struct DefaultProviders {
 //            } else {
 //                map.emplace(t.first, t.second);
 //            }
-            return std::unique_ptr<Provider_Interface>(new Provider<decltype(map)>(std::move(map)));
+            return ProviderPtr(new Provider<decltype(map)>(std::move(map)));
         } else {
-            return std::unique_ptr<Provider_Interface>(new Provider<T>(std::forward<T>(t)));
+            return ProviderPtr(new Provider<T>(std::forward<T>(t)));
         }
     }
 
     template<class R, class... Args, std::enable_if_t<is_provider_type_v<R>, int> = 0>
-    static std::unique_ptr<Provider_Interface> make_provider(R(* f)(Args...)) {
-        return std::unique_ptr<Provider_Interface>(new Provider<std::function<R(Args...)>>(std::function<R(Args...)>(f)));
+    static ProviderPtr make_provider(R(* f)(Args...)) {
+        return ProviderPtr(new Provider<std::function<R(Args...)>>(std::function<R(Args...)>(f)));
     };
 
 
@@ -249,21 +247,25 @@ struct DefaultProviders {
 
         using XL_TEMPLATES_PASSTHROUGH_TYPE = T;
 
-        Provider(NoRefT && t) : t(std::move(t)) {}
+        Provider(NoRefT && t) : t(std::move(t)) {
+            XL_TEMPLATE_LOG("Created can_get_provider Provider with rvalue {} moved to {}", (void*)&t, (void*)this->t.get());
+        }
 
-        Provider(NoRefT & t) : t(t) {}
+        Provider(NoRefT & t) : t(t) {
+            XL_TEMPLATE_LOG("Created can_get_provider Provider with lvalue {}", (void*)this->t.get());
+        }
         ~Provider() {
-//            std::cerr << fmt::format("can get_provider provider destructor called") << std::endl;
+            XL_TEMPLATE_LOG("Destroyed can_get_provider Provider for value at {}", (void*)this->t.get());
         }
 
 
         std::string operator()(ProviderData const & data) override {
-            std::unique_ptr<Provider_Interface> provider = get_underlying_provider();
+            ProviderPtr provider = get_underlying_provider();
 //            std::cerr << fmt::format("got underlying provider name: {}", provider->get_name()) << std::endl;
 //            std::cerr << fmt::format("t.get: {}", (void*)this->t.get()) << std::endl;
 
             if (data.inline_template) {
-                return data.inline_template->fill(provider);
+                return data.inline_template->fill<ProviderContainer>(provider);
             } else {
                 return provider->operator()(data);
             }
@@ -304,7 +306,9 @@ struct DefaultProviders {
         using XL_TEMPLATES_PASSTHROUGH_TYPE = T;
 
         Provider(UniquePtrT & t) :
-            t(*t) {}
+            t(*t) {
+            XL_TEMPLATE_LOG("Created std::unique_ptr Provider for value at {}", (void*)&this->t);
+        }
 
         ~Provider() {
             XL_TEMPLATE_LOG("unique_ptr provider destructor called");
@@ -342,11 +346,15 @@ struct DefaultProviders {
         using NoPtrT = std::remove_pointer_t<T>;
 
         NoPtrT * const t;
-        static_assert(is_provider_type_v<NoPtrT>);
+        static_assert(is_provider_type_v<NoPtrT>, "make sure the ProviderContainer was specified, if needed");
 
     public:
         Provider(NoPtrT * const t) : t(t) {
             XL_TEMPLATE_LOG("Creating pointer provider with pointer to {}", (void*)this->t);
+        }
+
+        ~Provider() {
+            XL_TEMPLATE_LOG("Destroyed pointer Provider for {}", (void*)this->t);
         }
 
         std::string operator()(ProviderData const & data) override {
@@ -380,12 +388,17 @@ struct DefaultProviders {
         magic_ptr<NoRefT> t;
     public:
 
-        Provider(NoRefT & t) : t(t) {}
+        Provider(NoRefT & t) : t(t) {
+            XL_TEMPLATE_LOG("Created container Provider for lvalue at {}", (void*)this->t.get());
+        }
 
-        Provider(NoRefT && t) : t(std::move(t)) {}
+        Provider(NoRefT && t) : t(std::move(t)) {
+            XL_TEMPLATE_LOG("Created container Provider for rvalue moved from {} to {}", (void*)&t, (void*)this->t.get());
+
+        }
 
         ~Provider() {
-            XL_TEMPLATE_LOG("container provider destructor called");
+            XL_TEMPLATE_LOG("Destroyed container provider for container at {}", (void*)this->t.get());
         }
 
 
@@ -416,7 +429,14 @@ struct DefaultProviders {
             bool needs_join_string = false;
 
             // Iterate through the container
+            std::cerr << fmt::format("provider iterator iterating through container of size {}", t->size()) << std::endl;
             for (auto & element : *t) {
+                if constexpr(std::is_pointer_v<std::remove_reference_t<decltype(element)>>) {
+                    std::cerr << fmt::format("pointer element {}", (void*)element) << std::endl;
+                } else {
+                    std::cerr << fmt::format("non-pointer element {}", (void*)&element) << std::endl;
+
+                }
                 auto p = Provider<std::remove_reference_t<decltype(element)>>(element);
 
                 if (needs_join_string) {
@@ -428,7 +448,7 @@ struct DefaultProviders {
 
 
                 needs_join_string = true;
-                auto fill_result = tmpl.fill(p, *data.templates);
+                auto fill_result = tmpl.fill<ProviderContainer>(p, *data.templates);
 
                 XL_TEMPLATE_LOG("replacement is {}, ignore is {}", fill_result, data.ignore_empty_replacements);
                 if (fill_result == "" && data.ignore_empty_replacements) {
@@ -485,7 +505,7 @@ struct DefaultProviders {
         }
 
         ~Provider() {
-            XL_TEMPLATE_LOG("std::map provider destructor called");
+            XL_TEMPLATE_LOG("std::map provider destructor called for provider at {}", (void*)this);
         }
 
 
@@ -496,7 +516,7 @@ struct DefaultProviders {
                 if constexpr(std::is_base_of_v<Provider_Interface, Value>) {
                     XL_TEMPLATE_LOG("value is a provider interface");
                     return provider_iterator->second()(data);
-                } else if constexpr(std::is_same_v<std::unique_ptr<Provider_Interface>, Value>) {
+                } else if constexpr(std::is_same_v<ProviderPtr, Value>) {
                     XL_TEMPLATE_LOG("value is a unique_ptr<provider interface>");
                     return provider_iterator->second->operator()(data);
                 } else {
@@ -539,7 +559,7 @@ struct DefaultProviders {
 
 
 template<typename ProviderContainer = void, typename... Ts>
-std::unique_ptr<Provider_Interface> make_provider(Ts&&... ts) {
+ProviderPtr make_provider(Ts&&... ts) {
     return DefaultProviders<ProviderContainer>::make_provider(std::forward<Ts>(ts)...);
 }
 

@@ -73,7 +73,7 @@ template<template<class...> class tmpl, class... Args>
 struct _is_template_for<tmpl, tmpl<Args...>> : public std::true_type {};
 
 template<template<class...> class tmpl, typename... Ts>
-struct is_template_for : public std::conjunction<_is_template_for<tmpl, std::decay_t<Ts>>...> {};
+using is_template_for = std::conjunction<_is_template_for<tmpl, std::decay_t<Ts>>...>;
 
 template<template<class...> class tmpl, typename... Ts>
 constexpr bool is_template_for_v = is_template_for<tmpl, Ts...>::value;
@@ -385,8 +385,15 @@ public:
            this->VectorT::push_back(t);
         }
     }
-
 };
+
+
+/// same as forward_as_tuple but for pair
+template<class T1, class T2>
+auto forward_as_pair(T1 && t1, T2 && t2) {
+    return std::pair<T1, T2>(std::forward<T1>(t1), std::forward<T2>(t2));
+}
+
 
 
 
