@@ -6,7 +6,6 @@
 #include <iostream>
 
 #include "../library_extensions.h"
-#include "../magic_ptr.h"
 #include "../demangle.h"
 
 #include "exceptions.h"
@@ -132,7 +131,7 @@ struct DefaultProviders {
     static inline constexpr bool can_get_provider_for_type_v = can_get_provider_for_type<T>::value;
 
     template<class T>
-    class Provider<T, std::enable_if_t<std::is_convertible_v<T, std::string>>> : public Provider_Interface {
+    class Provider<T, std::enable_if_t<std::is_convertible_v<remove_reference_wrapper_t<T>, std::string>>> : public Provider_Interface {
         std::string string;
 
     public:
@@ -237,21 +236,17 @@ struct DefaultProviders {
      * @tparam T type which can have get_provider called with/on it
      */
     template<class T>
-    class Provider<T, std::enable_if_t<can_get_provider_for_type_v<T>>> : public Provider_Interface {
-        using NoRefT = std::remove_reference_t<T>;
-        static_assert(!std::is_pointer_v<T>, "do not make get_provider for pointer types");
+    class Provider<T, std::enable_if_t<can_get_provider_for_type_v<remove_refs_and_wrapper_t<T>>>> : public Provider_Interface {
+        using NoRefT = remove_refs_and_wrapper_t<T>;
+        static_assert(!std::is_pointer_v<NoRefT>, "do not make get_provider for pointer types");
     private:
-        xl::magic_ptr<NoRefT> t;
+        T t_holder;
 
     public:
 
         using XL_TEMPLATES_PASSTHROUGH_TYPE = T;
 
-        Provider(NoRefT && t) : t(std::move(t)) {
-            XL_TEMPLATE_LOG("Created can_get_provider Provider with rvalue {} moved to {}", (void*)&t, (void*)this->t.get());
-        }
-
-        Provider(NoRefT & t) : t(t) {
+        Provider(T t) : t_holder(t) {
             XL_TEMPLATE_LOG("Created can_get_provider Provider with lvalue {}", (void*)this->t.get());
         }
         ~Provider() {
@@ -272,14 +267,15 @@ struct DefaultProviders {
         }
 
         auto get_underlying_provider() {
+            NoRefT & t = this->t_holder;
             if constexpr(has_get_provider_free_function_v<NoRefT>)
             {
-                return get_provider(*t);
+                return get_provider(t);
             } else if constexpr(has_get_provider_member_v<NoRefT>)
             {
-                return t->get_provider();
+                return t.get_provider();
             } else if constexpr(has_get_provider_in_provider_container_v<NoRefT>) {
-                return ProviderContainer::get_provider(*t);
+                return ProviderContainer::get_provider(t);
             } else {
                 throw xl::templates::TemplateException("this shouldn't happen");
             }
@@ -298,15 +294,16 @@ struct DefaultProviders {
      * @tparam T
      * @tparam Deleter
      */
-    template<class UniquePtrT>
-    class Provider<UniquePtrT, std::enable_if_t<is_template_for_v<std::unique_ptr, UniquePtrT>>> : public Provider_Interface {
-        using T = unique_ptr_type_t<UniquePtrT>;
-        T & t;
+    template<class T>
+    class Provider<T, std::enable_if_t<is_template_for_v<std::unique_ptr, remove_reference_wrapper_t<T>>>> : public Provider_Interface {
+        using UniquePtrT = remove_reference_wrapper_t<T>;
+        using PointeeT = unique_ptr_type_t<UniquePtrT>;
+        T t;
     public:
-        using XL_TEMPLATES_PASSTHROUGH_TYPE = T;
+        using XL_TEMPLATES_PASSTHROUGH_TYPE = PointeeT;
 
-        Provider(UniquePtrT & t) :
-            t(*t) {
+        Provider(T t) :
+            t(t) {
             XL_TEMPLATE_LOG("Created std::unique_ptr Provider for value at {}", (void*)&this->t);
         }
 
@@ -319,10 +316,11 @@ struct DefaultProviders {
         }
 
         auto get_underlying_provider() {
-            return Provider<T>(t);
+            UniquePtrT & unique_ptr = t;
+            return Provider<make_reference_wrapper_t<PointeeT>>(*unique_ptr);
         }
         std::string get_name() const override {
-            return fmt::format("Provider: unique_ptr<{}> passthrough", demangle<T>());
+            return fmt::format("Provider: unique_ptr<{}> passthrough", demangle<PointeeT>());
         }
 
     };
@@ -338,12 +336,13 @@ struct DefaultProviders {
      */
     template<class T>
     class Provider<T, std::enable_if_t<
-            std::is_pointer_v<T> &&
-            !std::is_same_v<std::decay_t<std::remove_pointer_t<T>>, char>>
+            std::is_pointer_v<remove_reference_wrapper_t<T>> &&
+            !std::is_same_v<std::decay_t<std::remove_pointer_t<remove_reference_wrapper_t<T>>>, char>>
         > : public Provider_Interface
     {
 
-        using NoPtrT = std::remove_pointer_t<T>;
+        using NoRefT = remove_reference_wrapper_t<T>;
+        using NoPtrT = std::remove_pointer_t<NoRefT>;
 
         NoPtrT * const t;
         static_assert(is_provider_type_v<NoPtrT>, "make sure the ProviderContainer was specified, if needed");
@@ -358,7 +357,7 @@ struct DefaultProviders {
         }
 
         std::string operator()(ProviderData const & data) override {
-            return Provider<NoPtrT>(*t)(data);
+            return Provider<make_reference_wrapper_t<NoPtrT>>(*t)(data);
         }
 
         std::string get_name() const override {
@@ -368,7 +367,7 @@ struct DefaultProviders {
         using XL_TEMPLATES_PASSTHROUGH_TYPE = T;
 
         auto get_underlying_provider() {
-            return Provider<NoPtrT>(*t);
+            return Provider<make_reference_wrapper_t<NoPtrT>>(*t);
         }
     };
 
@@ -378,21 +377,26 @@ struct DefaultProviders {
      * @tparam T Container type
      */
     template<class T>
-    class Provider<T, std::enable_if_t<xl::is_range_for_loop_able_v<T> &&
-                                       !std::is_convertible_v<T, std::string> && // std::string is iteratable
-                                       !is_map_v<T>>> // maps are handled differently
+    class Provider<T, std::enable_if_t<xl::is_range_for_loop_able_v<remove_reference_wrapper_t<T>> &&
+                                       !std::is_convertible_v<remove_reference_wrapper_t<T>, std::string> && // std::string is iteratable
+                                       !is_map_v<remove_reference_wrapper_t<T>>>> // maps are handled differently
         : public Provider_Interface {
 
-        using NoRefT = std::remove_reference_t<T>;
+        using NoRefT = remove_refs_and_wrapper_t<T>;
+        using ValueT = typename NoRefT::value_type;
+
     private:
-        magic_ptr<NoRefT> t;
+
+        // can be the container type or std::reference_wrapper of the container type
+        T t_holder;
+
     public:
 
-        Provider(NoRefT & t) : t(t) {
+        Provider(NoRefT & t) : t_holder(t) {
             XL_TEMPLATE_LOG("Created container Provider for lvalue at {}", (void*)this->t.get());
         }
 
-        Provider(NoRefT && t) : t(std::move(t)) {
+        Provider(NoRefT && t) : t_holder(std::move(t)) {
             XL_TEMPLATE_LOG("Created container Provider for rvalue moved from {} to {}", (void*)&t, (void*)this->t.get());
 
         }
@@ -403,6 +407,10 @@ struct DefaultProviders {
 
 
         std::string operator()(ProviderData const & data) override {
+
+            NoRefT & t = this->t_holder;
+
+
             XL_TEMPLATE_LOG("container provider looking at substution data for: {}, {}", data.name, (bool)data.inline_template);
             std::stringstream result;
 
@@ -429,15 +437,10 @@ struct DefaultProviders {
             bool needs_join_string = false;
 
             // Iterate through the container
-            std::cerr << fmt::format("provider iterator iterating through container of size {}", t->size()) << std::endl;
-            for (auto & element : *t) {
-                if constexpr(std::is_pointer_v<std::remove_reference_t<decltype(element)>>) {
-                    std::cerr << fmt::format("pointer element {}", (void*)element) << std::endl;
-                } else {
-                    std::cerr << fmt::format("non-pointer element {}", (void*)&element) << std::endl;
+            XL_TEMPLATE_LOG("provider iterator iterating through container of size {}", t.size());
+            for (auto & element : t) {
 
-                }
-                auto p = Provider<std::remove_reference_t<decltype(element)>>(element);
+                auto p = Provider<std::reference_wrapper<match_const_of_t<remove_refs_and_wrapper_t<ValueT>, NoRefT>>>(element);
 
                 if (needs_join_string) {
                     result << data.join_string;
@@ -469,37 +472,38 @@ struct DefaultProviders {
 
     /**
      * Map Provider
-     * @tparam Key
-     * @tparam Value
      */
-    template<class Key, class Value>
-    class Provider<std::map<Key, Value>> : public Provider_Interface {
+    template<typename T>
+    class Provider<T, std::enable_if_t<is_template_for_v<std::map, remove_refs_and_wrapper_t<T>>>> : public Provider_Interface {
     public:
 
-        using MapT = std::map<Key, Value>;
+        using MapT = remove_refs_and_wrapper_t<T>;
+        using MapKeyT = typename MapT::key_type;
+        using MapValueT = typename MapT::mapped_type;
 
-        MapT map;
+        T map_holder;
 
         template<class... Keys, class... Values>
         Provider(std::pair<Keys, Values> && ... pairs) {
-
-            (this->map.emplace(std::move(pairs.first), make_provider(pairs.second)),...);
+            MapT & map = this->map_holder;
+            (map.emplace(std::move(pairs.first), make_provider(pairs.second)),...);
 
             XL_TEMPLATE_LOG("done adding pairs to map at: {}", (void*)this);
-            XL_TEMPLATE_LOG("map size: {}", this->map.size());
-            for(auto const & [a,b] : this->map) {
+            XL_TEMPLATE_LOG("map size: {}", map.size());
+            for(auto const & [a,b] : map) {
                 XL_TEMPLATE_LOG("{}: {}", a, (void*)b.get());
             }
         }
 
-        Provider(std::map<std::string, Value> map) :
-            map(std::move(map))
+        Provider(T map_holder) :
+            map_holder(std::move(map_holder))
         {
+            MapT & map = this->map_holder;
             XL_TEMPLATE_LOG("added entire map into map provider");
 
             XL_TEMPLATE_LOG("done moving map into map");
             XL_TEMPLATE_LOG("map size: {}", this->map.size());
-            for(auto const & [a,b] : this->map) {
+            for(auto const & [a,b] : map) {
                 XL_TEMPLATE_LOG("{}: {}", a, (void*)&b);
             }
         }
@@ -510,23 +514,25 @@ struct DefaultProviders {
 
 
         std::string operator()(ProviderData const & data) override {
-            auto provider_iterator = this->map.find(data.name);
-            if (provider_iterator != this->map.end()) {
+            MapT & map = this->map_holder;
+            auto provider_iterator = map.find(data.name);
+            if (provider_iterator != map.end()) {
 
-                if constexpr(std::is_base_of_v<Provider_Interface, Value>) {
+                if constexpr(std::is_base_of_v<Provider_Interface, MapValueT>) {
                     XL_TEMPLATE_LOG("value is a provider interface");
                     return provider_iterator->second()(data);
-                } else if constexpr(std::is_same_v<ProviderPtr, Value>) {
+                } else if constexpr(std::is_same_v<ProviderPtr, MapValueT>) {
                     XL_TEMPLATE_LOG("value is a unique_ptr<provider interface>");
                     return provider_iterator->second->operator()(data);
                 } else {
                     XL_TEMPLATE_LOG("value needs to be converted to provider");
-                    return Provider<Value>(provider_iterator->second)(data);
+
+                    return Provider<make_reference_wrapper_t<MapValueT>>(provider_iterator->second)(data);
                 }
 
             } else {
                 XL_TEMPLATE_LOG("in map:");
-                for(auto const & [k,v] : this->map) {
+                for(auto const & [k,v] : map) {
                     XL_TEMPLATE_LOG("key: {}", k);
                 }
                 std::string template_text = "<unknown template name>";
@@ -539,9 +545,10 @@ struct DefaultProviders {
 
 
         std::string get_name() const override {
+            MapT const & map = this->map_holder;
 
             std::string result = fmt::format("Provider: map ({}) with keys:", (void*)this);
-            for(auto const & [key, value] : this->map) {
+            for(auto const & [key, value] : map) {
                 result += " " + key;
             }
             return result;

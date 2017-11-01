@@ -109,6 +109,9 @@ TEST(template, SingleLineIgnoreEmpty) {
 }
 
 
+static_assert(std::is_same_v<xl::remove_reference_wrapper_t<vector<string>>, vector<string>>);
+
+
 TEST(template, EmptyVectorReplacementIgnored) {
     {
         vector<string> v{"a", "", "c"};
@@ -380,7 +383,7 @@ public:
         v.emplace_back(make_unique<Uncopyable>());
     }
     std::unique_ptr<Provider_Interface> get_provider() const {
-        return make_provider(std::pair("v", make_provider(v)));
+        return make_provider(std::pair("v", std::ref(v)));
     }
 };
 
@@ -390,7 +393,7 @@ TEST(template, UncopyableVectorProvider) {
     vups.push_back(Uncopyable());
     vups.push_back(Uncopyable());
 
-    auto provider = make_provider(std::pair("uncopyable_vector", make_provider(vups)));
+    auto provider = make_provider(std::pair("uncopyable_vector", std::ref(vups)));
 
     auto result = Template("{{uncopyable_vector|!{{A}}}}").fill(provider);
 
@@ -504,6 +507,13 @@ TEST(template, ContainerOfPointers) {
 }
 
 
+TEST(template, PointerProviderForUncopyable) {
+    Uncopyable u;
+    auto p = DefaultProviders<void>::Provider<Uncopyable*>(&u);
 
+    ProviderData data;
+    data.name = "A";
+    p(data);
+}
 
 

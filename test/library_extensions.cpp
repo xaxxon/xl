@@ -152,5 +152,25 @@ TEST(unique_ptr_type, unique_ptr_type) {
         auto result = std::is_same_v<unique_ptr_type_t<UPI const volatile &&>, int>;
         EXPECT_TRUE(result);
     }
+}
 
+const vector<int> v;
+static_assert(is_same_v<match_const_of_t<decltype(v)::value_type, decltype(v)>, int const>);
+static_assert(is_same_v<decltype(v)::value_type, int>);
+
+static_assert(std::is_same_v<remove_reference_wrapper_t<std::reference_wrapper<int> const>, int>);
+static_assert(std::is_same_v<remove_reference_wrapper_t<std::reference_wrapper<int const> const>, int const>);
+static_assert(std::is_same_v<remove_reference_wrapper_t<std::reference_wrapper<int const>>, int const>);
+static_assert(std::is_same_v<remove_reference_wrapper_t<int>, int>);
+static_assert(std::is_same_v<remove_refs_and_wrapper_t<std::reference_wrapper<int>&>, int>);
+static_assert(std::is_same_v<remove_refs_and_wrapper_t<int&>, int>);
+static_assert(std::is_same_v<remove_refs_and_wrapper_t<std::reference_wrapper<int>>, int>);
+
+TEST(LibraryExtensions, remove_reference_wrapper) {
+    {
+        auto result = std::is_same_v<remove_reference_wrapper_t<std::reference_wrapper<int>>, int>;
+    }
+    {
+        auto result = std::is_same_v<remove_reference_wrapper_t<int>, int>;
+    }
 }
