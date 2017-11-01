@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <vector>
 #include <map>
+#include <sstream>
 
 #include "magic_ptr.h"
 #include "fmt/format.h"

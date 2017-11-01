@@ -246,18 +246,23 @@ struct DefaultProviders {
 
         using XL_TEMPLATES_PASSTHROUGH_TYPE = T;
 
-        Provider(T t) : t_holder(t) {
-            XL_TEMPLATE_LOG("Created can_get_provider Provider with lvalue {}", (void*)this->t.get());
+        Provider(T t_holder) : t_holder(t_holder) {
+            NoRefT & t = this->t_holder;
+            XL_TEMPLATE_LOG("Created can_get_provider Provider with lvalue {}", (void*)&t);
         }
         ~Provider() {
-            XL_TEMPLATE_LOG("Destroyed can_get_provider Provider for value at {}", (void*)this->t.get());
+            NoRefT & t = this->t_holder;
+
+            XL_TEMPLATE_LOG("Destroyed can_get_provider Provider for value at {}", (void*)&t);
         }
 
 
         std::string operator()(ProviderData const & data) override {
+            NoRefT & t = this->t_holder;
+
             ProviderPtr provider = get_underlying_provider();
 //            std::cerr << fmt::format("got underlying provider name: {}", provider->get_name()) << std::endl;
-//            std::cerr << fmt::format("t.get: {}", (void*)this->t.get()) << std::endl;
+//            std::cerr << fmt::format("t: {}", (void*)&t) << std::endl;
 
             if (data.inline_template) {
                 return data.inline_template->fill<ProviderContainer>(provider);
@@ -392,17 +397,20 @@ struct DefaultProviders {
 
     public:
 
-        Provider(NoRefT & t) : t_holder(t) {
-            XL_TEMPLATE_LOG("Created container Provider for lvalue at {}", (void*)this->t.get());
+        Provider(NoRefT & t_holder) : t_holder(t_holder) {
+            NoRefT & t = t_holder;
+            XL_TEMPLATE_LOG("Created container Provider for lvalue at {}", (void*)&t);
         }
 
-        Provider(NoRefT && t) : t_holder(std::move(t)) {
-            XL_TEMPLATE_LOG("Created container Provider for rvalue moved from {} to {}", (void*)&t, (void*)this->t.get());
+        Provider(NoRefT && t_holder) : t_holder(std::move(t_holder)) {
+            NoRefT & t = this->t_holder;
+            XL_TEMPLATE_LOG("Created container Provider for rvalue moved from {} to {}", (void*)&t, (void*)&t);
 
         }
 
         ~Provider() {
-            XL_TEMPLATE_LOG("Destroyed container provider for container at {}", (void*)this->t.get());
+            NoRefT & t = t_holder;
+            XL_TEMPLATE_LOG("Destroyed container provider for container at {}", (void*)&t);
         }
 
 
@@ -502,7 +510,7 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("added entire map into map provider");
 
             XL_TEMPLATE_LOG("done moving map into map");
-            XL_TEMPLATE_LOG("map size: {}", this->map.size());
+            XL_TEMPLATE_LOG("map size: {}", map.size());
             for(auto const & [a,b] : map) {
                 XL_TEMPLATE_LOG("{}: {}", a, (void*)&b);
             }
