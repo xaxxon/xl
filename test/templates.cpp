@@ -517,3 +517,10 @@ TEST(template, PointerProviderForUncopyable) {
 }
 
 
+TEST(template, EmptyContainerContingentContent) {
+    vector<string> v;
+
+    auto result = Template("BEFORE\nX{{<VECTOR|!!\n{{DUMMY}}>}}Y\nAFTER").fill(pair("VECTOR", ref(v)));
+
+    EXPECT_EQ(result, "BEFORE\nAFTER");
+}

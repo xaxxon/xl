@@ -293,7 +293,7 @@ void Template::compile() const {
 
         if (first_line_belongs_to_last_substitution) {
             first_line_belongs_to_last_substitution = false;
-            static Regex first_line_regex(R"(^([^\n]*\n?)(.*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
+            static Regex first_line_regex(R"(^([^\n]*)(.*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
             if (auto results = first_line_regex.match(literal_string)) {
                 literal_string = results[2];
 
