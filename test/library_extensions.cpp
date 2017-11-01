@@ -174,3 +174,26 @@ TEST(LibraryExtensions, remove_reference_wrapper) {
         auto result = std::is_same_v<remove_reference_wrapper_t<int>, int>;
     }
 }
+
+
+TEST(LibraryExtensions, join) {
+    {
+        vector<string> v = {"a", "b", "c"};
+
+        EXPECT_EQ(join(v), "a, b, c");
+        EXPECT_EQ(join(v, "|"), "a|b|c");
+    }
+    {
+        vector<string> v = {"a"};
+
+        EXPECT_EQ(join(v), "a");
+        EXPECT_EQ(join(v, "|"), "a");
+    }
+    {
+        vector<string> v = {};
+
+        EXPECT_EQ(join(v), "");
+        EXPECT_EQ(join(v, "|"), "");
+    }
+
+}

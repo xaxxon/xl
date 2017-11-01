@@ -450,6 +450,28 @@ template<class T>
 using make_reference_wrapper_t = typename make_reference_wrapper<T>::type;
 
 
+/**
+ * Joins together the elements of the container with the specified join string between them
+ * @param container
+ * @param join_string
+ * @return string of all the elements combined
+ */
+template<class T>
+std::string join(T const & container, std::string_view join_string = ", ") {
+    std::stringstream result;
+
+    bool first_iteration = true;
+    for (auto const & element : container ) {
+        if (!first_iteration) {
+            result << join_string;
+        }
+        first_iteration = false;
+
+        result << element;
+    }
+
+    return result.str();
+}
 
 
 
