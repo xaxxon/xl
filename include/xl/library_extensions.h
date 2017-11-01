@@ -395,6 +395,61 @@ auto forward_as_pair(T1 && t1, T2 && t2) {
 }
 
 
+// this should never be able to be instantiated
+template<typename T>
+struct _remove_reference_wrapper;
+
+template<typename T>
+struct _remove_reference_wrapper<std::reference_wrapper<T>> {
+    using type = T;
+};
+
+template<typename T, typename = void>
+struct remove_reference_wrapper {
+    using type = T;
+};
+
+template<typename T>
+struct remove_reference_wrapper<T, std::enable_if_t<is_template_for_v<std::reference_wrapper, T>>> :
+    public _remove_reference_wrapper<std::decay_t<T>>
+{};
+
+template<typename T>
+using remove_reference_wrapper_t = typename remove_reference_wrapper<T>::type;
+
+
+template<class T>
+using remove_refs_and_wrapper = remove_reference_wrapper<std::remove_reference_t<T>>;
+
+template<class T>
+using remove_refs_and_wrapper_t = typename remove_refs_and_wrapper<T>::type;
+
+
+
+
+template<class T, class U>
+struct match_const_of {
+    using type = std::conditional_t<std::is_const_v<U>, const T, T>;
+};
+
+template<class T, class U>
+using match_const_of_t = typename match_const_of<T, U>::type;
+
+
+template<class T>
+struct make_reference_wrapper {
+    using type = std::reference_wrapper<T>;
+};
+
+template<class T>
+struct make_reference_wrapper<std::reference_wrapper<T>> {
+    using type = std::reference_wrapper<T>;
+};
+
+template<class T>
+using make_reference_wrapper_t = typename make_reference_wrapper<T>::type;
+
+
 
 
 
