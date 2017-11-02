@@ -55,13 +55,13 @@ public:
         Log & log;
         typename Levels::Levels level;
         typename Subjects::Subjects subject;
-        zstring_view string;
+        std::string string;
 
-        LogMessage(Log & log, typename Levels::Levels level, typename Subjects::Subjects subject, zstring_view string) :
+        LogMessage(Log & log, typename Levels::Levels level, typename Subjects::Subjects subject, std::string string) :
             log(log),
             level(level),
             subject(subject),
-            string(string)
+            string(std::move(string))
         {}
     };
 
