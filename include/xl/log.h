@@ -47,9 +47,12 @@ public:
  * @tparam Levels must provide an enum named Levels and static std::string const & get_level_name(Levels)
  * @tparam Subjects must provide an enum named Subjects and static std::string const & get_subject_name(Subjects)
  */
-template<class Levels = log::DefaultLevels, class Subjects = log::DefaultSubjects>
+template<class LevelsT = log::DefaultLevels, class SubjectsT = log::DefaultSubjects>
 class Log {
 public:
+
+    using Levels = LevelsT;
+    using Subjects = SubjectsT;
 
     struct LogMessage {
         Log & log;
