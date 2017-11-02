@@ -35,6 +35,8 @@ TEST(log, SimpleLog) {
 }
 
 
+
+
 TEST(log, LogCallbackGuard) {
 
     int global_log_count = 0;

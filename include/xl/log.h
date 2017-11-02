@@ -126,7 +126,7 @@ public:
 
     Log(CallbackT log_callback)
     {
-        this->callbacks.push_back(std::make_unique<CallbackT>(log_callback));
+        this->add_callback(std::move(log_callback));
     }
 
     void clear_callbacks() {
@@ -139,10 +139,9 @@ public:
     }
 
     CallbackT & add_callback(std::ostream & ostream, std::string prefix) {
-        this->add_callback([&](LogMessage const & message) {
+        return this->add_callback([&](LogMessage const & message) {
             ostream << prefix << message.string << std::endl;
         });
-        return *this->callbacks.back();
     }
 
     /**
@@ -153,8 +152,8 @@ public:
 
         auto i = this->callbacks.begin();
         while(i != this->callbacks.end()) {
-            auto & c = *i;
-            if (c.get() == &callback) {
+            CallbackT & c = **i;
+            if (&c == &callback) {
                 i = this->callbacks.erase(i);
             } else {
                 i++;

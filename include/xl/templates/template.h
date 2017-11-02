@@ -30,7 +30,7 @@ namespace xl::templates {
 using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
 inline LogT log;
 
-class ProviderData;
+struct ProviderData;
 class Provider_Interface;
 
 
