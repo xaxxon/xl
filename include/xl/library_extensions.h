@@ -475,6 +475,20 @@ std::string join(T const & container, std::string_view join_string = ", ") {
 }
 
 
+template<typename T>
+struct _is_std_array : public std::false_type {};
+
+template<typename T, std::size_t size>
+struct _is_std_array<std::array<T, size>> : public std::true_type {};
+
+template<typename T>
+using is_std_array = _is_std_array<std::decay_t<T>>;
+
+template<typename T>
+constexpr bool is_std_array_v = is_std_array<T>::value;
+
+
+
 
 } // end namespace xl
 

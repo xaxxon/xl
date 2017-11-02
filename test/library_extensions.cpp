@@ -197,3 +197,16 @@ TEST(LibraryExtensions, join) {
     }
 
 }
+
+
+TEST(LibraryExtensions, IsStdArray) {
+    {
+        auto result = is_std_array_v<std::array<int, 5>>;
+        EXPECT_TRUE(result);
+    }
+    {
+        auto result = is_std_array_v<std::vector<int>>;
+        EXPECT_FALSE(result);
+    }
+
+}
