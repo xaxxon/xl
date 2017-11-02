@@ -169,9 +169,19 @@ static_assert(std::is_same_v<remove_refs_and_wrapper_t<std::reference_wrapper<in
 TEST(LibraryExtensions, remove_reference_wrapper) {
     {
         auto result = std::is_same_v<remove_reference_wrapper_t<std::reference_wrapper<int>>, int>;
+        EXPECT_TRUE(result);
+    }
+    {
+        auto result = std::is_same_v<remove_reference_wrapper_t<std::reference_wrapper<char>>, int>;
+        EXPECT_FALSE(result);
     }
     {
         auto result = std::is_same_v<remove_reference_wrapper_t<int>, int>;
+        EXPECT_TRUE(result);
+    }
+    {
+        auto result = std::is_same_v<remove_reference_wrapper_t<int>, char>;
+        EXPECT_FALSE(result);
     }
 }
 

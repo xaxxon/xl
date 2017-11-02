@@ -14,7 +14,8 @@ include_directories(${gmock_SOURCE_DIR}/include)
 file(GLOB TEST_SRC
         *.cpp)
 
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wno-aligned-allocation-unavailable -stdlib=libc++ -msse4.1 -fsanitize=address")
+# Set address sanitizer as global flag so googletest is built with it
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -fsanitize=address)
 
 
 include_directories(../include/xl)
@@ -22,9 +23,14 @@ add_definitions(-DXL_USE_LIB_FMT)
 add_definitions(-DXL_USE_PCRE) # on another line to easily add and remove during development
 
 add_executable(test-xl EXCLUDE_FROM_ALL ${TEST_SRC} ${XL_HEADER_FILES})
+target_compile_options(test-xl
+        PRIVATE -Wall -stdlib=libc++
+        PUBLIC -msse4.1 -Wno-aligned-allocation-unavailable
+        )
+
+
 
 add_definitions(-DGOOGLE_TEST)
-
 
 add_subdirectory(googletest EXCLUDE_FROM_ALL)
 
