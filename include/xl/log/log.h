@@ -72,11 +72,16 @@ XL_PRIVATE_UNLESS_TESTING:
 public:
 
     template<typename LevelsT, typename SubjectsT>
-    LogStatusFile(Log<LevelsT, SubjectsT> const & log, std::string filename) :
+    LogStatusFile(Log<LevelsT, SubjectsT> const & log, std::string filename, bool force_reset) :
         LogStatusFile(filename)
     {
-        this->initialize_from_log(log);
-        write();
+        if (!std::experimental::filesystem::exists(this->status_file) || force_reset) {
+//            std::cerr << fmt::format("Creating new file") << std::endl;
+            this->initialize_from_log(log);
+            write();
+        } else {
+//            std::cerr << fmt::format("not creating new file") << std::endl;
+        }
     }
 
 
@@ -318,7 +323,9 @@ public:
         }
     }
     Log() = default;
-
+    Log(std::string filename) {
+        this->enable_status_file(filename);
+    }
     Log(CallbackT log_callback)
     {
         this->add_callback(std::move(log_callback));
@@ -361,8 +368,9 @@ public:
      * Causes a status file with the given name to be maintained with the current
      *   settings of this log object
      */
-    void enable_status_file(std::string filename) {
-        this->log_status_file = std::make_unique<LogStatusFile>(*this, filename);
+    void enable_status_file(std::string filename, bool force_reset = false) {
+        this->log_status_file = std::make_unique<LogStatusFile>(*this, filename, force_reset);
+        initialize_from_status_file();
     }
 
 
