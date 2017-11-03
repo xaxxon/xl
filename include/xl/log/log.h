@@ -56,13 +56,11 @@ class Log;
 
 class LogStatusFile {
 
-XL_PRIVATE_UNLESS_TESTING:
+private:
     using file_clock_type = fs::file_time_type::clock;
 
     // store these locally because the user may not have access to a Log object
     //   so in that case, just populate from the file
-    std::vector<std::pair<std::string, bool>> level_names;
-    std::vector<std::pair<std::string, bool>> subject_names;
     std::string filename;
     std::chrono::time_point<file_clock_type> last_file_change_check_time;
     char * timestamp; // what type to make this?
@@ -70,6 +68,9 @@ XL_PRIVATE_UNLESS_TESTING:
     file_clock_type::time_point last_seen_write_time_for_status_file;
 
 public:
+
+    std::vector<std::pair<std::string, bool>> level_names;
+    std::vector<std::pair<std::string, bool>> subject_names;
 
     template<typename LevelsT, typename SubjectsT>
     LogStatusFile(Log<LevelsT, SubjectsT> const & log, std::string filename, bool force_reset) :
@@ -126,6 +127,7 @@ public:
                 this->level_names.push_back(std::pair(matches[2], std::stoi(matches[1])));
             } else {
                 // TODO: Proper error handling
+                // should probably just delete the file if it's invalid
                 assert(false);
             }
         }
@@ -139,6 +141,7 @@ public:
                 this->subject_names.push_back(std::pair(matches[2], std::stoi(matches[1])));
             } else {
                 // TODO: Proper error handling
+                // should probably just delete the file if it's invalid
                 assert(false);
             }
         }
@@ -187,8 +190,8 @@ public:
 
         if (std::experimental::filesystem::exists(this->status_file)) {
             auto last_write_time = fs::last_write_time(this->status_file);
-            auto foo1 = file_clock_type::to_time_t(last_write_time);
-            auto foo2 = file_clock_type::to_time_t(this->last_seen_write_time_for_status_file);
+//            auto foo1 = file_clock_type::to_time_t(last_write_time);
+//            auto foo2 = file_clock_type::to_time_t(this->last_seen_write_time_for_status_file);
 //            std::cerr << fmt::format("comparing write times: file: {} vs last read: {}", std::ctime(&foo1), std::ctime(&foo2)) << std::endl;
             if (last_write_time > this->last_seen_write_time_for_status_file) {
                 // need to read the new values
