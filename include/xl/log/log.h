@@ -5,15 +5,15 @@
 #include <chrono>
 #include <fmt/ostream.h>
 #include <experimental/filesystem>
-#include "library_extensions.h"
+#include "../library_extensions.h"
 
 namespace fs = std::experimental::filesystem;
 
 using namespace std::literals;
 
-#include "regex/regexer.h"
+#include "../regex/regexer.h"
 
-#include "zstring_view.h"
+#include "../zstring_view.h"
 
 
 namespace xl {
