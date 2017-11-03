@@ -10,6 +10,12 @@
 #include "fmt/format.h"
 namespace xl {
 
+#ifdef XL_TESTING
+#define XL_PRIVATE_UNLESS_TESTING public
+#else
+#define XL_PRIVATE_UNLESS_TESTING private
+#endif
+
 
 template<typename T, typename = void>
 struct has_insertion_operator : std::false_type {};

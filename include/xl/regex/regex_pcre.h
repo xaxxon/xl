@@ -34,10 +34,6 @@ private:
     /// buffer for storing submatch offsets (3 for each capture)
     std::unique_ptr<int[]> const captures;
 
-    /// number of captures space has been allocated for (int * 3)
-    int const capture_count;
-
-
 public:
     RegexResultPcre(pcre_ptr compiled_pattern,
                     std::string source,
@@ -47,8 +43,7 @@ public:
         compiled_pattern(compiled_pattern),
         source(source),
         results(results),
-        captures(std::move(captures)),
-        capture_count(capture_count)
+        captures(std::move(captures))
     {}
 
 
