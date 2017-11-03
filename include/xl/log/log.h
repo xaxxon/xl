@@ -117,7 +117,7 @@ public:
         for (int i = 0; i < level_count; i++) {
             std::getline(file, line);
             if (auto matches = line_regex.match(line)) {
-                std::cerr << fmt::format("read: {}: {}", matches[2], matches[1]) << std::endl;
+//                std::cerr << fmt::format("read: {}: {}", matches[2], matches[1]) << std::endl;
                 this->level_names.push_back(std::pair(matches[2], std::stoi(matches[1])));
             } else {
                 // TODO: Proper error handling
@@ -140,7 +140,7 @@ public:
 
         this->last_seen_write_time_for_status_file = fs::last_write_time(this->status_file);
         auto foo = file_clock_type::to_time_t(this->last_seen_write_time_for_status_file);
-        std::cerr << fmt::format("in read(), setting last seen write time to {}", std::ctime(&foo)) << std::endl;
+//        std::cerr << fmt::format("in read(), setting last seen write time to {}", std::ctime(&foo)) << std::endl;
 
     }
 
@@ -175,7 +175,7 @@ public:
     bool check() {
         // check to see if the timestamp on the status file has been updated
         if (std::chrono::system_clock::now() - this->last_file_change_check_time < 1000ms) {
-            std::cerr << fmt::format("not time to check file yet") << std::endl;
+//            std::cerr << fmt::format("not time to check file yet") << std::endl;
             return false;
         }
         this->last_file_change_check_time = std::chrono::system_clock::now();
@@ -184,15 +184,15 @@ public:
             auto last_write_time = fs::last_write_time(this->status_file);
             auto foo1 = file_clock_type::to_time_t(last_write_time);
             auto foo2 = file_clock_type::to_time_t(this->last_seen_write_time_for_status_file);
-            std::cerr << fmt::format("comparing write times: file: {} vs last read: {}", std::ctime(&foo1), std::ctime(&foo2)) << std::endl;
+//            std::cerr << fmt::format("comparing write times: file: {} vs last read: {}", std::ctime(&foo1), std::ctime(&foo2)) << std::endl;
             if (last_write_time > this->last_seen_write_time_for_status_file) {
                 // need to read the new values
-                std::cerr << fmt::format("need to re-read file") << std::endl;
+//                std::cerr << fmt::format("need to re-read file") << std::endl;
                 this->read();
                 return true;
             } else {
                 // nothing to do here - status file hasn't changed
-                std::cerr << fmt::format("file hasn't changed") << std::endl;
+//                std::cerr << fmt::format("file hasn't changed") << std::endl;
                 return false;
             }
         }
@@ -252,10 +252,10 @@ private:
         // disable updating status file as we update the object FROM the log file
         auto temp = std::move(this->log_status_file);
 
-        std::cerr << fmt::format("init from file: file level names size: {}", temp->level_names.size()) << std::endl;
+//        std::cerr << fmt::format("init from file: file level names size: {}", temp->level_names.size()) << std::endl;
         for(size_t i = 0; i < (size_t)LevelsT::Levels::LOG_LAST_LEVEL; i++) {
             typename LevelsT::Levels level = static_cast<typename LevelsT::Levels>(i);
-            std::cerr << fmt::format("initialize from status file, level: {}", (int)level) << std::endl;
+//            std::cerr << fmt::format("initialize from status file, level: {}", (int)level) << std::endl;
 
             this->set_level_status(level, temp->level_names[i].second);
         }
@@ -272,7 +272,7 @@ private:
 public:
 
     bool set_level_status(typename Levels::Levels level, bool new_status) {
-        std::cerr << fmt::format("setting {} to {}", (int)level, new_status) << std::endl;
+//        std::cerr << fmt::format("setting {} to {}", (int)level, new_status) << std::endl;
         bool previous_status;
         if (level_status.size() <= (int)level) {
             previous_status = true;

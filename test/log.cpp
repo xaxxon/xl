@@ -269,7 +269,6 @@ TEST(log, LogStatusFile) {
     other.level_names[2].second = false;
 
     // sleep before write so the timestamp changes
-    std::cerr << fmt::format("sleeping") << std::endl;
     sleep(1);
     log.warn(LogT::Subjects::Subjects::Default, "This should be filtered because not time to re-check status file");
     other.write();
