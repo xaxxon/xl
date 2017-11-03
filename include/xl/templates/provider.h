@@ -387,36 +387,33 @@ struct DefaultProviders {
                                        !is_map_v<remove_reference_wrapper_t<T>>>> // maps are handled differently
         : public Provider_Interface {
 
-        using NoRefT = remove_refs_and_wrapper_t<T>;
-        using ValueT = typename NoRefT::value_type;
+        using NoRefT = std::remove_reference_t<T>;
+        using ContainerT = remove_refs_and_wrapper_t<T>;
+        using ValueT = typename ContainerT::value_type;
 
     private:
 
         // can be the container type or std::reference_wrapper of the container type
-        T t_holder;
+        NoRefT t_holder;
 
     public:
 
-        Provider(NoRefT & t_holder) : t_holder(t_holder) {
-            NoRefT & t = t_holder;
+        Provider(T t_holder) : t_holder(std::move(t_holder)) {
+            ContainerT & t = this->t_holder;
             XL_TEMPLATE_LOG("Created container Provider for lvalue at {}", (void*)&t);
         }
 
-        Provider(NoRefT && t_holder) : t_holder(std::move(t_holder)) {
-            NoRefT & t = this->t_holder;
-            XL_TEMPLATE_LOG("Created container Provider for rvalue moved from {} to {}", (void*)&t, (void*)&t);
 
-        }
 
         ~Provider() {
-            NoRefT & t = t_holder;
+            ContainerT & t = t_holder;
             XL_TEMPLATE_LOG("Destroyed container provider for container at {}", (void*)&t);
         }
 
 
         std::string operator()(ProviderData const & data) override {
 
-            NoRefT & t = this->t_holder;
+            ContainerT & t = this->t_holder;
 
 
             XL_TEMPLATE_LOG("container provider looking at substution data for: {}, {}", data.name, (bool)data.inline_template);
@@ -448,7 +445,7 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("provider iterator iterating through container of size {}", t.size());
             for (auto & element : t) {
 
-                auto p = Provider<std::reference_wrapper<match_const_of_t<remove_refs_and_wrapper_t<ValueT>, NoRefT>>>(element);
+                auto p = Provider<make_reference_wrapper_t<match_const_of_t<remove_refs_and_wrapper_t<ValueT>, ContainerT>>>(std::ref(element));
 
                 if (needs_join_string) {
                     result << data.join_string;
@@ -535,7 +532,7 @@ struct DefaultProviders {
                 } else {
                     XL_TEMPLATE_LOG("value needs to be converted to provider");
 
-                    return Provider<make_reference_wrapper_t<MapValueT>>(provider_iterator->second)(data);
+                    return Provider<make_reference_wrapper_t<MapValueT>>(std::ref(provider_iterator->second))(data);
                 }
 
             } else {
