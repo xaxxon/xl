@@ -139,7 +139,7 @@ class RegexPcre {
     pcre_extra * extra = nullptr;
     int capture_count;
 
-    auto make_pcre_regex_flags(RegexFlagsT flags) {
+    auto make_pcre_regex_flags(xl::RegexFlagsT flags) {
         decltype(PCRE_CASELESS) result = 0;
         result |= flags & ICASE ? PCRE_CASELESS : 0;
         result |= flags & EXTENDED ? PCRE_EXTENDED : 0;

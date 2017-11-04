@@ -215,7 +215,6 @@ TEST(log, OstreamCallbackHelper) {
     log.info("test");
     EXPECT_EQ(output.str(), "PREFIX: test\n");
     EXPECT_EQ(output2.str(), "test\n");
-
 }
 
 

@@ -147,7 +147,7 @@ public:
         }
 
         this->last_seen_write_time_for_status_file = fs::last_write_time(this->status_file);
-        auto foo = file_clock_type::to_time_t(this->last_seen_write_time_for_status_file);
+//        auto foo = file_clock_type::to_time_t(this->last_seen_write_time_for_status_file);
 //        std::cerr << fmt::format("in read(), setting last seen write time to {}", std::ctime(&foo)) << std::endl;
 
     }
@@ -162,6 +162,9 @@ public:
 
     void write() {
         std::ofstream file(this->filename);
+        if (!file) {
+            return;
+        }
         // write number of levels
         file << this->level_names.size() << std::endl;
         for(auto const & [name, status] : this->level_names) {
@@ -176,7 +179,6 @@ public:
             // write 0/1 then name
             file << status << " " << name << std::endl;
         }
-
     }
 
 
@@ -303,6 +305,19 @@ public:
         }
     }
 
+    void set_all_subjects(bool new_status) {
+        for(size_t i = 0; i < (size_t)Subjects::Subjects::LOG_LAST_SUBJECT; i++) {
+            set_subject_status(static_cast<typename Subjects::Subjects>(i), new_status);
+        }
+    }
+
+    void set_all_levels(bool new_status) {
+        for(size_t i = 0; i < (size_t)Levels::Levels::LOG_LAST_LEVEL; i++) {
+            set_level_status((typename Levels::Levels)i, new_status);
+        }
+    }
+
+
     bool set_subject_status(typename Subjects::Subjects subject, bool new_status) {
         bool previous_status;
         if (subject_status.size() <= (int)subject) {
@@ -374,6 +389,14 @@ public:
     void enable_status_file(std::string filename, bool force_reset = false) {
         this->log_status_file = std::make_unique<LogStatusFile>(*this, filename, force_reset);
         initialize_from_status_file();
+    }
+
+    void disable_status_file() {
+        this->log_status_file.release();
+    }
+
+    bool is_status_file_enabled() const {
+        return (bool)this->log_status_file;
     }
 
 
