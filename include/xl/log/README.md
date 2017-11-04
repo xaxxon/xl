@@ -2,14 +2,15 @@
 
 A logging library which calls registered callbacks when it receives a logging message.  Useful for integrating logging in libraries with different logging systems in the applications which use them.
 
-Each log message has a log level and subject associated with it.
 
 ### Levels and Subjects
+
+Each log message has a log level and subject associated with it.
 
 User-defineable logging levels and subjects can be specified.   The standard levels are info, warn, and error.   These are
 often sufficient for many uses.   There are helper functions for using the default log levels:
 
-    log.info("info message");
+    log.info(Subject::SomeSubject, "info message");
 
 
 There is only one default subject, "default".   Most use cases will want to provide their own subjects.
@@ -22,7 +23,7 @@ is a log message processed.
 
 When `libfmt` is present, you can specify log messages using the libfmt style of string formatting:
 
-    log.error("Error in system {}: {}", system_name, error_details);
+    log.error(Subject::SomeSubject, "Error in system {}: {}", system_name, error_details);
     
 ### Log Status File
 
