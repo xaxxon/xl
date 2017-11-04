@@ -8,7 +8,8 @@ A logging library which calls registered callbacks when it receives a logging me
 Each log message has a log level and subject associated with it.
 
 User-defineable logging levels and subjects can be specified.   The standard levels are info, warn, and error.   These are
-often sufficient for many uses.   There are helper functions for using the default log levels:
+often sufficient for many uses.   There are helper functions for using the default log levels.  For example, for the info
+level:
 
     log.info(Subject::SomeSubject, "info message");
 
