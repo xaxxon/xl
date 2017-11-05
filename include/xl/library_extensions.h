@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <sstream>
+#include <optional>
 
 #include "magic_ptr.h"
 #include "fmt/format.h"
@@ -143,7 +144,11 @@ auto find(ContainerT<ValueT, Rest...> const & container, ValueT const & value) {
 template<class Container, class Callback>
 auto copy_if(Container const & container, Callback && callback) {
     Container result;
-    std::copy_if(begin(container), end(container), std::back_inserter(result), callback);
+    for(auto & element : container) {
+        if (callback(element)) {
+            result.insert(std::end(result), element);
+        }
+    }
     return result;
 };
 
@@ -257,9 +262,46 @@ ContainerT<std::result_of_t<Callable(ValueT)>> transform(ContainerT<ValueT, Rest
 
     ContainerT<std::result_of_t<Callable(ValueT)>> result;
 
-    std::transform(begin(container), end(container), std::back_inserter(result), callable);
+    std::transform(begin(container), end(container), std::inserter(std::end(result), result), callable);
 
     return result;
+}
+
+
+/**
+ * Given an input container of type Container<T> and a Callable returing std::optional<U>, returns
+ * a container Container<U> containing only the elements which weren't an empty std::optional.
+ * @return container of non-empty results from callable
+ */
+template<class ValueT, class... Rest, template<class, class...> class ContainerT, class Callable,
+    std::enable_if_t<is_template_for_v<std::optional, std::result_of_t<Callable(ValueT)>>, int> = 0>
+auto transform_if(ContainerT<ValueT, Rest...> const & container, Callable callable) {
+    using result_value_type = std::remove_reference_t<decltype(*callable(std::declval<ValueT>()))>;
+    ContainerT<result_value_type> result;
+    for (auto const & element : container) {
+        auto filter_result = callable(element);
+        if (filter_result) {
+            result.insert(std::end(result), *filter_result);
+        }
+    }
+
+    return result;
+}
+
+template<typename T>
+auto get_pointer(T && t) {
+    using NoRefT = std::remove_reference_t<T>;
+    if constexpr(std::is_pointer_v<NoRefT>) {
+        return t;
+    } else if constexpr(
+        is_template_for_v<std::unique_ptr, NoRefT> ||
+        is_template_for_v<std::shared_ptr, NoRefT>) {
+
+        return t.get();
+
+    } else {
+        return &t;
+    }
 }
 
 
@@ -373,26 +415,64 @@ auto eac(T t) {
 
 
 template<typename T>
-struct FilteredVector : public std::vector<T> {
+struct FilteredInsertIterator {
+    using value_type = typename T::value_type;
+    using filter_type = typename std::function<bool(value_type const &)>;
+    using iterator_type = typename T::iterator;
 
-    using VectorT = std::vector<T>;
-protected:
-    std::function<bool(T const &)> filter;
+private:
+
+    filter_type filter;
+    std::insert_iterator<T> insert_iterator;
 
 public:
-    using VectorT::size;
-    using VectorT::resize;
-    using VectorT::reserve;
-
-    FilteredVector(std::function<bool(T const &)> filter) : filter(filter)
+    FilteredInsertIterator(filter_type filter, T & c, typename T::iterator i) :
+            filter(std::move(filter)),
+            insert_iterator(std::inserter(c, i))
     {}
 
-    void push_back(T t) {
-        if (this->filter(t)) {
-           this->VectorT::push_back(t);
+    FilteredInsertIterator &
+    operator=(value_type const & value ) {
+        if (this->filter(value)) {
+            insert_iterator = value;
         }
+        return *this;
     }
+
+    FilteredInsertIterator &
+    operator=(value_type && value ) {
+        if (this->filter(value)) {
+            insert_iterator = std::move(value);
+        }
+        return *this;
+    }
+
+    FilteredInsertIterator & operator*() {
+        return *this;
+    }
+
+    FilteredInsertIterator & operator++() {
+        return *this;
+    }
+
+    FilteredInsertIterator & operator++( int ) {
+        return *this;
+    }
+
 };
+
+
+template<typename T>
+FilteredInsertIterator<T> filtered_inserter(
+    typename FilteredInsertIterator<T>::filter_type filter,
+    T & container,
+    typename T::iterator iterator) {
+    return FilteredInsertIterator<T>(std::move(filter), container, iterator);
+}
+
+
+
+
 
 
 /// same as forward_as_tuple but for pair
@@ -436,7 +516,7 @@ using remove_refs_and_wrapper_t = typename remove_refs_and_wrapper<T>::type;
 
 template<class T, class U>
 struct match_const_of {
-    using type = std::conditional_t<std::is_const_v<U>, const T, T>;
+    using type = std::conditional_t<std::is_const_v<std::remove_reference_t<U>>, const T, T>;
 };
 
 template<class T, class U>
@@ -499,6 +579,8 @@ constexpr bool is_std_array_v = is_std_array<T>::value;
 } // end namespace xl
 
 namespace std {
+
+
 inline namespace __1 {
 template<class T1, class T2>
 pair(T1 t1, T2 t) -> pair<T1, T2>;

@@ -391,6 +391,8 @@ struct DefaultProviders {
         using ContainerT = remove_refs_and_wrapper_t<T>;
         using ValueT = typename ContainerT::value_type;
 
+        using ConstMatchedValueT = match_const_of_t<ValueT, ContainerT>;
+
     private:
 
         // can be the container type or std::reference_wrapper of the container type
@@ -445,7 +447,11 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("provider iterator iterating through container of size {}", t.size());
             for (auto & element : t) {
 
-                auto p = Provider<make_reference_wrapper_t<match_const_of_t<remove_refs_and_wrapper_t<ValueT>, ContainerT>>>(std::ref(element));
+                auto p = Provider<make_reference_wrapper_t<
+                    match_const_of_t<
+                        remove_refs_and_wrapper_t<ValueT>,
+                        remove_reference_wrapper_t<decltype(element)> // use eleent not container because non-const std::set has const element
+                    >>>(std::ref(element));
 
                 if (needs_join_string) {
                     result << data.join_string;
@@ -538,6 +544,7 @@ struct DefaultProviders {
             } else {
                 XL_TEMPLATE_LOG("in map:");
                 for(auto const & [k,v] : map) {
+                    (void)v;
                     XL_TEMPLATE_LOG("key: {}", k);
                 }
                 std::string template_text = "<unknown template name>";
@@ -554,6 +561,7 @@ struct DefaultProviders {
 
             std::string result = fmt::format("Provider: map ({}) with keys:", (void*)this);
             for(auto const & [key, value] : map) {
+                (void)value;
                 result += " " + key;
             }
             return result;

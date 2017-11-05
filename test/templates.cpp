@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 #include <memory>
-
+#include <set>
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -524,4 +524,12 @@ TEST(template, EmptyContainerContingentContent) {
     auto result = Template("BEFORE\nX{{<VECTOR|!!\n{{DUMMY}}>}}Y\nAFTER").fill(pair("VECTOR", ref(v)));
 
     EXPECT_EQ(result, "BEFORE\nAFTER");
+}
+
+
+TEST(template, SetOfStrings) {
+    set<string> s;
+
+    auto result = Template("BEFORE\nX{{<VECTOR|!!\n{{DUMMY}}>}}Y\nAFTER").fill(pair("VECTOR", ref(s)));
+
 }

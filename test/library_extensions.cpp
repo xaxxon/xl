@@ -104,17 +104,52 @@ TEST(LibraryExtensions, contains) {
     EXPECT_FALSE(contains(std::map<int, bool>{{1, true}, {2, false}}, 3));
 }
 
+TEST(TransformIf, transform_if) {
+    vector<int> v {1,2,3,4,5};
 
-TEST(FilteredVector, filtered_vector) {
+    auto v2 = transform_if(v, [](int i)->std::optional<double>{if (i%2) return i + 0.5; else return {};});
+    static_assert(std::is_same_v<decltype(v2), vector<double>>);
 
-    FilteredVector<int> fv([](int i){return i%2;});
-    EXPECT_EQ(fv.size(), 0);
+    EXPECT_EQ(v2.size(), 3);
+    EXPECT_EQ(v2[0], 1.5);
+    EXPECT_EQ(v2[1], 3.5);
+    EXPECT_EQ(v2[2], 5.5);
+}
 
-    fv.push_back(1);
-    EXPECT_EQ(fv.size(), 1);
-    fv.push_back(2);
-    EXPECT_EQ(fv.size(), 1);
 
+TEST(FilteredContainer, filtered_vector) {
+
+    std::vector<int> v;
+    auto fi = filtered_inserter([](int i){return i%2;}, v, std::end(v));
+    EXPECT_EQ(v.size(), 0);
+
+    fi = 1;
+    EXPECT_EQ(v.size(), 1);
+    fi = 2;
+    EXPECT_EQ(v.size(), 1);
+}
+
+TEST(FilteredContainer, filtered_set) {
+
+    std::set<int> s;
+    auto fi = filtered_inserter([](int i){return i%2;}, s, std::end(s));
+    EXPECT_EQ(s.size(), 0);
+
+    fi = 1;
+    EXPECT_EQ(s.size(), 1);
+    fi = 2;
+    EXPECT_EQ(s.size(), 1);
+}
+
+TEST(FilteredContainer, filtered_map) {
+    std::map<string, int> m;
+    auto fi = filtered_inserter([](pair<string, int> i){return i.second%2;}, m, std::end(m));
+    EXPECT_EQ(m.size(), 0);
+
+    fi = pair("a", 1);
+    EXPECT_EQ(m.size(), 1);
+    fi = pair("b", 2);
+    EXPECT_EQ(m.size(), 1);
 }
 
 TEST(is_template_for, is_template_for) {
@@ -162,6 +197,7 @@ static_assert(std::is_same_v<remove_reference_wrapper_t<std::reference_wrapper<i
 static_assert(std::is_same_v<remove_reference_wrapper_t<std::reference_wrapper<int const> const>, int const>);
 static_assert(std::is_same_v<remove_reference_wrapper_t<std::reference_wrapper<int const>>, int const>);
 static_assert(std::is_same_v<remove_reference_wrapper_t<int>, int>);
+static_assert(std::is_same_v<remove_reference_wrapper_t<int const>, int const>);
 static_assert(std::is_same_v<remove_refs_and_wrapper_t<std::reference_wrapper<int>&>, int>);
 static_assert(std::is_same_v<remove_refs_and_wrapper_t<int&>, int>);
 static_assert(std::is_same_v<remove_refs_and_wrapper_t<std::reference_wrapper<int>>, int>);

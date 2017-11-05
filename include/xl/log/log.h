@@ -63,7 +63,6 @@ private:
     //   so in that case, just populate from the file
     std::string filename;
     std::chrono::time_point<file_clock_type> last_file_change_check_time;
-    char * timestamp; // what type to make this?
     std::experimental::filesystem::path status_file;
     file_clock_type::time_point last_seen_write_time_for_status_file;
 
@@ -280,6 +279,20 @@ private:
     }
 
 public:
+    
+    std::string get_status_string() {
+        std::stringstream status;
+
+        for(size_t i = 0; i < (size_t)LevelsT::Levels::LOG_LAST_LEVEL; i++) {
+            auto level = (typename LevelsT::Levels)i;
+            status << fmt::format("{}: {}", LevelsT::get_level_name(level), (bool)get_level_status(level));
+        }
+        for(size_t i = 0; i < (size_t)SubjectsT::Subjects::LOG_LAST_SUBJECT; i++) {
+            auto subject = (typename SubjectsT::Subjects)i;
+            status << fmt::format("{}: {}", SubjectsT::get_subject_name(subject), (bool)get_subject_status(subject));
+        }
+        return status.str();
+    }
 
     bool set_level_status(typename Levels::Levels level, bool new_status) {
 //        std::cerr << fmt::format("setting {} to {}", (int)level, new_status) << std::endl;
