@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "test-templates.h"
+#include "templates.h"
 #include "library_extensions.h"
 
 using namespace xl::templates;

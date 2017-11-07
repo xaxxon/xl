@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "test-templates.h"
+#include "templates.h"
 
 
 
