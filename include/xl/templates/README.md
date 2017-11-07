@@ -106,6 +106,51 @@ for a vector with 3 elements will generate
 
 `inline template join string inline template join string inline template`
     
+    
+### Join String
+When performing multiple replacements, a `join string` may be specified.  This
+string will be placed between each replacement.
+
+To put `, ` between each replacement
+
+    {{container%, |!{{value}}}}
+               ^
+
+The join string may be specified to be a leading join string by prefixing a 
+second `%` before it.
+
+To put `, ` before the first replacement and between each subsequent replacement:
+
+    {{container%%, |!{{value}}}}
+               ^^
+
+### Ignore leading/trailing template if replacement is empty
+
+If the replacement string is empty, the leading, trailing, or both parts of the
+same line may be ignored as well.
+
+Assuming name is empty, everything until after the subsitution will be ignored
+
+    this will be ignored {{<name}} this will NOT be ignored
+                           ^ 
+      
+    this will NOT be ignored {{name>}} this will be ignored
+                                   ^
+                                   
+    this will be ignored {{<name>}} this will be ignored
+                           ^    ^
+   
+For a more complicated replacement, the `<` and `>` always go at the very
+beginning and end of the substitution:
+
+    {{<name%, |!inline template>}}
+      ^                        ^
+      
+Lines above and below the replacement aren't ignored.  
+
+For multiple substitutions on the same line, a `>` on the preceding substitution
+will be prioritized over `<` on a subsequent substitution on the same line.  
+
    
 
 ### Performance

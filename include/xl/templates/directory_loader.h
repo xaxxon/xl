@@ -6,7 +6,7 @@
 
 #include <experimental/filesystem>
 
-#include "template.h"
+#include "templates.h"
 
 
 namespace xl::templates {

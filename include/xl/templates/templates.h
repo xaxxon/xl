@@ -188,6 +188,7 @@ void Template::compile() const {
     // Development and testing of this regex can be done at regex101.com
     static xl::RegexPcre r(R"(
 
+
 (?(DEFINE)(?<NotEmptyAssertion>(?=(?:.|\n))))
 (?(DEFINE)(?<OpenDelimiterHead>\{))
 (?(DEFINE)(?<CloseDelimiterHead>\}))
@@ -219,7 +220,7 @@ void Template::compile() const {
     (?:(?<SubstitutionName>(?:\\\}|\\\{|[^|%>]|>(?!}}))*?)\s*(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||\%|>|$))
 
     # Join string, starting with %, if specified
-    (?:(?<JoinStringMarker>%)(?<JoinString>(?:\\\||>(?!}})|[^|>])*))?
+    (?:(?<JoinStringMarker>%)(?<LeadingJoinStringMarker>%?)(?<JoinString>(?:\\\||>(?!}})|[^|>])*))?
 
     # Everything after the | before the }}
     (?:[|]
@@ -341,6 +342,11 @@ void Template::compile() const {
         if (matches.length("JoinStringMarker")) {
             data.join_string = matches["JoinString"];
         }
+
+        if (matches.length("LeadingJoinStringMarker")) {
+            data.leading_join_string = true;
+        }
+
 
         if (!matches.has("InlineTemplateMarker")) {
             data.parameters = matches["SubstitutionData"];

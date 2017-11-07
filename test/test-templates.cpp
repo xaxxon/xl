@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "templates.h"
+#include "test-templates.h"
 #include "library_extensions.h"
 
 using namespace xl::templates;
@@ -208,6 +208,15 @@ TEST(template, VectorCallbackTemplate) {
     "replace: {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
 }
 
+
+
+TEST(template, LeadingJoinString) {
+    TemplateMap templates{std::pair{"A1", Template("{i: {{I}} j: {{J}}}")},
+                          std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
+
+    EXPECT_EQ(Template("replace: {{TEST1%%, |A1}}").fill(make_provider(std::pair{"TEST1", make_provider(vector_object_callback)}), templates),
+              "replace: , {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
+}
 
 
 
@@ -533,3 +542,6 @@ TEST(template, SetOfStrings) {
     auto result = Template("BEFORE\nX{{<VECTOR|!!\n{{DUMMY}}>}}Y\nAFTER").fill(pair("VECTOR", ref(s)));
 
 }
+
+
+

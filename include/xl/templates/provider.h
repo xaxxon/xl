@@ -9,7 +9,7 @@
 #include "../demangle.h"
 
 #include "exceptions.h"
-#include "template.h"
+#include "templates.h"
 #include "provider_data.h"
 
 
@@ -441,7 +441,9 @@ struct DefaultProviders {
                 }
             }();
 
-            bool needs_join_string = false;
+            // whether the current replacement should have the join string before it
+            //   off initially unless leading join string is specified
+            bool needs_join_string = data.leading_join_string;
 
             // Iterate through the container
             XL_TEMPLATE_LOG("provider iterator iterating through container of size {}", t.size());

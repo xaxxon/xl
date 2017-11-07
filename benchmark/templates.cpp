@@ -4,7 +4,7 @@
 #include <sstream>
 #include <benchmark/benchmark.h>
 
-#include "templates.h"
+#include "test-templates.h"
 
 using namespace xl;
 using namespace xl::templates;

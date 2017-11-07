@@ -40,6 +40,9 @@ struct ProviderData {
     /// if true, then if the replcaement is the empty string, the replacement will act like it never existed
     bool ignore_empty_replacements = false;
 
+    /// if true, the join string will be placed in front of the first element of multiple replacements
+    bool leading_join_string = false;
+
     /// an inline template, if specified
     std::optional<Template> inline_template;
 
