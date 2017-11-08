@@ -313,10 +313,10 @@ public:
     using CallbackT = std::function<void(LogMessage const & message)>;
 
     // if false, logs of this level will be ignored
-    std::vector<char> level_status;
+    std::vector<bool> level_status;
 
     // if false, logs for this subject will be ignored
-    std::vector<char> subject_status;
+    std::vector<bool> subject_status;
 
     std::unique_ptr<LogStatusFile> log_status_file;
 
