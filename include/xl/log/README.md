@@ -56,6 +56,12 @@ Custom levels are the same as subjects, just change everything from subject to
 level.
 
 
+### GUI Level and Subject Status Manager
+
+in `log_gui/` there is a small GUI application for real-time managing which levels and subjects are enabled/disable.d
+Compile with QT Creator and run it with the status file name as a parameter and then click the checkboxes for levels
+and subjects to control logging in real time.
+
 
 ### Not supported but would be cool
 
