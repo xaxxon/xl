@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include "QTimer"
+#include "QLabel"
 #include "QListWidgetItem"
 
 namespace xl {
@@ -30,6 +31,9 @@ private:
     void update_combined_checkboxes();
 
     void initialize_from_status_file();
+
+    QLabel * filename_label;
+
 private slots:
     void on_subjectList_itemChanged(QListWidgetItem * item);
     void on_levelList_itemChanged(QListWidgetItem * item);
@@ -38,6 +42,8 @@ private slots:
     void on_allSubjects_stateChanged(int i);
 
     void check_status_file_for_updates();
+
+    void on_action_Open_triggered();
 };
 
 #endif // MAINWINDOW_H

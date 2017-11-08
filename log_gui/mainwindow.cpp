@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include <qfiledialog.h>
+
 #define XL_USE_PCRE
 #include <xl/regex/regexer.h>
 
@@ -66,7 +68,8 @@ MainWindow::MainWindow(QString filename, QWidget *parent) :
 {
     ui->setupUi(this);
 
-    this->ui->statusBar->addPermanentWidget(new QLabel(this->filename));
+    this->filename_label = new QLabel(filename);
+    this->ui->statusBar->addPermanentWidget(this->filename_label);
 
     this->status_file = new xl::LogStatusFile(this->filename.toStdString());
 
@@ -164,5 +167,32 @@ void MainWindow::on_allSubjects_stateChanged(int i) {
     this->initialize_from_status_file();
     this->status_file->write();
 }
+
+
+
+void MainWindow::on_action_Open_triggered()
+{
+    this->filename = QFileDialog::getOpenFileName(this,
+        tr("Open Status File"), ".", tr("Image Files (*.log_status)")
+    );
+//    this->statusBar()->showMessage(filename);
+    this->filename_label->setText(this->filename);
+    this->status_file = new xl::LogStatusFile(filename.toStdString());
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
