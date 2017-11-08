@@ -150,29 +150,20 @@ TEST(log, MultipleCallbacks) {
 
 
 
-class CustomSubjects {
+struct CustomSubjects {
 
     static inline std::string subject_names[] = {"CustomSubject1", "CustomSubject2", "CustomSubject3"};
-
-public:
     enum class Subjects {CustomSubject1, CustomSubject2, CustomSubject3, LOG_LAST_SUBJECT};
-
-    static std::string const & get_subject_name(Subjects subject) {
-        return CustomSubjects::subject_names[static_cast<std::underlying_type_t<Subjects>>(subject)];
-    }
 };
 
-class CustomLevels {
+
+
+struct CustomLevels {
 
     inline static std::string level_names[] = {"info", "warn"};
-
-public:
     enum class Levels {Info, Warn, LOG_LAST_LEVEL};
-
-    static std::string const & get_level_name(Levels level) {
-        return CustomLevels::level_names[static_cast<std::underlying_type_t<Levels>>(level)];
-    }
 };
+
 
 
 TEST(log, CustomLog) {
@@ -203,6 +194,59 @@ TEST(log, CustomLog) {
     const char *c = "str";
     my_stringstream << c << s;
 }
+
+
+TEST(log, SubjectAndLevelIteration) {
+    using LogT = xl::Log<CustomLevels, CustomSubjects>;
+    int call_count = 0;
+    LogT log;
+
+    for(auto i : log.subjects()) {
+        EXPECT_TRUE(log.get_subject_status(i));
+    }
+    for(auto i : log.levels()) {
+        EXPECT_TRUE(log.get_level_status(i));
+    }
+
+    log.set_level_status(CustomLevels::Levels::Info, false);
+    log.set_level_status(CustomLevels::Levels::Warn, false);
+
+    for(auto i : log.levels()) {
+        EXPECT_FALSE(log.get_level_status(i));
+    }
+
+    log.set_subject_status(CustomSubjects::Subjects::CustomSubject1, false);
+    log.set_subject_status(CustomSubjects::Subjects::CustomSubject2, false);
+    log.set_subject_status(CustomSubjects::Subjects::CustomSubject3, false);
+
+
+    for(auto i : log.subjects()) {
+        EXPECT_FALSE(log.get_subject_status(i));
+    }
+}
+
+
+TEST(log, SubjectStatusSaveAndRestore) {
+    using LogT = xl::Log<CustomLevels, CustomSubjects>;
+    LogT log;
+
+    log.set_level_status(CustomLevels::Levels::Warn, false);
+    log.set_subject_status(CustomSubjects::Subjects::CustomSubject2, false);
+
+    EXPECT_TRUE(log.get_subject_status(CustomSubjects::Subjects::CustomSubject1));
+    EXPECT_FALSE(log.get_subject_status(CustomSubjects::Subjects::CustomSubject2));
+
+    auto subject_backup = log.get_status_of_subjects();
+
+    log.set_all_subjects(true);
+    for(auto i : log.subjects()) {
+        EXPECT_TRUE(log.get_subject_status(i));
+    }
+
+    log.set_status_of_subjects(std::move(subject_backup));
+    EXPECT_FALSE(log.get_subject_status(CustomSubjects::Subjects::CustomSubject2));
+}
+
 
 TEST(log, OstreamCallbackHelper) {
     using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
@@ -281,8 +325,6 @@ TEST(log, LogStatusFile) {
     int before_count = log_count;
     log.warn(LogT::Subjects::Subjects::Default, "This should not be filtered");
     EXPECT_EQ(log_count, before_count+1);
-
-
 }
 
 

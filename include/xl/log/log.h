@@ -21,32 +21,92 @@ namespace xl {
 namespace log {
 
 
-class DefaultLevels {
+template<class T>
+class EnumIterator {
+    using underlying_type = std::underlying_type_t<T>;
+    underlying_type value = 0;
+
+public:
+
+    EnumIterator() : value(0)
+    {}
+
+
+    EnumIterator(T t) : value(static_cast<underlying_type>(t))
+    {}
+
+
+    bool operator!=(EnumIterator<T> const & other) {
+        return this->value != other.value;
+    }
+
+    auto operator*() const {
+        //return static_cast<underlying_type>(value);
+        return static_cast<T>(value);
+    }
+
+    auto operator++() {
+        value++;
+        return *this;
+    }
+};
+
+
+template<class T>
+struct LogLevelsBase {
+
+    using Levels = typename T::Levels;
+    EnumIterator<typename T::Levels> begin() {
+        return EnumIterator<typename T::Levels>();
+    }
+    EnumIterator<typename T::Levels> end(){
+        return EnumIterator<typename T::Levels>(T::Levels::LOG_LAST_LEVEL);
+    }
+
+    static std::string const & get_level_name(typename T::Levels level) {
+        return T::level_names[static_cast<std::underlying_type_t<typename T::Levels>>(level)];
+    }
+};
+
+
+template<class T>
+struct LogSubjectsBase {
+
+    using Subjects = typename T::Subjects;
+    EnumIterator<typename T::Subjects> begin() const {
+        return EnumIterator<typename T::Subjects>();
+    }
+    typename T::Subjects end() const {
+        return T::Subjects::LOG_LAST_SUBJECT;
+    }
+
+    static std::string const & get_subject_name(typename T::Subjects subject) {
+        return T::subject_names[static_cast<std::underlying_type_t<typename T::Subjects>>(subject)];
+    }
+};
+
+
+
+struct DefaultLevels  {
     inline static std::string level_names[] = {"info", "warn", "error"};
 
 public:
     enum class Levels {
         Info, Warn, Error, LOG_LAST_LEVEL
     };
-
-    static std::string const & get_level_name(Levels level) {
-        return level_names[static_cast<std::underlying_type_t<Levels>>(level)];
-    }
 };
 
 
-class DefaultSubjects {
+
+struct DefaultSubjects {
     inline static std::string subject_names[] = {"default"};
 
 public:
     enum class Subjects {
         Default, LOG_LAST_SUBJECT
     };
-
-    static std::string const & get_subject_name(Subjects subject) {
-        return subject_names[static_cast<std::underlying_type_t<Subjects>>(subject)];
-    }
 };
+
 
 } // end namespace log
 // back in namespace xl
@@ -71,6 +131,7 @@ public:
     std::vector<std::pair<std::string, bool>> level_names;
     std::vector<std::pair<std::string, bool>> subject_names;
 
+
     template<typename LevelsT, typename SubjectsT>
     LogStatusFile(Log<LevelsT, SubjectsT> const & log, std::string filename, bool force_reset) :
         LogStatusFile(filename)
@@ -90,13 +151,13 @@ public:
         this->level_names.clear();
         for(size_t i = 0; i < (size_t)LevelsT::Levels::LOG_LAST_LEVEL; i++) {
             typename LevelsT::Levels level = static_cast<typename LevelsT::Levels>(i);
-            this->level_names.emplace_back(std::pair(LevelsT::get_level_name(level), log.get_level_status(level)));
+            this->level_names.emplace_back(std::pair(log.get_level_name(level), log.get_level_status(level)));
         }
 
         this->subject_names.clear();
         for(size_t i = 0; i < (size_t)SubjectsT::Subjects::LOG_LAST_SUBJECT; i++) {
             typename SubjectsT::Subjects subject = static_cast<typename SubjectsT::Subjects>(i);
-            this->subject_names.emplace_back(std::pair(SubjectsT::get_subject_name(subject), log.get_subject_status(subject)));
+            this->subject_names.emplace_back(std::pair(log.get_subject_name(subject), log.get_subject_status(subject)));
         }
     }
 
@@ -221,8 +282,18 @@ class Log {
     static_assert((size_t)SubjectsT::Subjects::LOG_LAST_SUBJECT >= 0, "Subjects enumeration must have LOG_LAST_SUBJECT as its final entry");
 public:
 
-    using Levels = LevelsT;
-    using Subjects = SubjectsT;
+    using Levels = log::LogLevelsBase<LevelsT>;
+    using Subjects = log::LogSubjectsBase<SubjectsT>;
+
+
+    auto subjects() const {
+        return Subjects();
+    }
+
+    auto levels() const {
+        return Levels();
+    }
+
 
     struct LogMessage {
         Log & log;
@@ -455,6 +526,28 @@ public:
 
     std::string const & get_level_name(typename Levels::Levels level) const {
         return Levels::get_level_name(level);
+    }
+
+    auto get_status_of_levels() const {
+        return this->level_status;
+    }
+
+    auto get_status_of_subjects() const {
+        return this->subject_status;
+    }
+
+    void set_status_of_levels(decltype(Log::level_status) status_of_levels) {
+        this->level_status = std::move(status_of_levels);
+        if (this->log_status_file) {
+            this->log_status_file->write();
+        }
+    }
+
+    void set_status_of_subjects(decltype(Log::subject_status) status_of_subjects) {
+        this->subject_status = std::move(status_of_subjects);
+        if (this->log_status_file) {
+            this->log_status_file->write();
+        }
     }
 
 
