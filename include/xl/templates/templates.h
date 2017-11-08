@@ -12,7 +12,7 @@
 #include <fmt/ostream.h>
 
 #include "../regex/regexer.h"
-#include "log.h"
+#include "../log.h"
 #include "../library_extensions.h"
 
 

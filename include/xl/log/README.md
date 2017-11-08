@@ -35,6 +35,28 @@ still running or the next time the program begins.
 
 *Note*: there is currently no locking on this file, so there may be issues when multiple things try to change it at once.
 
+
+### Custom Subjects and Levels
+    
+Here is an example of how to make custom subjects:
+    
+    struct MyCustomSubjects {
+        inline static std::string subject_names[] = {
+            "subject 1", "subject 2"
+        };
+    
+        enum Subjects {
+            Subject1, Subject2, 
+            LOG_LAST_SUBJECT
+        };
+    };
+    
+
+Custom levels are the same as subjects, just change everything from subject to 
+level.
+
+
+
 ### Not supported but would be cool
 
 * Logging a message with a combination of subjects
