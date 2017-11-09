@@ -9,7 +9,6 @@ LogElementListModel::LogElementListModel(std::vector<std::pair<std::string, bool
 }
 
 
-
 void LogElementListModel::data_changed() {
   this->beginResetModel(); this->endResetModel();
 
@@ -45,10 +44,14 @@ void LogStatusFileGuiWrapper::open_filename(QString filename) {
 }
 
 
-LogStatusFileGuiWrapper::LogStatusFileGuiWrapper(QString filename, QListView * levelList, QListView * subjectList) :
+LogStatusFileGuiWrapper::LogStatusFileGuiWrapper(QString filename, 
+                                                 QListView * levelList, QCheckBox * allLevels, 
+                                                 QListView * subjectList, QCheckBox * allSubjects) :
     status_file(std::make_unique<xl::LogStatusFile>(filename.toStdString())),
     levelList(levelList),
+    allLevels(allLevels),
     subjectList(subjectList),
+    allSubjects(allSubjects),
     level_model(status_file->level_names),
     subject_model(status_file->subject_names)
 {
@@ -60,15 +63,41 @@ LogStatusFileGuiWrapper::LogStatusFileGuiWrapper(QString filename, QListView * l
         status_file->write();
         this->level_model.data_changed();
     });
+    allLevels->connect(allLevels, &QCheckBox::toggled, [this](bool checked){
+        for (auto & [name, status] : this->status_file->level_names) {
+            status = checked;
+        }
+        status_file->write();
+        this->level_model.data_changed();
+    });
+
     subjectList->connect(subjectList, &QListView::pressed, [this](const QModelIndex &index){
         status_file->subject_names[index.row()].second = !status_file->subject_names[index.row()].second;
         status_file->write();
         this->subject_model.data_changed();
     });
+    
+    allSubjects->connect(allSubjects, &QCheckBox::toggled, [this](bool checked){
+        for (auto & [name, status] : this->status_file->subject_names) {
+            status = checked;
+        }
+        status_file->write();
+        this->subject_model.data_changed();
+
+    });
+    this->timer.connect(&this->timer, &QTimer::timeout, [this]{
+        std::cerr << fmt::format("checking status file:") ;
+        if (this->status_file->check()) {
+            std::cerr << fmt::format("changed") << std::endl;
+            this->subject_model.data_changed();
+            this->level_model.data_changed();
+        } else {
+            std::cerr << fmt::format("not changed") << std::endl;
+        }
+    });
+    this->timer.start(1000);
 
 }
-
-
 
 
 

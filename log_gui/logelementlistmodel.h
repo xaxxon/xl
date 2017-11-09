@@ -3,6 +3,9 @@
 #include <memory>
 #include "QAbstractListModel"
 #include "QListView"
+#include "QCheckBox"
+#include "QTimer"
+
 
 #define XL_USE_PCRE
 #include <xl/regex/regexer.h>
@@ -38,13 +41,19 @@ class LogStatusFileGuiWrapper
 private:
     std::unique_ptr<xl::LogStatusFile> status_file;
     QListView * levelList;
+    QCheckBox * allLevels;
     QListView * subjectList;
+    QCheckBox * allSubjects;
 
     LogElementListModel level_model;
     LogElementListModel subject_model;
 
+    QTimer timer;
+
+
+
 public:
-    LogStatusFileGuiWrapper(QString filename, QListView * levelList, QListView * subjectList);
+    LogStatusFileGuiWrapper(QString filename, QListView * levelList, QCheckBox * allLevels, QListView * subjectList, QCheckBox * allSubjects);
     void open_filename(QString filename);
 
 

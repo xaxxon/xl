@@ -70,7 +70,9 @@ MainWindow::MainWindow(QString input_filename, QWidget *parent) :
     ui->setupUi(this);
 
     log_status_file_gui_wrapper =
-            std::make_unique<LogStatusFileGuiWrapper>(this->filename, this->ui->levelList, this->ui->subjectList);
+            std::make_unique<LogStatusFileGuiWrapper>(this->filename,
+                                                      this->ui->levelList, this->ui->allLevels,
+                                                      this->ui->subjectList, this->ui->allSubjects);
 
 
     this->filename_label = new QLabel(this->filename);
@@ -80,8 +82,6 @@ MainWindow::MainWindow(QString input_filename, QWidget *parent) :
     initialize_from_status_file();
     this->update_combined_checkboxes();
 
-    connect(&this->timer, SIGNAL(timeout()), this, SLOT(check_status_file_for_updates()));
-    this->timer.start(1000);
 }
 
 
@@ -91,88 +91,6 @@ MainWindow::~MainWindow()
 }
 
 
-void MainWindow::on_levelList_itemChanged(QListWidgetItem * item) {
-
-//    for(auto & [name, status] : this->status_file->level_names) {
-//        if (name != item->text().toStdString()) {
-//            continue;
-//        }
-//        status = item->checkState() == Qt::CheckState::Checked;
-//    }
-//    status_file->write();
-//    this->ui->statusBar->showMessage("Saved configuration");
-
-//    QSignalBlocker(this);
-//    update_combined_checkboxes();
-
-}
-
-
-void MainWindow::on_subjectList_itemChanged(QListWidgetItem * item) {
-//    for(auto & [name, status] : this->status_file->subject_names) {
-//        if (name != item->text().toStdString()) {
-//            continue;
-//        }
-//        status = item->checkState() == Qt::CheckState::Checked;
-//    }
-
-//    status_file->write();
-//    this->ui->statusBar->showMessage("Saved configuration");
-
-//    QSignalBlocker(this);
-//    update_combined_checkboxes();
-
-}
-
-void MainWindow::check_status_file_for_updates() {
-//    static int count = 0;
-////    this->ui->statusBar->showMessage(QString("checking: %1").arg(std::to_string(count++).c_str()));
-
-//    if (this->status_file->check()) {
-//        this->initialize_from_status_file();
-//    }
-}
-
-void MainWindow::on_allLevels_stateChanged(int i) {
-//    if (i != Qt::CheckState::PartiallyChecked) {
-//        this->ui->allLevels->setTristate(false);
-//    }
-//    bool const new_status = [&]{
-//    if (i == Qt::CheckState::Checked) {
-//        return true;
-//    } else if (i == Qt::CheckState::Unchecked) {
-//        return false;
-//    } else {
-//        return false;
-//    }
-//    }();
-//    for(auto & [name, status] : this->status_file->level_names) {
-//        status = new_status;
-//    }
-//    this->initialize_from_status_file();
-//    this->status_file->write();
-}
-
-
-void MainWindow::on_allSubjects_stateChanged(int i) {
-//    if (i != Qt::CheckState::PartiallyChecked) {
-//        this->ui->allSubjects->setTristate(false);
-//    }
-
-//    bool const new_status = [&]{
-//    if (i == Qt::CheckState::Checked) {
-//        return true;
-//    } else if (i == Qt::CheckState::Unchecked) {
-//        return false;
-//    } else {
-//        return false;
-//    }}();
-//    for(auto & [name, status] : this->status_file->subject_names) {
-//        status = new_status;
-//    }
-//    this->initialize_from_status_file();
-//    this->status_file->write();
-}
 
 
 void MainWindow::on_action_Open_triggered()
