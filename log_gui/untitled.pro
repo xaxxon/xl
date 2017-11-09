@@ -28,10 +28,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         main.cpp \
-        mainwindow.cpp
+        mainwindow.cpp \
+    logelementlistmodel.cpp
 
 HEADERS += \
-        mainwindow.h
+        mainwindow.h \
+    logelementlistmodel.h
 
 FORMS += \
         mainwindow.ui

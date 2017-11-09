@@ -3,8 +3,6 @@
 
 #include <qfiledialog.h>
 
-#define XL_USE_PCRE
-#include <xl/regex/regexer.h>
 
 #include <xl/log.h>
 using namespace xl::log;
@@ -33,45 +31,51 @@ int are_all_boxes_checked(QListWidget const & list_widget) {
     return all_checked;
 }
 
+
 void MainWindow::initialize_from_status_file() {
-    this->ui->subjectList->clear();
-    this->ui->levelList->clear();
+//    this->ui->subjectList->clear();
+//    this->ui->levelList->clear();
 
-    for(auto const & [name, status] : status_file->level_names) {
-        auto item = new QListWidgetItem(name.c_str());
-        item->setCheckState(status ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
-        ui->levelList->addItem(item);
-    }
+//    for(auto const & [name, status] : status_file->level_names) {
+//        auto item = new QListWidgetItem(name.c_str());
+//        item->setCheckState(status ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
+//        ui->levelList->addItem(item);
+//    }
 
-    for(auto const & [name, status] : status_file->subject_names) {
-        auto item = new QListWidgetItem(name.c_str());
-        item->setCheckState(status ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
-        ui->subjectList->addItem(item);
-    }
+//    for(auto const & [name, status] : status_file->subject_names) {
+//        auto item = new QListWidgetItem(name.c_str());
+//        item->setCheckState(status ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
+//        ui->subjectList->addItem(item);
+//    }
 }
+
 
 void MainWindow::update_combined_checkboxes() {
-    QSignalBlocker sb(this->ui->allSubjects);
-    auto subject_result = are_all_boxes_checked(*this->ui->subjectList);
-    this->ui->allSubjects->setCheckState((Qt::CheckState)subject_result);
+//    QSignalBlocker sb(this->ui->allSubjects);
+//    auto subject_result = are_all_boxes_checked(*this->ui->subjectList);
+//    this->ui->allSubjects->setCheckState((Qt::CheckState)subject_result);
 
-    QSignalBlocker sb2(this->ui->allLevels);
-    auto level_result = are_all_boxes_checked(*this->ui->levelList);
-    this->ui->allLevels->setCheckState((Qt::CheckState)level_result);
+//    QSignalBlocker sb2(this->ui->allLevels);
+//    auto level_result = are_all_boxes_checked(*this->ui->levelList);
+//    this->ui->allLevels->setCheckState((Qt::CheckState)level_result);
 }
 
-MainWindow::MainWindow(QString filename, QWidget *parent) :
-    filename(std::move(filename)),
+
+MainWindow::MainWindow(QString input_filename, QWidget *parent) :
+    filename(std::move(input_filename)),
     timer(this),
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
 
-    this->filename_label = new QLabel(filename);
+    log_status_file_gui_wrapper =
+            std::make_unique<LogStatusFileGuiWrapper>(this->filename, this->ui->levelList, this->ui->subjectList);
+
+
+    this->filename_label = new QLabel(this->filename);
     this->ui->statusBar->addPermanentWidget(this->filename_label);
 
-    this->status_file = new xl::LogStatusFile(this->filename.toStdString());
 
     initialize_from_status_file();
     this->update_combined_checkboxes();
@@ -80,104 +84,105 @@ MainWindow::MainWindow(QString filename, QWidget *parent) :
     this->timer.start(1000);
 }
 
+
 MainWindow::~MainWindow()
 {
     delete ui;
 }
 
+
 void MainWindow::on_levelList_itemChanged(QListWidgetItem * item) {
 
-    for(auto & [name, status] : this->status_file->level_names) {
-        if (name != item->text().toStdString()) {
-            continue;
-        }
-        status = item->checkState() == Qt::CheckState::Checked;
-    }
-    status_file->write();
-    this->ui->statusBar->showMessage("Saved configuration");
+//    for(auto & [name, status] : this->status_file->level_names) {
+//        if (name != item->text().toStdString()) {
+//            continue;
+//        }
+//        status = item->checkState() == Qt::CheckState::Checked;
+//    }
+//    status_file->write();
+//    this->ui->statusBar->showMessage("Saved configuration");
 
-    QSignalBlocker(this);
-    update_combined_checkboxes();
+//    QSignalBlocker(this);
+//    update_combined_checkboxes();
 
 }
 
 
 void MainWindow::on_subjectList_itemChanged(QListWidgetItem * item) {
-    for(auto & [name, status] : this->status_file->subject_names) {
-        if (name != item->text().toStdString()) {
-            continue;
-        }
-        status = item->checkState() == Qt::CheckState::Checked;
-    }
+//    for(auto & [name, status] : this->status_file->subject_names) {
+//        if (name != item->text().toStdString()) {
+//            continue;
+//        }
+//        status = item->checkState() == Qt::CheckState::Checked;
+//    }
 
-    status_file->write();
-    this->ui->statusBar->showMessage("Saved configuration");
+//    status_file->write();
+//    this->ui->statusBar->showMessage("Saved configuration");
 
-    QSignalBlocker(this);
-    update_combined_checkboxes();
+//    QSignalBlocker(this);
+//    update_combined_checkboxes();
 
 }
 
 void MainWindow::check_status_file_for_updates() {
-    static int count = 0;
-//    this->ui->statusBar->showMessage(QString("checking: %1").arg(std::to_string(count++).c_str()));
+//    static int count = 0;
+////    this->ui->statusBar->showMessage(QString("checking: %1").arg(std::to_string(count++).c_str()));
 
-    if (this->status_file->check()) {
-        this->initialize_from_status_file();
-    }
+//    if (this->status_file->check()) {
+//        this->initialize_from_status_file();
+//    }
 }
 
 void MainWindow::on_allLevels_stateChanged(int i) {
-    if (i != Qt::CheckState::PartiallyChecked) {
-        this->ui->allLevels->setTristate(false);
-    }
-    bool const new_status = [&]{
-    if (i == Qt::CheckState::Checked) {
-        return true;
-    } else if (i == Qt::CheckState::Unchecked) {
-        return false;
-    } else {
-        return false;
-    }
-    }();
-    for(auto & [name, status] : this->status_file->level_names) {
-        status = new_status;
-    }
-    this->initialize_from_status_file();
-    this->status_file->write();
+//    if (i != Qt::CheckState::PartiallyChecked) {
+//        this->ui->allLevels->setTristate(false);
+//    }
+//    bool const new_status = [&]{
+//    if (i == Qt::CheckState::Checked) {
+//        return true;
+//    } else if (i == Qt::CheckState::Unchecked) {
+//        return false;
+//    } else {
+//        return false;
+//    }
+//    }();
+//    for(auto & [name, status] : this->status_file->level_names) {
+//        status = new_status;
+//    }
+//    this->initialize_from_status_file();
+//    this->status_file->write();
 }
 
 
 void MainWindow::on_allSubjects_stateChanged(int i) {
-    if (i != Qt::CheckState::PartiallyChecked) {
-        this->ui->allSubjects->setTristate(false);
-    }
+//    if (i != Qt::CheckState::PartiallyChecked) {
+//        this->ui->allSubjects->setTristate(false);
+//    }
 
-    bool const new_status = [&]{
-    if (i == Qt::CheckState::Checked) {
-        return true;
-    } else if (i == Qt::CheckState::Unchecked) {
-        return false;
-    } else {
-        return false;
-    }}();
-    for(auto & [name, status] : this->status_file->subject_names) {
-        status = new_status;
-    }
-    this->initialize_from_status_file();
-    this->status_file->write();
+//    bool const new_status = [&]{
+//    if (i == Qt::CheckState::Checked) {
+//        return true;
+//    } else if (i == Qt::CheckState::Unchecked) {
+//        return false;
+//    } else {
+//        return false;
+//    }}();
+//    for(auto & [name, status] : this->status_file->subject_names) {
+//        status = new_status;
+//    }
+//    this->initialize_from_status_file();
+//    this->status_file->write();
 }
-
 
 
 void MainWindow::on_action_Open_triggered()
 {
-    this->filename = QFileDialog::getOpenFileName(this,
-        tr("Open Status File"), ".", tr("Image Files (*.log_status)")
-    );
-//    this->statusBar()->showMessage(filename);
-    this->filename_label->setText(this->filename);
-    this->status_file = new xl::LogStatusFile(filename.toStdString());
+//    this->filename = QFileDialog::getOpenFileName(this,
+//        tr("Open Status File"), ".", tr("Image Files (*.log_status)")
+//    );
+////    this->statusBar()->showMessage(filename);
+//    this->filename_label->setText(this->filename);
+//    this->status_file = new xl::LogStatusFile(filename.toStdString());
 }
 
 

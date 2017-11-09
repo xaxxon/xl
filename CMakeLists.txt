@@ -26,6 +26,7 @@ target_link_libraries(xl INTERFACE pcre)
 
 add_subdirectory(test)
 add_subdirectory(benchmark)
+add_subdirectory(log_gui)
 
 
 set(INCLUDE_INSTALL_DIR "include/" CACHE PATH "Installation directory for header files")

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.3.1, 2017-11-08T01:27:23. -->
+<!-- Written by QtCreator 4.3.1, 2017-11-08T07:19:03. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -303,12 +303,15 @@
      <value type="int">14</value>
     </valuelist>
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
-    <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
+    <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes">
+     <value type="QString">DYLD_FRAMEWORK_PATH=/System/Library/Frameworks/ImageIO.framework/Resources:/Users/xaxxon/Qt5.9.0/5.9/clang_64/lib:/Users/xaxxon/Downloads/clang+llvm-5.0.0/lib:/usr/local/lib</value>
+     <value type="QString">DYLD_LIBRARY_PATH=/System/Library/Frameworks/ImageIO.framework/Resources:/Users/xaxxon/Qt5.9.0/5.9/clang_64/lib:/Users/xaxxon/Downloads/clang+llvm-5.0.0/lib:/usr/local/lib</value>
+    </valuelist>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">untitled</value>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">untitled2</value>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/Users/xaxxon/xl/log_gui/untitled.pro</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/Users/xaxxon/untitled/untitled.pro</value>
     <value type="bool" key="QmakeProjectManager.QmakeRunConfiguration.UseLibrarySearchPath">true</value>
-    <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.CommandLineArguments"></value>
+    <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.CommandLineArguments">deleteme.log_status</value>
     <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.ProFile">untitled.pro</value>
     <value type="bool" key="Qt4ProjectManager.Qt4RunConfiguration.UseDyldImageSuffix">false</value>
     <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.UserWorkingDirectory"></value>

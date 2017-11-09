@@ -36,9 +36,6 @@
             <property name="text">
              <string>Levels</string>
             </property>
-            <property name="buddy">
-             <cstring>levelList</cstring>
-            </property>
            </widget>
           </item>
           <item>
@@ -57,7 +54,7 @@
          </layout>
         </item>
         <item>
-         <widget class="QListWidget" name="levelList"/>
+         <widget class="QListView" name="levelList"/>
         </item>
        </layout>
       </item>
@@ -80,9 +77,6 @@
             <property name="text">
              <string>Subjects</string>
             </property>
-            <property name="buddy">
-             <cstring>subjectList</cstring>
-            </property>
            </widget>
           </item>
           <item>
@@ -101,7 +95,7 @@
          </layout>
         </item>
         <item>
-         <widget class="QListWidget" name="subjectList"/>
+         <widget class="QListView" name="subjectList"/>
         </item>
        </layout>
       </item>

@@ -5,6 +5,8 @@
 #include "QLabel"
 #include "QListWidgetItem"
 
+#include "logelementlistmodel.h"
+
 namespace xl {
 class LogStatusFile;
 }
@@ -27,12 +29,14 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    xl::LogStatusFile * status_file = nullptr;
     void update_combined_checkboxes();
 
     void initialize_from_status_file();
 
     QLabel * filename_label;
+
+    std::unique_ptr<LogStatusFileGuiWrapper> log_status_file_gui_wrapper;
+
 
 private slots:
     void on_subjectList_itemChanged(QListWidgetItem * item);
