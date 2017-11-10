@@ -38,11 +38,6 @@ int LogElementListModel::rowCount(const QModelIndex &parent) const {
 
 
 
-void LogStatusFileGuiWrapper::open_filename(QString filename) {
-    std::cerr << fmt::format("opening filename: {}", filename.toStdString()) << std::endl;
-    this->status_file = std::make_unique<xl::LogStatusFile>(filename.toStdString());
-}
-
 
 LogStatusFileGuiWrapper::LogStatusFileGuiWrapper(QString filename, 
                                                  QListView * levelList, QCheckBox * allLevels, 
@@ -55,6 +50,9 @@ LogStatusFileGuiWrapper::LogStatusFileGuiWrapper(QString filename,
     level_model(status_file->level_names),
     subject_model(status_file->subject_names)
 {
+
+    std::cerr << fmt::format("creating log status file gui wrapper") << std::endl;
+
     levelList->setModel(&this->level_model);
     subjectList->setModel(&this->subject_model);
 
@@ -76,32 +74,35 @@ LogStatusFileGuiWrapper::LogStatusFileGuiWrapper(QString filename,
         status_file->write();
         this->subject_model.data_changed();
     });
-    
+
     allSubjects->connect(allSubjects, &QCheckBox::toggled, [this](bool checked){
         for (auto & [name, status] : this->status_file->subject_names) {
             status = checked;
         }
         status_file->write();
         this->subject_model.data_changed();
-
     });
     this->timer.connect(&this->timer, &QTimer::timeout, [this]{
-        std::cerr << fmt::format("checking status file:") ;
+//        std::cerr << fmt::format("checking status file:") ;
         if (this->status_file->check()) {
-            std::cerr << fmt::format("changed") << std::endl;
+//            std::cerr << fmt::format("changed") << std::endl;
             this->subject_model.data_changed();
             this->level_model.data_changed();
         } else {
-            std::cerr << fmt::format("not changed") << std::endl;
+//            std::cerr << fmt::format("not changed") << std::endl;
         }
     });
     this->timer.start(1000);
-
 }
 
+LogStatusFileGuiWrapper::~LogStatusFileGuiWrapper() {
+    std::cerr << fmt::format("destroying log status file gui wrapper") << std::endl;
+    levelList->disconnect();
+    allLevels->disconnect();
+    subjectList->disconnect();
+    allSubjects->disconnect();
 
-
-
+}
 
 
 

@@ -13,6 +13,50 @@
 #include <xl/log.h>
 
 
+
+
+class ConnectGuard {
+
+public:
+    virtual ~ConnectGuard() {}
+};
+
+template<class Sender, class SenderFunction, class Receiver, class ReceiverFunction>
+class ConnectGuardImpl : public ConnectGuard {
+
+    Sender sender;
+    SenderFunction sender_function;
+
+    Receiver receiver;
+    ReceiverFunction receiver_function;
+
+public:
+    ConnectGuardImpl(Sender sender, SenderFunction sender_function, Receiver receiver, ReceiverFunction receiver_function) :
+        sender(sender), sender_function(sender_function),
+        receiver(receiver), receiver_function(receiver_function) {
+        QObject::connect(sender, sender_function, receiver, receiver_function);
+    }
+
+    ~ConnectGuardImpl(){
+        QObject::disconnect(sender, sender_function, receiver, receiver_function);
+    }
+};
+
+class ConnectionList {
+    std::vector<std::unique_ptr<ConnectGuard>> connections;
+
+public:
+
+    template<class Sender, class SenderFunction, class Receiver, class ReceiverFunction>
+    void connect(Sender sender, SenderFunction sender_function, Receiver receiver, ReceiverFunction receiver_function) {
+        this->connections.push_back(std::make_unique<ConnectGuardImpl>(sender, sender_function, receiver, receiver_function));
+    }
+
+    void clear() {
+        this->connections.clear();
+    }
+};
+
 /**
  * Model for a vector of pairs of names/bools
  */
@@ -50,11 +94,12 @@ private:
 
     QTimer timer;
 
+    ConnectionList connections;
 
 
 public:
     LogStatusFileGuiWrapper(QString filename, QListView * levelList, QCheckBox * allLevels, QListView * subjectList, QCheckBox * allSubjects);
-    void open_filename(QString filename);
+    ~LogStatusFileGuiWrapper();
 
 
 };

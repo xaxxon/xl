@@ -16,6 +16,8 @@ namespace Ui {
 class MainWindow;
 }
 
+
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -36,9 +38,10 @@ private:
 
     std::unique_ptr<LogStatusFileGuiWrapper> log_status_file_gui_wrapper;
 
+    std::unique_ptr<LogStatusFileGuiWrapper> make_log_status_file_gui_wrapper(QString filename);
+
 
 private slots:
-
 
     void on_action_Open_triggered();
 };

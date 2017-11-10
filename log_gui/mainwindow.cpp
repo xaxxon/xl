@@ -61,6 +61,12 @@ void MainWindow::update_combined_checkboxes() {
 }
 
 
+std::unique_ptr<LogStatusFileGuiWrapper> MainWindow::make_log_status_file_gui_wrapper(QString filename) {
+    return std::make_unique<LogStatusFileGuiWrapper>(this->filename,
+                                                     this->ui->levelList, this->ui->allLevels,
+                                                     this->ui->subjectList, this->ui->allSubjects);
+}
+
 MainWindow::MainWindow(QString input_filename, QWidget *parent) :
     filename(std::move(input_filename)),
     timer(this),
@@ -69,10 +75,8 @@ MainWindow::MainWindow(QString input_filename, QWidget *parent) :
 {
     ui->setupUi(this);
 
-    log_status_file_gui_wrapper =
-            std::make_unique<LogStatusFileGuiWrapper>(this->filename,
-                                                      this->ui->levelList, this->ui->allLevels,
-                                                      this->ui->subjectList, this->ui->allSubjects);
+    log_status_file_gui_wrapper = this->make_log_status_file_gui_wrapper(this->filename);
+
 
 
     this->filename_label = new QLabel(this->filename);
@@ -81,7 +85,6 @@ MainWindow::MainWindow(QString input_filename, QWidget *parent) :
 
     initialize_from_status_file();
     this->update_combined_checkboxes();
-
 }
 
 
@@ -95,12 +98,13 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_action_Open_triggered()
 {
-//    this->filename = QFileDialog::getOpenFileName(this,
-//        tr("Open Status File"), ".", tr("Image Files (*.log_status)")
-//    );
-////    this->statusBar()->showMessage(filename);
-//    this->filename_label->setText(this->filename);
-//    this->status_file = new xl::LogStatusFile(filename.toStdString());
+    this->filename = QFileDialog::getOpenFileName(this,
+        tr("Open Status File"), ".", tr("Image Files (*.log_status)")
+    );
+//    this->statusBar()->showMessdage(filename);
+    this->filename_label->setText(this->filename);
+    log_status_file_gui_wrapper.reset(); // destroy old connections before creating new ones 
+    log_status_file_gui_wrapper = this->make_log_status_file_gui_wrapper(this->filename);
 }
 
 
