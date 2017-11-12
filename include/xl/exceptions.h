@@ -18,6 +18,10 @@ private:
 
 public:
 
+    FormattedException(xl::zstring_view format_string) :
+        what_string(format_string)
+    {}
+
     template<typename... Args>
     FormattedException(xl::zstring_view format_string, Args&&... args) :
         what_string(fmt::format(format_string.c_str(), std::forward<Args>(args)...))

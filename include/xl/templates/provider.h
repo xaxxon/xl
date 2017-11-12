@@ -541,7 +541,7 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("std::map provider destructor called for provider at {}", (void*)this);
         }
 
-
+x
         std::string operator()(ProviderData & data) override {
             MapT & map = this->map_holder;
             auto provider_iterator = map.find(data.name);
@@ -571,7 +571,7 @@ struct DefaultProviders {
                 if (data.current_template != nullptr) {
                     template_text = data.current_template->c_str();
                 }
-                throw TemplateException("provider " + this->get_name() + " does not provide name: '" + data.name + "' - in template: '" + template_text + "'");
+                throw TemplateException("provider {} does not provide name: '{}' - in template: '{}'", this->get_name(), data.name, template_text);
             }
         }
 
