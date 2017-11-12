@@ -1,5 +1,4 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include "QLabel"
 #include "QListWidgetItem"
@@ -46,4 +45,3 @@ private slots:
     void on_action_Open_triggered();
 };
 
-#endif // MAINWINDOW_H

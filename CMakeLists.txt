@@ -10,11 +10,6 @@ include(clang-build-triple)
 set(XL_VERSION 0.1.0)
 
 
-
-# Contains all the header files from the library itself
-file(GLOB_RECURSE XL_HEADER_FILES include/xl/*.h)
-
-
 add_library(xl INTERFACE)
 
 # so xl::xl can be used inside this project, as well
@@ -26,7 +21,7 @@ target_link_libraries(xl INTERFACE pcre)
 
 add_subdirectory(test)
 add_subdirectory(benchmark)
-add_subdirectory(log_gui)
+add_subdirectory(log_gui EXCLUDE_FROM_ALL)
 
 
 set(INCLUDE_INSTALL_DIR "include/" CACHE PATH "Installation directory for header files")

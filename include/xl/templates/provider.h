@@ -11,6 +11,7 @@
 #include "exceptions.h"
 #include "templates.h"
 #include "provider_data.h"
+#include "provider_interface.h"
 
 
 namespace xl::templates {
@@ -28,11 +29,6 @@ struct DefaultProviders {
     };
 
 
-//    template<class... Keys, class... Values>
-//    Provider(std::pair<Keys, Values>
-//        &&...) ->
-//    Provider<std::map<std::string, ProviderPtr>>;
-
 
     template<class T, class = ProviderContainer, class = void>
     struct has_get_provider_in_provider_container : public std::false_type {};
@@ -45,6 +41,7 @@ struct DefaultProviders {
 
 
 
+    // it's a provider type if it can be turned into a provider
     template<class, class = void>
     class is_provider_type : public std::false_type {
     };
@@ -52,7 +49,7 @@ struct DefaultProviders {
     template<class T>
     class is_provider_type<T, std::enable_if_t<std::is_same_v<
         std::string,
-            std::result_of_t<Provider < std::remove_reference_t<T>>(ProviderData const &)
+            std::result_of_t<Provider < remove_refs_and_wrapper_t<T>>(ProviderData &)
                 >
             > // is same
         > // enable_if
@@ -130,6 +127,11 @@ struct DefaultProviders {
     template<class T>
     static inline constexpr bool can_get_provider_for_type_v = can_get_provider_for_type<T>::value;
 
+
+    /**
+     * String provider
+     * @tparam T
+     */
     template<class T>
     class Provider<T, std::enable_if_t<std::is_convertible_v<remove_reference_wrapper_t<T>, std::string>>> : public Provider_Interface {
         std::string string;
@@ -143,12 +145,21 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("Destroyed string provider for string '{}'", this->string);
         }
 
-        std::string operator()(ProviderData const & data) override {
+        std::string operator()(ProviderData & data) override {
             return this->string;
         }
 
         std::string get_name() const override {
             return fmt::format("Provider: {} is convertible to std::string: '{}'", demangle<T>(), string);
+        }
+
+        bool provides_named_lookup() override {
+            return true;
+        }
+
+        ProviderPtr get_named_provider(ProviderData & data) override {
+            data.name.clear();
+            return std::make_unique<Provider>(*this);
         }
     };
 
@@ -158,7 +169,6 @@ struct DefaultProviders {
         return ProviderPtr(
             new Provider<std::map<std::string, ProviderPtr>>(std::forward<Ts>(pairs)...));
     };
-
 
 
 
@@ -188,7 +198,7 @@ struct DefaultProviders {
         }
 
 
-        std::string operator()(ProviderData const & data) override {
+        std::string operator()(ProviderData & data) override {
             auto result = this->callback();
             return Provider<CallbackResultT>(std::move(result))(data);
         }
@@ -257,7 +267,7 @@ struct DefaultProviders {
         }
 
 
-        std::string operator()(ProviderData const & data) override {
+        std::string operator()(ProviderData & data) override {
             NoRefT & t = this->t_holder;
 
             ProviderPtr provider = get_underlying_provider();
@@ -265,7 +275,7 @@ struct DefaultProviders {
 //            std::cerr << fmt::format("t: {}", (void*)&t) << std::endl;
 
             if (data.inline_template) {
-                return data.inline_template->fill<ProviderContainer>(provider);
+                return data.inline_template->fill<ProviderContainer>(provider, std::move(data));
             } else {
                 return provider->operator()(data);
             }
@@ -316,7 +326,7 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("unique_ptr provider destructor called");
         }
 
-        std::string operator()(ProviderData const & data) override {
+        std::string operator()(ProviderData & data) override {
             return make_provider(t)->operator()(data);
         }
 
@@ -350,7 +360,9 @@ struct DefaultProviders {
         using NoPtrT = std::remove_pointer_t<NoRefT>;
 
         NoPtrT * const t;
-        static_assert(is_provider_type_v<NoPtrT>, "make sure the ProviderContainer was specified, if needed");
+        static_assert(is_provider_type_v<NoPtrT> ||
+            can_get_provider_for_type_v<NoPtrT>
+            , "make sure the ProviderContainer was specified, if needed");
 
     public:
         Provider(NoPtrT * const t) : t(t) {
@@ -361,7 +373,7 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("Destroyed pointer Provider for {}", (void*)this->t);
         }
 
-        std::string operator()(ProviderData const & data) override {
+        std::string operator()(ProviderData & data) override {
             return Provider<make_reference_wrapper_t<NoPtrT>>(*t)(data);
         }
 
@@ -413,13 +425,14 @@ struct DefaultProviders {
         }
 
 
-        std::string operator()(ProviderData const & data) override {
+        std::string operator()(ProviderData & data) override {
 
             ContainerT & t = this->t_holder;
 
 
             XL_TEMPLATE_LOG("container provider looking at substution data for: {}, {}", data.name, (bool)data.inline_template);
             std::stringstream result;
+
 
 
             XL_TEMPLATE_LOG("inline template exists? {}", (bool)data.inline_template);
@@ -464,7 +477,7 @@ struct DefaultProviders {
 
 
                 needs_join_string = true;
-                auto fill_result = tmpl.fill<ProviderContainer>(p, *data.templates);
+                auto fill_result = tmpl.fill<ProviderContainer>(p, std::move(data));
 
                 XL_TEMPLATE_LOG("replacement is {}, ignore is {}", fill_result, data.ignore_empty_replacements);
                 if (fill_result == "" && data.ignore_empty_replacements) {
@@ -526,9 +539,11 @@ struct DefaultProviders {
         }
 
 
-        std::string operator()(ProviderData const & data) override {
+        std::string operator()(ProviderData & data) override {
             MapT & map = this->map_holder;
             auto provider_iterator = map.find(data.name);
+            XL_TEMPLATE_LOG("Looked up map name {} in operator()", data.name);
+            data.name.clear();
             if (provider_iterator != map.end()) {
 
                 if constexpr(std::is_base_of_v<Provider_Interface, MapValueT>) {
@@ -567,6 +582,27 @@ struct DefaultProviders {
                 result += " " + key;
             }
             return result;
+        }
+
+        bool provides_named_lookup() override {
+            return true;
+        }
+
+        ProviderPtr get_named_provider(ProviderData & data) override {
+
+            if (data.name.empty()) {
+                throw TemplateException("Map Provider::get_named_provider called but no name specified");
+            }
+
+            MapT & map = this->map_holder;
+
+            auto i = map.find(data.name);
+            if (i == map.end()) {
+                throw TemplateException("Map provider doesn't contain value for name: " + data.name);
+            } else {
+                data.name.clear();
+                return make_provider(i->second);
+            }
         }
 
     };

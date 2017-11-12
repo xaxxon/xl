@@ -12,7 +12,7 @@ set(CMAKE_AUTOUIC ON)
 # Find the QtWidgets library
 find_package(Qt5Widgets PATHS /Users/xaxxon/Qt5.9.0/5.9/clang_64/lib/cmake/Qt5Widgets)
 
-file(GLOB SOURCE_FILES *.cpp *.h)
+file(GLOB SOURCE_FILES *.cpp)
 
 # Tell CMake to create the helloworld executable
 add_executable(log_gui  ${SOURCE_FILES})

@@ -32,7 +32,6 @@ QVariant LogElementListModel::data(const QModelIndex &index, int role) const {
 
 
 int LogElementListModel::rowCount(const QModelIndex &parent) const {
-//    std::cerr << fmt::format("row count: {}", this->elements->size()) << std::endl;
     return this->elements->size();
 }
 

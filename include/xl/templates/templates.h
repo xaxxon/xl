@@ -14,6 +14,7 @@
 #include "../regex/regexer.h"
 #include "../log.h"
 #include "../library_extensions.h"
+#include "provider_data.h"
 
 
 #if defined XL_TEMPLATE_LOG_ENABLE
@@ -55,7 +56,7 @@ public:
 
 
     template<class ProviderContainer = void, class T = std::string>
-    std::string fill(T && source = T{}, std::map<std::string, Template> const & templates = {}) const;
+    std::string fill(T && source = T{}, ProviderData && = {}) const;
 
     // compiles the template for faster processing
     // benchmarks showed ~200x improvement when re-using templates 1000 times
@@ -69,23 +70,29 @@ using TemplateMap = std::map<std::string, Template>;
 } // end namespace xl
 
 
-
-#include "provider_data.h"
 #include "provider.h"
 #include "directory_loader.h"
 
 namespace xl::templates {
 
+class provider_data;
 
 template<typename ProviderContainer, class T>
-std::string Template::fill(T && source, TemplateMap const & templates) const {
+std::string Template::fill(T && source, ProviderData && input_data) const {
     if (!this->is_compiled()) {
         this->compile();
     }
 
     if constexpr(is_passthrough_provider_v<T>) {
         XL_TEMPLATE_LOG("fill got passthrough provider {}, recursively calling fill with underlying provider", source.get_name());
-        return fill<ProviderContainer>(source.get_underlying_provider(), templates);
+        return fill<ProviderContainer>(source.get_underlying_provider(), input_data.templates);
+    }
+
+    if constexpr(std::is_same_v<ProviderPtr, std::remove_reference_t<T>>) {
+        if (!input_data.name.empty()) {
+            auto named_provider = source->get_named_provider(input_data);
+            return this->fill(named_provider, std::move(input_data));
+        }
     }
 
 
@@ -127,21 +134,25 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
 
         if (this->compiled_substitutions.size() > i) {
             ProviderData data(this->compiled_substitutions[i]);
-            XL_TEMPLATE_LOG("grabbed data for compiled_subsitution {} - it has name {}", i, data.name);
-            data.templates = &templates;
+            if (input_data.inline_template) {
+                data.inline_template = input_data.inline_template;
+            }
+            XL_TEMPLATE_LOG("grabbed data for compiled_subsitution {} - it has name {} and inline template: {}",
+                            i, data.name, (void*)data.inline_template.get());
+            data.templates = input_data.templates;
             data.current_template = this;
             XL_TEMPLATE_LOG("substitution instantiation data.name: '{}'", data.name);
 
             // substituting another template in
             if (data.template_name != "") {
-                if (templates.empty()) {
+                if (input_data.templates->empty()) {
                     throw TemplateException("Cannot refer to another template if no other templates specified: " + data.template_name);
                 }
-                auto template_iterator = templates.find(data.template_name);
-                if (template_iterator == templates.end()) {
+                auto template_iterator = input_data.templates->find(data.template_name);
+                if (template_iterator == input_data.templates->end()) {
                     throw TemplateException("No template found named: " + data.template_name);
                 }
-                auto inline_template_result = template_iterator->second.fill<ProviderContainer>(provider, templates);
+                auto inline_template_result = template_iterator->second.fill<ProviderContainer>(provider, input_data.templates);
                 if (!inline_template_result.empty()) {
                     result.insert(result.end(), data.contingent_leading_content.begin(), data.contingent_leading_content.end());
                 }
@@ -155,7 +166,8 @@ std::string Template::fill(T && source, TemplateMap const & templates) const {
 
                 XL_TEMPLATE_LOG("created ProviderData data on the stack at {}", (void*) &data);
 
-                XL_TEMPLATE_LOG("about to call provider() named '{}' at {}", provider.get_name(), (void*)&provider);
+                XL_TEMPLATE_LOG("about to call provider() named '{}' at {} and inline_template: {}",
+                                provider.get_name(), (void*)&provider, (void*)data.inline_template.get());
                 auto substitution_result = provider(data);
                 XL_TEMPLATE_LOG("provider() named {} returned: '{}'", provider.get_name(), substitution_result);
                 if (!data.contingent_leading_content.empty() && !substitution_result.empty()) {
@@ -358,7 +370,9 @@ void Template::compile() const {
 
         if (matches.has("InlineTemplateMarker")) {
             XL_TEMPLATE_LOG("Template::compile - creating inline template from '{}'", matches["SubstitutionData"]);
-            data.inline_template = Template(matches["SubstitutionData"]);
+            auto inline_template_text = matches["SubstitutionData"];
+            XL_TEMPLATE_LOG("inline template text: {}", inline_template_text);
+            data.inline_template = std::make_shared<Template>(inline_template_text);
         }
 
         if (matches.has("TemplateInsertionMarker")) {

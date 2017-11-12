@@ -191,7 +191,7 @@ TEST(template, UserDefinedTypeArray) {
     TemplateMap templates{std::pair{"A1", Template("{i: {{I}} j: {{J}}}")},
                           std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
 
-    auto fill_result = Template("B: '{{NAME}}' A1: {{GET_VEC_A%, |A1}} A2: {{GET_VEC_A%, |A2}}").fill(std::ref(b), templates);
+    auto fill_result = Template("B: '{{NAME}}' A1: {{GET_VEC_A%, |A1}} A2: {{GET_VEC_A%, |A2}}").fill(std::ref(b), &templates);
     EXPECT_EQ(fill_result, "B: 'B name' A1: {i: 1 j: 6}, {i: 2 j: 6}, {i: 3 j: 6}, {i: 4 j: 6}, {i: 5 j: 6} A2: {i2: 1 j2: 6}, {i2: 2 j2: 6}, {i2: 3 j2: 6}, {i2: 4 j2: 6}, {i2: 5 j2: 6}");
 }
 
@@ -204,7 +204,7 @@ TEST(template, VectorCallbackTemplate) {
     TemplateMap templates{std::pair{"A1", Template("{i: {{I}} j: {{J}}}")},
                           std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
 
-    EXPECT_EQ(Template("replace: {{TEST1%, |A1}}").fill(make_provider(std::pair{"TEST1", make_provider(vector_object_callback)}), templates),
+    EXPECT_EQ(Template("replace: {{TEST1%, |A1}}").fill(make_provider(std::pair{"TEST1", make_provider(vector_object_callback)}), &templates),
     "replace: {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
 }
 
@@ -214,7 +214,7 @@ TEST(template, LeadingJoinString) {
     TemplateMap templates{std::pair{"A1", Template("{i: {{I}} j: {{J}}}")},
                           std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
 
-    EXPECT_EQ(Template("replace: {{TEST1%%, |A1}}").fill(make_provider(std::pair{"TEST1", make_provider(vector_object_callback)}), templates),
+    EXPECT_EQ(Template("replace: {{TEST1%%, |A1}}").fill(make_provider(std::pair{"TEST1", make_provider(vector_object_callback)}), &templates),
               "replace: , {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
 }
 
@@ -344,11 +344,11 @@ TEST(template, LoadDirectoryOfTemplates) {
 TEST(template, TemplateSubstitutionTemplate) {
     auto templates = load_templates("templates");
 
-    auto result = Template("{{!a}} {{!b}}").fill("", templates);
+    auto result = Template("{{!a}} {{!b}}").fill("", &templates);
 
     EXPECT_EQ(result, "a.template contents b.template contents");
 
-    EXPECT_THROW(Template("{{!a}} {{!c}}").fill("", templates), TemplateException);
+    EXPECT_THROW(Template("{{!a}} {{!c}}").fill("", &templates), TemplateException);
 }
 
 
@@ -425,7 +425,7 @@ TEST(template, ExpandVectorInline) {
 
     // v - vector of Uncopyable objects
     // uncopyable - name of external template to fill with each element in v
-    auto result = Template("{{v|uncopyable}}").fill(UncopyableHolder(), templates);
+    auto result = Template("{{v|uncopyable}}").fill(UncopyableHolder(), &templates);
     EXPECT_EQ(result, "string1\nstring2\nstring1\nstring2");
 }
 
@@ -540,6 +540,27 @@ TEST(template, SetOfStrings) {
     set<string> s;
 
     auto result = Template("BEFORE\nX{{<VECTOR|!!\n{{DUMMY}}>}}Y\nAFTER").fill(pair("VECTOR", ref(s)));
+}
+
+
+
+class HasProvider2 {
+    vector<HasProvider> v;
+
+public:
+    HasProvider2(string s)  {
+        v.push_back(HasProvider(s+s));
+    }
+    ProviderPtr get_provider() const {
+        return make_provider(std::pair("has_provider", std::ref(v)));
+    }
+};
+
+
+TEST(template, VectorOfGetProviderableObjects) {
+
+    auto result = Template("{{has_provider|!{{string}}}}").fill(HasProvider2("hp2"));
+
 
 }
 

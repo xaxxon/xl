@@ -22,7 +22,7 @@ include_directories(../include/xl)
 add_definitions(-DXL_USE_LIB_FMT -DXL_TESTING)
 add_definitions(-DXL_USE_PCRE) # on another line to easily add and remove during development
 
-add_executable(test-xl EXCLUDE_FROM_ALL ${TEST_SRC} ${XL_HEADER_FILES})
+add_executable(test-xl EXCLUDE_FROM_ALL ${TEST_SRC})
 
 # Turn off unused variables because clang 5 complains on structured assignments
 target_compile_options(test-xl
