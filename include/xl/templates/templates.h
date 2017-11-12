@@ -28,7 +28,16 @@
 
 namespace xl::templates {
 
-using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+
+struct TemplateSubjects {
+    inline static std::string subject_names[] = {"default"};
+
+    enum class Subjects {
+        Default, Compile, LOG_LAST_SUBJECT
+    };
+};
+
+using LogT = ::xl::log::Log<::xl::log::DefaultLevels, TemplateSubjects>;
 inline LogT log;
 
 struct ProviderData;
@@ -150,7 +159,7 @@ std::string Template::fill(T && source, ProviderData && input_data) const {
                 }
                 auto template_iterator = input_data.templates->find(data.template_name);
                 if (template_iterator == input_data.templates->end()) {
-                    throw TemplateException("No template found named: " + data.template_name);
+                    throw TemplateException("No template found named: {}", data.template_name);
                 }
                 auto inline_template_result = template_iterator->second.fill<ProviderContainer>(provider, input_data.templates);
                 if (!inline_template_result.empty()) {
@@ -260,7 +269,7 @@ void Template::compile() const {
 
     // the portion of the template string which hasn't yet been parsed by the main regex
     std::string remaining_template = this->c_str();
-    XL_TEMPLATE_LOG("compiling template: '{}'", this->_tmpl.c_str());
+    log.info(TemplateSubjects::Subjects::Compile, "compiling template: '{}'", this->_tmpl.c_str());
 
     bool first_line_belongs_to_last_substitution = false;
 
@@ -294,14 +303,14 @@ void Template::compile() const {
         remaining_template = matches.suffix();
 
         std::string literal_string = matches["Literal"];
-        XL_TEMPLATE_LOG("postprocessing: '{}'", literal_string);
+        log.info(TemplateSubjects::Subjects::Compile, "postprocessing: '{}'", literal_string);
 
         literal_string = post_process_regex.replace(literal_string, "$1");
-        XL_TEMPLATE_LOG("into: '{}'", literal_string);
+        log.info(TemplateSubjects::Subjects::Compile, "into: '{}'", literal_string);
 
 
         bool ignore_empty_replacements_before = matches.has("IgnoreEmptyBeforeMarker");
-        XL_TEMPLATE_LOG("ignoring empty replacements? {}", ignore_empty_replacements_before);
+        log.info(TemplateSubjects::Subjects::Compile, "ignoring empty replacements? {}", ignore_empty_replacements_before);
         std::string contingent_leading_content;
 
         if (first_line_belongs_to_last_substitution) {
@@ -369,9 +378,9 @@ void Template::compile() const {
         data.ignore_empty_replacements = ignore_empty_replacements_before;
 
         if (matches.has("InlineTemplateMarker")) {
-            XL_TEMPLATE_LOG("Template::compile - creating inline template from '{}'", matches["SubstitutionData"]);
+            log.info(TemplateSubjects::Subjects::Compile, "Template::compile - creating inline template from '{}'", matches["SubstitutionData"]);
             auto inline_template_text = matches["SubstitutionData"];
-            XL_TEMPLATE_LOG("inline template text: {}", inline_template_text);
+            log.info(TemplateSubjects::Subjects::Compile, "inline template text: {}", inline_template_text);
             data.inline_template = std::make_shared<Template>(inline_template_text);
         }
 

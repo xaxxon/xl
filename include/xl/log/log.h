@@ -12,13 +12,19 @@ namespace fs = std::experimental::filesystem;
 using namespace std::literals;
 
 #include "../regex/regexer.h"
-
+#include "../exceptions.h"
 #include "../zstring_view.h"
 
 
-namespace xl {
+namespace xl::log {
 
-namespace log {
+
+class LogException : public xl::FormattedException {
+
+public:
+
+    using xl::FormattedException::FormattedException;
+};
 
 
 template<class T>
@@ -90,7 +96,6 @@ struct LogSubjectsBase {
 struct DefaultLevels  {
     inline static std::string level_names[] = {"info", "warn", "error"};
 
-public:
     enum class Levels {
         Info, Warn, Error, LOG_LAST_LEVEL
     };
@@ -101,15 +106,11 @@ public:
 struct DefaultSubjects {
     inline static std::string subject_names[] = {"default"};
 
-public:
     enum class Subjects {
         Default, LOG_LAST_SUBJECT
     };
 };
 
-
-} // end namespace log
-// back in namespace xl
 
 template<class LevelsT, class SubjectsT>
 class Log;
@@ -282,9 +283,15 @@ class Log {
     static_assert((size_t)SubjectsT::Subjects::LOG_LAST_SUBJECT >= 0, "Subjects enumeration must have LOG_LAST_SUBJECT as its final entry");
 public:
 
+
     using Levels = log::LogLevelsBase<LevelsT>;
     using Subjects = log::LogSubjectsBase<SubjectsT>;
 
+    using LevelsUnderlyingType = std::underlying_type_t<typename Levels::Levels>;
+    using SubjectsUnderlyingType = std::underlying_type_t<typename Subjects::Subjects>;
+
+    static constexpr LevelsUnderlyingType level_count = static_cast<LevelsUnderlyingType>(Levels::Levels::LOG_LAST_LEVEL);
+    static constexpr SubjectsUnderlyingType subject_count = static_cast<SubjectsUnderlyingType>(Subjects::Subjects::LOG_LAST_SUBJECT);
 
     auto subjects() const {
         return Subjects();
@@ -294,6 +301,13 @@ public:
         return Levels();
     }
 
+    auto get(typename Levels::Levels level) {
+        return static_cast<LevelsUnderlyingType>(level);
+    }
+
+    auto get(typename Subjects::Subjects subject) {
+        return static_cast<SubjectsUnderlyingType>(subject);
+    }
 
     struct LogMessage {
         Log & log;
@@ -333,16 +347,19 @@ private:
         auto temp = std::move(this->log_status_file);
 
 //        std::cerr << fmt::format("init from file: file level names size: {}", temp->level_names.size()) << std::endl;
-        for(size_t i = 0; i < (size_t)LevelsT::Levels::LOG_LAST_LEVEL; i++) {
-            typename LevelsT::Levels level = static_cast<typename LevelsT::Levels>(i);
-//            std::cerr << fmt::format("initialize from status file, level: {}", (int)level) << std::endl;
 
-            this->set_level_status(level, temp->level_names[i].second);
+        for(LevelsUnderlyingType i = 0; i < level_count; i++) {
+            if (i < temp->level_names.size()) {
+                typename LevelsT::Levels level = static_cast<typename LevelsT::Levels>(i);
+                this->set_level_status(level, temp->level_names[i].second);
+            }
         }
 
-        for(size_t i = 0; i < (size_t)SubjectsT::Subjects::LOG_LAST_SUBJECT; i++) {
-            typename SubjectsT::Subjects subject = static_cast<typename SubjectsT::Subjects>(i);
-            this->set_subject_status(subject, temp->subject_names[i].second);
+        for(SubjectsUnderlyingType i = 0; i < subject_count; i++) {
+            if (i < temp->subject_names.size()) {
+                typename SubjectsT::Subjects subject = static_cast<typename SubjectsT::Subjects>(i);
+                this->set_subject_status(subject, temp->subject_names[i].second);
+            }
         }
 
         // re-enable status file
@@ -368,13 +385,9 @@ public:
     bool set_level_status(typename Levels::Levels level, bool new_status) {
 //        std::cerr << fmt::format("setting {} to {}", (int)level, new_status) << std::endl;
         bool previous_status;
-        if (level_status.size() <= (int)level) {
-            previous_status = true;
-            level_status.resize((int)level + 1, 1);
-        } else {
-            previous_status = level_status[(int)level];
-        }
-        level_status[(int)level] = new_status;
+        previous_status = level_status[get(level)];
+
+        level_status[get(level)] = new_status;
         if (this->log_status_file) {
             this->log_status_file->write(*this);
         }
@@ -404,13 +417,8 @@ public:
 
     bool set_subject_status(typename Subjects::Subjects subject, bool new_status) {
         bool previous_status;
-        if (subject_status.size() <= (int)subject) {
-            previous_status = true;
-            subject_status.resize((int)subject + 1, 1);
-        } else {
-            previous_status = subject_status[(int)subject];
-        }
-        subject_status[(int)subject] = new_status;
+            previous_status = subject_status[get(subject)];
+        subject_status[get(subject)] = new_status;
         if (this->log_status_file) {
             this->log_status_file->write(*this);
         }
@@ -424,11 +432,15 @@ public:
             return subject_status[(int)subject];
         }
     }
-    Log() = default;
-    Log(std::string filename) {
+    Log() :
+        level_status(level_count, true),
+        subject_status(subject_count, true)
+    {}
+
+    Log(std::string filename) : Log() {
         this->enable_status_file(filename);
     }
-    Log(CallbackT log_callback)
+    Log(CallbackT log_callback) : Log()
     {
         this->add_callback(std::move(log_callback));
     }
@@ -442,7 +454,7 @@ public:
         return *this->callbacks.back();
     }
 
-    CallbackT & add_callback(std::ostream & ostream, std::string prefix) {
+    CallbackT & add_callback(std::ostream & ostream, std::string prefix = "") {
         return this->add_callback([&](LogMessage const & message) {
             ostream << prefix << message.string << std::endl;
         });
@@ -627,4 +639,4 @@ public:
     }
 };
 
-} // end namespace xl
+} // end namespace xl::log

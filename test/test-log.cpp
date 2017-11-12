@@ -10,7 +10,7 @@ using namespace xl;
 
 TEST(log, SimpleLog) {
     {
-        using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+        using LogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
         int call_count = 0;
         LogT log([&call_count](auto & message){call_count++;});
         EXPECT_EQ(call_count, 0);
@@ -40,7 +40,7 @@ TEST(log, SimpleLog) {
 TEST(log, LogCallbackGuard) {
 
     int global_log_count = 0;
-    using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+    using LogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
     struct LogCallback {
         int & counter ;
 
@@ -56,11 +56,11 @@ TEST(log, LogCallbackGuard) {
     log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
     EXPECT_EQ(global_log_count, 0);
     {
-        LogCallbackGuard<LogCallback, LogT> g(log, global_log_count);
+        ::xl::log::LogCallbackGuard<LogCallback, LogT> g(log, global_log_count);
         log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
         EXPECT_EQ(global_log_count, 1);
         {
-            LogCallbackGuard<LogCallback, LogT> g2(log, global_log_count);
+            ::xl::log::LogCallbackGuard<LogCallback, LogT> g2(log, global_log_count);
             log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
             EXPECT_EQ(global_log_count, 3);
 
@@ -75,7 +75,7 @@ TEST(log, LogCallbackGuard) {
 
 TEST(log, LogCallbackGuard_ReUseCallbackObject) {
 
-    using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+    using LogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
     struct LogCallback {
         int counter = 0;
 
@@ -94,11 +94,11 @@ TEST(log, LogCallbackGuard_ReUseCallbackObject) {
     EXPECT_EQ(log_callback.counter, 0);
 
     {
-        LogCallbackGuard g(log, log_callback);
+        ::xl::log::LogCallbackGuard g(log, log_callback);
         log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
         EXPECT_EQ(log_callback.counter, 1);
         {
-            LogCallbackGuard g(log, log_callback);
+            ::xl::log::LogCallbackGuard g(log, log_callback);
             log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
             EXPECT_EQ(log_callback.counter, 3);
 
@@ -113,7 +113,7 @@ TEST(log, LogCallbackGuard_ReUseCallbackObject) {
 
 TEST(log, MultipleCallbacks) {
     {
-        using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+        using LogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
         struct LogCallback {
             int counter = 0;
             void operator()(LogT::LogMessage const & message) {
@@ -167,7 +167,7 @@ struct CustomLevels {
 
 
 TEST(log, CustomLog) {
-    using LogT = xl::Log<CustomLevels, CustomSubjects>;
+    using LogT = xl::log::Log<CustomLevels, CustomSubjects>;
     int call_count = 0;
 
     LogT log([&call_count](auto & message){
@@ -197,7 +197,7 @@ TEST(log, CustomLog) {
 
 
 TEST(log, SubjectAndLevelIteration) {
-    using LogT = xl::Log<CustomLevels, CustomSubjects>;
+    using LogT = xl::log::Log<CustomLevels, CustomSubjects>;
     int call_count = 0;
     LogT log;
 
@@ -227,7 +227,7 @@ TEST(log, SubjectAndLevelIteration) {
 
 
 TEST(log, SubjectStatusSaveAndRestore) {
-    using LogT = xl::Log<CustomLevels, CustomSubjects>;
+    using LogT = xl::log::Log<CustomLevels, CustomSubjects>;
     LogT log;
 
     log.set_level_status(CustomLevels::Levels::Warn, false);
@@ -249,7 +249,7 @@ TEST(log, SubjectStatusSaveAndRestore) {
 
 
 TEST(log, OstreamCallbackHelper) {
-    using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+    using LogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
     LogT log;
     std::stringstream output;
     log.add_callback(output, "PREFIX: ");
@@ -263,7 +263,7 @@ TEST(log, OstreamCallbackHelper) {
 
 
 TEST(log, LogStatusFile) {
-    using LogT = xl::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+    using LogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
     LogT log;
     int log_count = 0;
     log.add_callback([&log_count](LogT::LogMessage const & message) {
@@ -276,7 +276,7 @@ TEST(log, LogStatusFile) {
     EXPECT_EQ(log.log_status_file->subject_names.size(), 1);
     EXPECT_EQ(log.log_status_file->level_names.size(), 3);
 
-    LogStatusFile other(status_file_filename);
+    ::xl::log::LogStatusFile other(status_file_filename);
     EXPECT_EQ(other.subject_names.size(), 1);
     EXPECT_EQ(other.level_names.size(), 3);
     for(auto const & [name, status] : other.level_names) {

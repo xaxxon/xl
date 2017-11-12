@@ -2,19 +2,13 @@
 
 namespace xl::templates {
 
-
-class TemplateException : public std::exception {
-    std::string reason;
+class TemplateException : public xl::FormattedException {
 
 public:
 
-    TemplateException(std::string const & reason) : reason(reason) {}
-    TemplateException(std::string && reason) : reason(std::move(reason)) {}
-
-    const char * what() const noexcept {
-        return reason.c_str();
-    }
+    using xl::FormattedException::FormattedException;
 
 };
+
 
 } // end namespace xl

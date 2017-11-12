@@ -394,7 +394,7 @@ struct DefaultProviders {
      * @tparam T Container type
      */
     template<class T>
-    class Provider<T, std::enable_if_t<xl::is_range_for_loop_able_v<remove_reference_wrapper_t<T>> &&
+    class Provider<T, std::enable_if_t<is_range_for_loop_able_v<remove_reference_wrapper_t<T>> &&
                                        !std::is_convertible_v<remove_reference_wrapper_t<T>, std::string> && // std::string is iteratable
                                        !is_map_v<remove_reference_wrapper_t<T>>>> // maps are handled differently
         : public Provider_Interface {
@@ -477,7 +477,10 @@ struct DefaultProviders {
 
 
                 needs_join_string = true;
-                auto fill_result = tmpl.fill<ProviderContainer>(p, std::move(data));
+
+                // each element of the container gets its own copy of data, as each should be treated identically
+                //   not based on whatever is done by a previous element
+                auto fill_result = tmpl.fill<ProviderContainer>(p, ProviderData(data));
 
                 XL_TEMPLATE_LOG("replacement is {}, ignore is {}", fill_result, data.ignore_empty_replacements);
                 if (fill_result == "" && data.ignore_empty_replacements) {
