@@ -302,7 +302,7 @@ void Template::compile() const {
 
         remaining_template = matches.suffix();
 
-        std::string literal_string = matches["Literal"];
+        std::string literal_string = std::string(matches["Literal"]);
         log.info(TemplateSubjects::Subjects::Compile, "postprocessing: '{}'", literal_string);
 
         literal_string = post_process_regex.replace(literal_string, "$1");

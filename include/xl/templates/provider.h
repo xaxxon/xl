@@ -541,7 +541,7 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("std::map provider destructor called for provider at {}", (void*)this);
         }
 
-x
+
         std::string operator()(ProviderData & data) override {
             MapT & map = this->map_holder;
             auto provider_iterator = map.find(data.name);

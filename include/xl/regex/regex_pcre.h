@@ -1,6 +1,8 @@
 #pragma once
 
 #include <sstream>
+#include <string_view>
+#include <string>
 
 #if defined XL_USE_PCRE
 
@@ -47,22 +49,38 @@ public:
     {}
 
 
+    /**
+     * Was this object generated from a successful regex match or not
+     * @return
+     */
     operator bool() const {
         return results > 0;
     }
 
 
+    /**
+     * Number of results present in this match object
+     * @return
+     */
     size_t size() const {
         return this->results;
     }
 
 
-    std::string_view prefix() const {
+    /**
+     * Part of source string (if any) from before the regex matched
+     * @return the portion of the string from before the match
+     */
+    xl::string_view prefix() const {
         size_t length = this->captures[0];
-        return std::string_view(&this->source[0], length);
-
+        return xl::string_view(&this->source[0], length);
     }
 
+
+    /**
+     * Part of the source string (if any) from after the regex matched
+     * @return
+     */
     char const * suffix() const {
 //        std::cerr << fmt::format("string length: {}, captures[1]: {}", this->source.length(), this->captures[1]) << std::endl;
 //        std::cerr << fmt::format("suffix: '{}'", this->source.data() + this->captures[1]) << std::endl;
@@ -71,13 +89,23 @@ public:
         return result;
     }
 
-    // returns true if the specified named capture has a non-zero length
+    /**
+     * Returns true if the specified named capture has a non-zero length
+     * @param name named capture to check for non-zero length
+     * @return whether the specified named capture has a non-zero length
+     */
     bool has(xl::zstring_view name) const {
         auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name.c_str());
         // std::cerr << fmt::format("Looked up named capture '{}' => {}", name.c_str(), index) << std::endl;
         return this->length(index) > 0;
     }
 
+
+    /**
+     * Returns the length of the named capturing pattern
+     * @param name name of the capturing pattern
+     * @return length of the named capturing pattern
+     */
     size_t length(xl::zstring_view name) const {
         auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name.c_str());
         // std::cerr << fmt::format("Looked up named capture '{}' => {}", name.c_str(), index) << std::endl;
@@ -85,6 +113,11 @@ public:
     }
 
 
+    /**
+     * Length of the match at the specified position
+     * @param index position to get length for
+     * @return length of the match at the specified position
+     */
     size_t length(size_t index) const {
         if (index > this->results) {
             return 0;
@@ -95,19 +128,34 @@ public:
     }
 
 
-    std::string operator[](char const * name) const {
+    /**
+     * Returns the string captured by the named capturing pattern
+     * @param name name of the pattern to return the value for
+     * @return captured string for the specified pattern
+     */
+    xl::string_view operator[](char const * name) const {
         auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name);
         // std::cerr << fmt::format("Looked up named capture '{}' => {}", name, index) << std::endl;
         return this->operator[](index);
     }
 
 
-    std::string operator[](xl::zstring_view name) const {
+    /**
+     * Returns the string captured by the named capturing pattern
+     * @param name name of the pattern to return the value for
+     * @return captured string for the specified pattern
+     */
+    xl::string_view operator[](xl::zstring_view name) const {
         return this->operator[](name.c_str());
     }
 
 
-    std::string operator[](int index) const {
+    /**
+     * Returns the string captured by the capturing pattern at the specified index
+     * @param index index to return captured string for pattern
+     * @return string captured by capture pattern at specified index
+     */
+    xl::string_view operator[](int index) const {
         if (index > results) {
 //            throw RegexException(fmt::format("index out of range: {} vs {}", index, results));
            // std::cerr << fmt::format("index might be out of range: {} vs {}", index, results) << std::endl;
@@ -118,12 +166,16 @@ public:
         std::string substring(substring_buffer_length, '\0');
         pcre_copy_substring(source.c_str(), this->captures.get(), this->results, index, substring.data(), substring_buffer_length + 1);
         // std::cerr << fmt::format("returning substring {}: '{}'", index, substring) << std::endl;
-        return substring;
+        return xl::string_view(&this->source[this->captures[(index * 2)]], substring_buffer_length);
     }
 
 
-    std::vector<std::string> get_all_matches() const {
-        std::vector<std::string> results;
+    /**
+     * Returns the string for the entire match as well as each capturing pattern
+     * @return vector of each captured result
+     */
+    std::vector<xl::string_view> get_all_matches() const {
+        std::vector<xl::string_view> results;
         for (int i = 0; i < this->results; i++) {
             results.push_back(this->operator[](i));
         }
@@ -131,6 +183,7 @@ public:
     }
 
 };
+
 
 
 class RegexPcre {
@@ -151,6 +204,11 @@ class RegexPcre {
 
 public:
 
+    /**
+     * Creates a regular expression from the given string and flags
+     * @param regex_string
+     * @param flags
+     */
     RegexPcre(xl::zstring_view regex_string, std::underlying_type_t<xl::RegexFlags> flags = NONE)
     {
         const char *error_string;
@@ -182,11 +240,20 @@ public:
     }
 
 
+    /**
+     * Returns data about the underlying regular expression implementation
+     * @return
+     */
     static std::string info(){
         return fmt::format("PCRE Version: {}.{}", PCRE_MAJOR, PCRE_MINOR);
     }
 
 
+    /**
+     * Attempts to match this regular expression against the given string
+     * @param data string to match this regular expression against
+     * @return results from attempting the match
+     */
     RegexResultPcre match(xl::zstring_view data) const {
         auto buffer_length = this->capture_count * 3;
         auto buffer = std::make_unique<int[]>(buffer_length);
@@ -211,6 +278,15 @@ public:
     }
 
 
+    /**
+     * Returns a string with the matched section of the source replaced by the format string.  If no
+     * match, returns an exact copy of the source string.
+     * @param source string to match against
+     * @param format what to substitute for the matched section of the source string.  $1-$9 replace with thecontents
+     *               of captured subpatterns.  Currently limited to just 9 matches.
+     * @return copy of the new string
+     * @ifnot
+     */
     std::string replace(xl::zstring_view source, xl::zstring_view format) {
 
         auto matches = this->match(source);

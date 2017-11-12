@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 namespace xl {
 /**
@@ -32,5 +33,24 @@ using zstring_view = basic_zstring_view<char>;
 using wzstring_view = basic_zstring_view<wchar_t>;
 using u16zstring_view = basic_zstring_view<char16_t>;
 using u32zstring_view = basic_zstring_view<char32_t>;
+
+
+template<
+    class CharT,
+    class Traits = std::char_traits<CharT>>
+class basic_string_view : public ::std::basic_string_view<CharT, Traits> {
+
+public:
+    using std::basic_string_view<CharT, Traits>::basic_string_view;
+
+    operator std::basic_string<CharT>() const {return std::basic_string<CharT>(*this);}
+};
+
+
+using string_view = basic_string_view<char>;
+using wstring_view = basic_string_view<wchar_t>;
+using u16string_view = basic_string_view<char16_t>;
+using u32string_view = basic_string_view<char32_t>;
+
 
 }
