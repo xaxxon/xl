@@ -25,26 +25,38 @@ public:
         RegexResultStd(string, std::regex(regex_string.c_str()))
     {}
 
+
+    xl::string_view prefix() {
+        auto prefix_length = (this->_matches.prefix().second - this->_matches.prefix().first);
+        return xl::string_view(&*this->_matches.prefix().first, prefix_length);
+    }
+
+
     // everything after the match
     char const * suffix() {
         return &*(this->_matches.suffix().first);
     }
 
-    std::string operator[](size_t n) const {
-        return this->_matches[n].str();
+
+    xl::string_view operator[](size_t n) const {
+        return xl::string_view(&*this->_matches[n].first, this->_matches.length(n));
     }
+
 
     auto size() const {
         return this->_matches.size();
     }
 
+
     bool empty() const {
         return this->_matches.empty();
     }
 
+
     bool length(size_t n = 0) const {
         return this->_matches.length(n);
     }
+
 
     /**
      * Returns true if the regex matched anything
