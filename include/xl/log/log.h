@@ -457,7 +457,7 @@ public:
     }
 
     CallbackT & add_callback(std::ostream & ostream, std::string prefix = "") {
-        return this->add_callback([&](LogMessage const & message) {
+        return this->add_callback([this, prefix](LogMessage const & message) {
             ostream << prefix << message.string << std::endl;
         });
     }
