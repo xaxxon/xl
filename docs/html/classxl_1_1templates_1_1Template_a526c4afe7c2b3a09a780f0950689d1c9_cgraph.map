@@ -1,0 +1,5 @@
+<map id="xl::templates::Template::fill" name="xl::templates::Template::fill">
+<area shape="rect" id="node2" href="$classxl_1_1templates_1_1Provider__Interface.html#a27e5ae90862872c686692a2f8f1e2a9a" title="xl::templates::Provider\l_Interface::get_name" alt="" coords="197,5,337,41"/>
+<area shape="rect" id="node3" href="$namespacexl_1_1templates.html#a57a2383815bc1344ba2fe265790efdd3" title="xl::templates::make\l_provider" alt="" coords="205,65,330,101"/>
+<area shape="rect" id="node4" href="$structxl_1_1templates_1_1DefaultProviders.html#a9173a8d20bbed1c0bb9f3babfaed666e" title="xl::templates::DefaultProviders\l::make_provider" alt="" coords="385,65,569,101"/>
+</map>

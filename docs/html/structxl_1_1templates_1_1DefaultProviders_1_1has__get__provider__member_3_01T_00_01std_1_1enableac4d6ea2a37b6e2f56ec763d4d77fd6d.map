@@ -1,0 +1,2 @@
+<map id="xl::templates::DefaultProviders&lt; ProviderContainer &gt;::has_get_provider_member&lt; T, std::enable_if_t&lt; std::is_same_v&lt; ProviderPtr, decltype(std::declval&lt; T &gt;().get_provider())&gt; &gt; &gt;" name="xl::templates::DefaultProviders&lt; ProviderContainer &gt;::has_get_provider_member&lt; T, std::enable_if_t&lt; std::is_same_v&lt; ProviderPtr, decltype(std::declval&lt; T &gt;().get_provider())&gt; &gt; &gt;">
+</map>

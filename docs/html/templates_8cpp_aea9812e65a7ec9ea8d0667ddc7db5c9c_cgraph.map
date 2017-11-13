@@ -1,0 +1,12 @@
+<map id="precompiled_template" name="precompiled_template">
+<area shape="rect" id="node2" href="$templates_8cpp.html#a13d56da350b1b8b183b42dab54bf29db" title="BENCHMARK" alt="" coords="216,11,314,35"/>
+<area shape="rect" id="node3" href="$classxl_1_1templates_1_1Template.html#a5342e222b644af5083f2c3dbdfeb0e09" title="xl::templates::Template\l::compile" alt="" coords="193,60,337,96"/>
+<area shape="rect" id="node7" href="$classxl_1_1templates_1_1Template.html#a526c4afe7c2b3a09a780f0950689d1c9" title="xl::templates::Template\l::fill" alt="" coords="193,120,337,156"/>
+<area shape="rect" id="node11" href="$namespacestd_1_1____1.html#abbde130fe02a50100122d4846352b318" title="std::__1::pair" alt="" coords="219,181,310,205"/>
+<area shape="rect" id="node4" href="$classxl_1_1RegexStd.html#a6c9b4e5cbf8ce0d5ecdc76358c1f98a3" title="xl::RegexStd::match" alt="" coords="390,11,519,35"/>
+<area shape="rect" id="node6" href="$classxl_1_1RegexResultStd.html#af6b6638d4128ec9af0bf442662c34877" title="xl::RegexResultStd\l::size" alt="" coords="393,60,516,96"/>
+<area shape="rect" id="node5" href="$classxl_1_1RegexResultStd.html#a11b2d5a28d6704c2856065faa4010127" title="xl::RegexResultStd\l::RegexResultStd" alt="" coords="603,5,727,41"/>
+<area shape="rect" id="node8" href="$namespacexl_1_1templates.html#a57a2383815bc1344ba2fe265790efdd3" title="xl::templates::make\l_provider" alt="" coords="392,120,517,156"/>
+<area shape="rect" id="node10" href="$classxl_1_1templates_1_1Provider__Interface.html#a27e5ae90862872c686692a2f8f1e2a9a" title="xl::templates::Provider\l_Interface::get_name" alt="" coords="385,180,525,216"/>
+<area shape="rect" id="node9" href="$structxl_1_1templates_1_1DefaultProviders.html#a9173a8d20bbed1c0bb9f3babfaed666e" title="xl::templates::DefaultProviders\l::make_provider" alt="" coords="573,120,757,156"/>
+</map>

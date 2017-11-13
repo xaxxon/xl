@@ -1,0 +1,5 @@
+<map id="xl::templates::make_provider" name="xl::templates::make_provider">
+<area shape="rect" id="node2" href="$classxl_1_1templates_1_1Template.html#a526c4afe7c2b3a09a780f0950689d1c9" title="xl::templates::Template\l::fill" alt="" coords="178,47,322,83"/>
+<area shape="rect" id="node3" href="$templates_8cpp.html#aea9812e65a7ec9ea8d0667ddc7db5c9c" title="precompiled_template" alt="" coords="410,5,550,29"/>
+<area shape="rect" id="node4" href="$classxl_1_1templates_1_1DefaultProviders_1_1Provider_3_01T_00_01std_1_1enable__if__t_3_01is__ran84b49b80882e9361fd4fd07a78dfd4f9.html#a2cdb5e8944e23833b228226279b4419a" title="xl::templates::DefaultProviders\l::Provider\&lt; T, std::enable\l_if_t\&lt; is_range_for_loop_able\l_v\&lt; remove_reference_wrapper\l_t\&lt; T \&gt; \&gt; &amp;&amp;!std::is_convertible\l_v\&lt; remove_reference_wrapper_t\&lt;\l T \&gt;, std::string \&gt; &amp;&amp;!is_map_v\&lt;\l remove_reference_wrapper_t\&lt; T \&gt; \&gt;\l \&gt; \&gt;::operator()" alt="" coords="370,53,590,173"/>
+</map>

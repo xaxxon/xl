@@ -1,0 +1,16 @@
+<map id="include/xl/templates/directory_loader.h" name="include/xl/templates/directory_loader.h">
+<area shape="rect" id="node5" href="$templates_2templates_8h.html" title="templates.h" alt="" coords="1022,89,1106,113"/>
+<area shape="rect" id="node14" href="$regexer_8h.html" title="../regex/regexer.h" alt="" coords="656,305,771,329"/>
+<area shape="rect" id="node20" href="$log_8h.html" title="../log.h" alt="" coords="791,161,849,185"/>
+<area shape="rect" id="node23" href="$library__extensions_8h.html" title="../library_extensions.h" alt="" coords="1076,305,1214,329"/>
+<area shape="rect" id="node29" href="$provider__data_8h.html" title="provider_data.h" alt="" coords="1580,305,1684,329"/>
+<area shape="rect" id="node31" href="$provider_8h.html" title="provider.h" alt="" coords="1296,161,1370,185"/>
+<area shape="rect" id="node16" href="$regex__std_8h.html" title="regex_std.h" alt="" coords="707,377,791,401"/>
+<area shape="rect" id="node19" href="$zstring__view_8h.html" title="../zstring_view.h" alt="" coords="688,449,795,473"/>
+<area shape="rect" id="node21" href="$log_2log_8h.html" title="log/log.h" alt="" coords="543,233,609,257"/>
+<area shape="rect" id="node28" href="$exceptions_8h.html" title="../exceptions.h" alt="" coords="483,305,581,329"/>
+<area shape="rect" id="node27" href="$magic__ptr_8h.html" title="magic_ptr.h" alt="" coords="1054,377,1138,401"/>
+<area shape="rect" id="node30" href="$templates_2exceptions_8h.html" title="exceptions.h" alt="" coords="1677,377,1766,401"/>
+<area shape="rect" id="node32" href="$demangle_8h.html" title="../demangle.h" alt="" coords="1286,233,1380,257"/>
+<area shape="rect" id="node33" href="$provider__interface_8h.html" title="provider_interface.h" alt="" coords="1506,233,1633,257"/>
+</map>

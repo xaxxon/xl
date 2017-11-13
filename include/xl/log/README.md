@@ -30,7 +30,7 @@ When `libfmt` is present, you can specify log messages using the libfmt style of
 
 If enabled, the log object will mirror its state to a file.  Any programatic changes will be reflected in this file.
 
-If the status file is edited 'by hand' then the changes will be picked up and used - either immediately if the program is
+If the status file is edited then the changes will be picked up and used - either immediately if the program is
 still running or the next time the program begins.   
 
 *Note*: there is currently no locking on this file, so there may be issues when multiple things try to change it at once.

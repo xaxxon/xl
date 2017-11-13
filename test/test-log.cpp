@@ -173,9 +173,9 @@ TEST(log, CustomLog) {
     LogT log([&call_count](auto & message){
         call_count++;
         if (message.subject == CustomSubjects::Subjects::CustomSubject1) {
-            EXPECT_EQ(message.log.get_subject_name(message.subject), "CustomSubject1");
+            EXPECT_EQ(LogT::get_subject_name(message.subject), "CustomSubject1");
         } else if (message.subject == CustomSubjects::Subjects::CustomSubject2) {
-            EXPECT_EQ(message.log.get_subject_name(message.subject), "CustomSubject2");
+            EXPECT_EQ(LogT::get_subject_name(message.subject), "CustomSubject2");
         } else {
             EXPECT_EQ(1,2);
         }

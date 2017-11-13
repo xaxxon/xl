@@ -1,0 +1,7 @@
+<map id="BENCHMARK" name="BENCHMARK">
+<area shape="rect" id="node2" href="$regex__benchmark_8cpp.html#a4bd121b2c3199b14e26b00a8c33447e0" title="std_regex_plain_match" alt="" coords="151,5,297,29"/>
+<area shape="rect" id="node3" href="$regex__benchmark_8cpp.html#a53ea2e474d0685836e8fe9775c1e2919" title="xl_pcre_regex_replace" alt="" coords="153,53,295,77"/>
+<area shape="rect" id="node4" href="$regex__benchmark_8cpp.html#ae343398642dda2bf47361de2a947630b" title="xl_regex_pcre_match" alt="" coords="156,101,292,125"/>
+<area shape="rect" id="node5" href="$regex__benchmark_8cpp.html#a7a4d329eafd0f423dfe53feb3b8aa496" title="xl_regex_std_match" alt="" coords="160,149,288,173"/>
+<area shape="rect" id="node6" href="$regex__benchmark_8cpp.html#a8fb8a975c373eeeda82293e7da0680a9" title="xl_std_regex_replace" alt="" coords="156,197,292,221"/>
+</map>

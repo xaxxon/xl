@@ -1,0 +1,15 @@
+<map id="BENCHMARK" name="BENCHMARK">
+<area shape="rect" id="node2" href="$aligned__string_8cpp.html#a1910eda24fde0af834dffeaa3bf9e90e" title="aligned_short_string\l_equals" alt="" coords="169,5,298,41"/>
+<area shape="rect" id="node3" href="$aligned__string_8cpp.html#a21f884f9884120bb720c12c0c4fd77ea" title="aligned_short_string\l_strchr_hit" alt="" coords="169,65,298,101"/>
+<area shape="rect" id="node4" href="$aligned__string_8cpp.html#a4b63f904e39c357cc2e4b2c031416082" title="aligned_short_string\l_strchr_hit_first" alt="" coords="169,125,298,161"/>
+<area shape="rect" id="node5" href="$aligned__string_8cpp.html#af019da43a6957996df0d807114d0f596" title="aligned_short_string\l_strchr_miss" alt="" coords="169,185,298,221"/>
+<area shape="rect" id="node6" href="$aligned__string_8cpp.html#ad8e56567493d7d543fb1339bea58908b" title="aligned_short_string\l_strchr_random" alt="" coords="169,245,298,281"/>
+<area shape="rect" id="node7" href="$aligned__string_8cpp.html#ac6426bd3f9ae38a729563e9e5c6c8148" title="aligned_short_string\l_strchr_random_expect\l_no_match" alt="" coords="160,306,307,354"/>
+<area shape="rect" id="node8" href="$aligned__string_8cpp.html#accbe3af1d5476a1ba664d85143ec4584" title="std_short_string_equals" alt="" coords="159,378,308,402"/>
+<area shape="rect" id="node9" href="$aligned__string_8cpp.html#a2ad41609a605b9659dea27aa7d970519" title="std_short_string_find_hit" alt="" coords="157,426,309,450"/>
+<area shape="rect" id="node10" href="$aligned__string_8cpp.html#a23bbea0757fe441c3ce2f7ed546ce790" title="std_short_string_find\l_hit_first" alt="" coords="167,475,300,511"/>
+<area shape="rect" id="node11" href="$aligned__string_8cpp.html#a4c173b7b22d71cacca0813e8757a7e87" title="std_short_string_find_miss" alt="" coords="151,535,315,559"/>
+<area shape="rect" id="node12" href="$aligned__string_8cpp.html#adeb741648982d33f6c0b0b8a36329a45" title="std_short_string_raw\l_strchr_hit_first" alt="" coords="167,584,300,620"/>
+<area shape="rect" id="node13" href="$aligned__string_8cpp.html#ac1885595f8e028809a020c0e24e2271c" title="std_string_find_random" alt="" coords="160,645,307,669"/>
+<area shape="rect" id="node14" href="$aligned__string_8cpp.html#aae39fa732ff07de1b39c9800dac9cc64" title="std_string_strchr_random" alt="" coords="155,693,312,717"/>
+</map>

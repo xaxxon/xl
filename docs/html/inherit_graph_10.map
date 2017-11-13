@@ -1,0 +1,14 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node2" href="$structxl_1_1__is__std__array.html" title="xl::_is_std_array\&lt; T \&gt;" alt="" coords="170,5,306,29"/>
+<area shape="rect" id="node3" href="$structxl_1_1__is__template__for.html" title="xl::_is_template_for\l\&lt; tmpl, T \&gt;" alt="" coords="175,54,300,90"/>
+<area shape="rect" id="node4" href="$structxl_1_1has__find__for.html" title="xl::has_find_for\&lt; T,\l V, typename \&gt;" alt="" coords="177,114,299,150"/>
+<area shape="rect" id="node5" href="$structxl_1_1has__insertion__operator.html" title="xl::has_insertion_operator\l\&lt; T, typename \&gt;" alt="" coords="158,174,317,210"/>
+<area shape="rect" id="node6" href="$structxl_1_1is__range__for__loop__able.html" title="xl::is_range_for_loop\l_able\&lt; T, class \&gt;" alt="" coords="171,234,304,270"/>
+<area shape="rect" id="node7" href="$structxl_1_1templates_1_1DefaultProviders_1_1can__get__provider__for__type.html" title="xl::templates::DefaultProviders\l\&lt; ProviderContainer \&gt;::can\l_get_provider_for_type\&lt; class,\l class \&gt;" alt="" coords="145,294,331,354"/>
+<area shape="rect" id="node8" href="$structxl_1_1templates_1_1DefaultProviders_1_1has__get__provider__free__function.html" title="xl::templates::DefaultProviders\l\&lt; ProviderContainer \&gt;::has\l_get_provider_free_function\l\&lt; class, class \&gt;" alt="" coords="146,378,330,438"/>
+<area shape="rect" id="node9" href="$structxl_1_1templates_1_1DefaultProviders_1_1has__get__provider__in__provider__container.html" title="xl::templates::DefaultProviders\l\&lt; ProviderContainer \&gt;::has\l_get_provider_in_provider_container\l\&lt; T, class, class \&gt;" alt="" coords="129,462,346,522"/>
+<area shape="rect" id="node10" href="$structxl_1_1templates_1_1DefaultProviders_1_1has__get__provider__member.html" title="xl::templates::DefaultProviders\l\&lt; ProviderContainer \&gt;::has\l_get_provider_member\&lt; class,\l class \&gt;" alt="" coords="145,546,331,606"/>
+<area shape="rect" id="node11" href="$classxl_1_1templates_1_1DefaultProviders_1_1is__provider__callback__type.html" title="xl::templates::DefaultProviders\l\&lt; ProviderContainer \&gt;::is\l_provider_callback_type\&lt; T,\l class \&gt;" alt="" coords="146,630,330,690"/>
+<area shape="rect" id="node12" href="$classxl_1_1templates_1_1DefaultProviders_1_1is__provider__type.html" title="xl::templates::DefaultProviders\l\&lt; ProviderContainer \&gt;::is\l_provider_type\&lt; class, class \&gt;" alt="" coords="146,715,330,763"/>
+<area shape="rect" id="node13" href="$structxl_1_1templates_1_1is__passthrough__provider.html" title="xl::templates::is_passthrough\l_provider\&lt; class, class \&gt;" alt="" coords="149,787,326,823"/>
+</map>

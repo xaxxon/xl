@@ -309,14 +309,16 @@ public:
         return static_cast<SubjectsUnderlyingType>(subject);
     }
 
+    /**
+     * Representation of an individual message to be logged.  Includes level, subject, and the string.
+     * Also includes a reference to the log object so
+     */
     struct LogMessage {
-        Log & log;
         typename Levels::Levels level;
         typename Subjects::Subjects subject;
         std::string string;
 
-        LogMessage(Log & log, typename Levels::Levels level, typename Subjects::Subjects subject, std::string string) :
-            log(log),
+        LogMessage(typename Levels::Levels level, typename Subjects::Subjects subject, std::string string) :
             level(level),
             subject(subject),
             string(std::move(string))
@@ -505,7 +507,7 @@ public:
         for (auto & callback : this->callbacks) {
             if (this->get_level_status(level) &&
                 this->get_subject_status(subject)) {
-                (*callback)(LogMessage(*this, level, subject, string));
+                (*callback)(LogMessage(level, subject, string));
             }
         }
     }
@@ -532,11 +534,11 @@ public:
         log(Levels::Levels::Error, subject, message);
     }
 
-    std::string const & get_subject_name(typename Subjects::Subjects subject) const {
+    static std::string const & get_subject_name(typename Subjects::Subjects subject) {
         return Subjects::get_subject_name(subject);
     }
 
-    std::string const & get_level_name(typename Levels::Levels level) const {
+    static std::string const & get_level_name(typename Levels::Levels level) {
         return Levels::get_level_name(level);
     }
 
