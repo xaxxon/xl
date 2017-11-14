@@ -559,9 +559,14 @@ public:
 
 TEST(template, VectorOfGetProviderableObjects) {
 
-    auto result = Template("{{has_provider|!{{string}}}}").fill(HasProvider2("hp2"));
+    {
+        auto result = Template("{{has_provider|!{{string}}}}").fill(HasProvider2("hp2"));
+    }
 
-
+    {
+        HasProvider2 hp2("hp2-2");
+        Template("{{has_provider|!{{string}}}}").fill(std::ref(hp2));
+    }
 }
 
 

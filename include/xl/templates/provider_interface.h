@@ -36,23 +36,23 @@ public:
     virtual ProviderPtr get_named_provider(ProviderData & data) {
         throw TemplateException("Provider does not support get_named_provider call");
     };
-};
 
-class EmptyProvider : public Provider_Interface {
-    std::string operator()(ProviderData & data) override {
-        throw TemplateException("EmptyProvider cannot provide content");
-    }
-};
 
+};
 
 
 
 template<class, class = void>
 struct is_passthrough_provider : public std::false_type {};
 
+/**
+ * @cond HIDDEN_SYMBOLS
+ * @tparam T
+ */
 template<class T>
 struct is_passthrough_provider<T, std::enable_if_t<std::is_same_v<void, std::void_t<typename std::decay_t<T>::XL_TEMPLATES_PASSTHROUGH_TYPE>>>> :
     public std::true_type {};
+/// @endcond
 
 template<class T>
 constexpr bool is_passthrough_provider_v = is_passthrough_provider<T>::value;

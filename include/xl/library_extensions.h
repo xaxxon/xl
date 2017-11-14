@@ -1,5 +1,10 @@
 #pragma once
 
+/**
+ * @file
+ * Helper functions/classes/type traits
+ */
+
 #include <utility>
 #include <type_traits>
 #include <vector>
@@ -42,9 +47,13 @@ constexpr bool has_insertion_operator_v = has_insertion_operator<T>::value;
 template<typename T, typename V, typename = void>
 struct has_find_for : public std::false_type {};
 
+/// @cond HIDDEN_SYMBOLS
 template<typename T, typename V>
 struct has_find_for<T, V, std::void_t<decltype(std::declval<T>().find(std::declval<V>()))>> : public std::true_type {};
+/// @endcond
 
+
+/// @cond HIDDEN_SYMBOLS
 template<class T>
 struct _unique_ptr_type;
 
@@ -52,10 +61,17 @@ template<class T, class... Args>
 struct _unique_ptr_type<std::unique_ptr<T, Args...>> {
     using type = T;
 };
+/// @endcond
 
+/**
+ * Type trait for the type a unique_ptr points to
+ */
 template<class T>
-struct unique_ptr_type : public _unique_ptr_type<std::decay_t<T>> {};
+using unique_ptr_type = _unique_ptr_type<std::decay_t<T>>;
 
+/**
+ * The type a unique_ptr points to
+ */
 template<class T>
 using unique_ptr_type_t = typename unique_ptr_type<T>::type;
 
@@ -482,7 +498,26 @@ auto forward_as_pair(T1 && t1, T2 && t2) {
 }
 
 
-// this should never be able to be instantiated
+
+
+
+/**
+ * type trait removing std::reference_wrapper from around a type, if present
+ */
+template<typename T, typename = void>
+struct remove_reference_wrapper {
+    using type = T;
+};
+
+
+/**
+ * The type with std::reference_wrapper removed, if present
+ */
+template<typename T>
+using remove_reference_wrapper_t = typename remove_reference_wrapper<T>::type;
+
+
+/// @cond HIDDEN_SYMBOLS
 template<typename T>
 struct _remove_reference_wrapper;
 
@@ -491,18 +526,13 @@ struct _remove_reference_wrapper<std::reference_wrapper<T>> {
     using type = T;
 };
 
-template<typename T, typename = void>
-struct remove_reference_wrapper {
-    using type = T;
-};
-
 template<typename T>
 struct remove_reference_wrapper<T, std::enable_if_t<is_template_for_v<std::reference_wrapper, T>>> :
     public _remove_reference_wrapper<std::decay_t<T>>
 {};
+/// @endcond
 
-template<typename T>
-using remove_reference_wrapper_t = typename remove_reference_wrapper<T>::type;
+
 
 
 template<class T>
@@ -560,20 +590,22 @@ std::string join(T const & container, std::string_view join_string = ", ") {
     return result.str();
 }
 
-
+/// @cond HIDDEN_SYMBOLS
 template<typename T>
 struct _is_std_array : public std::false_type {};
 
 template<typename T, std::size_t size>
 struct _is_std_array<std::array<T, size>> : public std::true_type {};
+/// @endcond
 
+/**
+ * Test
+ */
 template<typename T>
 using is_std_array = _is_std_array<std::decay_t<T>>;
 
 template<typename T>
 constexpr bool is_std_array_v = is_std_array<T>::value;
-
-
 
 
 } // end namespace xl

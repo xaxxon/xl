@@ -7,6 +7,6 @@ var searchData=
   ['ui',['Ui',['../namespaceUi.html',1,'']]],
   ['ui_5fmainwindow',['Ui_MainWindow',['../classUi__MainWindow.html',1,'']]],
   ['ui_5fmainwindow_2eh',['ui_mainwindow.h',['../ui__mainwindow_8h.html',1,'']]],
-  ['unique_5fptr_5ftype',['unique_ptr_type',['../structxl_1_1unique__ptr__type.html',1,'xl']]],
+  ['unique_5fptr_5ftype',['unique_ptr_type',['../namespacexl.html#a5bf994652b299af05a79bac633f24811',1,'xl']]],
   ['unique_5fptr_5ftype_5ft',['unique_ptr_type_t',['../namespacexl.html#ac79883d0335b4166eb4ad1a1639f10c9',1,'xl']]]
 ];

@@ -17,7 +17,6 @@ var searchData=
   ['remove_5fcallback',['remove_callback',['../classxl_1_1log_1_1Log.html#a0dfd05285a23e5c16e6cf947b7ca5530',1,'xl::log::Log']]],
   ['remove_5fcopy_5fif',['remove_copy_if',['../namespacexl.html#a08af76f1ffc5c117cf269be2d9743e1f',1,'xl']]],
   ['remove_5freference_5fwrapper',['remove_reference_wrapper',['../namespacexl.html#structxl_1_1remove__reference__wrapper',1,'xl']]],
-  ['remove_5freference_5fwrapper_3c_20t_2c_20std_3a_3aenable_5fif_5ft_3c_20is_5ftemplate_5ffor_5fv_3c_20std_3a_3areference_5fwrapper_2c_20t_20_3e_20_3e_20_3e',['remove_reference_wrapper&lt; T, std::enable_if_t&lt; is_template_for_v&lt; std::reference_wrapper, T &gt; &gt; &gt;',['../structxl_1_1remove__reference__wrapper_3_01T_00_01std_1_1enable__if__t_3_01is__template__for__v_c75a8c6cde788dbd052078e3d14923ba.html',1,'xl']]],
   ['remove_5freference_5fwrapper_5ft',['remove_reference_wrapper_t',['../namespacexl.html#ae3b0b3ddbaa94ad0c8d449c5f6a660c7',1,'xl']]],
   ['remove_5frefs_5fand_5fwrapper',['remove_refs_and_wrapper',['../namespacexl.html#a7e1760c8ae866f037c56f3b0e5533f46',1,'xl']]],
   ['remove_5frefs_5fand_5fwrapper_5ft',['remove_refs_and_wrapper_t',['../namespacexl.html#a3c1ac6cb7d0d93315e33d3208716ea93',1,'xl']]],

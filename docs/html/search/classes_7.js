@@ -1,7 +1,6 @@
 var searchData=
 [
   ['has_5ffind_5ffor',['has_find_for',['../structxl_1_1has__find__for.html',1,'xl']]],
-  ['has_5ffind_5ffor_3c_20t_2c_20v_2c_20std_3a_3avoid_5ft_3c_20decltype_28std_3a_3adeclval_3c_20t_20_3e_28_29_2efind_28std_3a_3adeclval_3c_20v_20_3e_28_29_29_29_3e_20_3e',['has_find_for&lt; T, V, std::void_t&lt; decltype(std::declval&lt; T &gt;().find(std::declval&lt; V &gt;()))&gt; &gt;',['../structxl_1_1has__find__for_3_01T_00_01V_00_01std_1_1void__t_3_01decltype_07std_1_1declval_3_01T_f4c511eccb9664eb0d898782afcdd1e0.html',1,'xl']]],
   ['has_5fget_5fprovider_5ffree_5ffunction',['has_get_provider_free_function',['../structxl_1_1templates_1_1DefaultProviders_1_1has__get__provider__free__function.html',1,'xl::templates::DefaultProviders']]],
   ['has_5fget_5fprovider_5ffree_5ffunction_3c_20t_2c_20std_3a_3aenable_5fif_5ft_3c_20std_3a_3ais_5fsame_5fv_3c_20providerptr_2c_20decltype_28get_5fprovider_28std_3a_3adeclval_3c_20t_20_3e_28_29_29_29_3e_20_3e_20_3e',['has_get_provider_free_function&lt; T, std::enable_if_t&lt; std::is_same_v&lt; ProviderPtr, decltype(get_provider(std::declval&lt; T &gt;()))&gt; &gt; &gt;',['../structxl_1_1templates_1_1DefaultProviders_1_1has__get__provider__free__function_3_01T_00_01std_1d93c94179234c952dddb684652e0bd10.html',1,'xl::templates::DefaultProviders']]],
   ['has_5fget_5fprovider_5fin_5fprovider_5fcontainer',['has_get_provider_in_provider_container',['../structxl_1_1templates_1_1DefaultProviders_1_1has__get__provider__in__provider__container.html',1,'xl::templates::DefaultProviders']]],
