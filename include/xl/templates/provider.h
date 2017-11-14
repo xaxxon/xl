@@ -440,6 +440,9 @@ struct DefaultProviders {
                 if (data.inline_template) {
                     return *data.inline_template;
                 } else {
+                    if (data.templates == nullptr) {
+                        throw TemplateException("ContainerProvider received nullptr template map so it can't possibly find a template by name");
+                    }
                     auto template_iterator = data.templates->find(data.parameters);
                     if (template_iterator == data.templates->end()) {
                         if (data.templates->empty()) {
@@ -546,19 +549,19 @@ struct DefaultProviders {
             MapT & map = this->map_holder;
             auto provider_iterator = map.find(data.name);
             XL_TEMPLATE_LOG("Looked up map name {} in operator()", data.name);
-            data.name.clear();
+            std::string result;
             if (provider_iterator != map.end()) {
 
                 if constexpr(std::is_base_of_v<Provider_Interface, MapValueT>) {
                     XL_TEMPLATE_LOG("value is a provider interface");
-                    return provider_iterator->second()(data);
+                    result = provider_iterator->second()(data);
                 } else if constexpr(std::is_same_v<ProviderPtr, MapValueT>) {
                     XL_TEMPLATE_LOG("value is a unique_ptr<provider interface>");
-                    return provider_iterator->second->operator()(data);
+                    result = provider_iterator->second->operator()(data);
                 } else {
                     XL_TEMPLATE_LOG("value needs to be converted to provider");
 
-                    return Provider<make_reference_wrapper_t<MapValueT>>(std::ref(provider_iterator->second))(data);
+                    result = Provider<make_reference_wrapper_t<MapValueT>>(std::ref(provider_iterator->second))(data);
                 }
 
             } else {
@@ -573,6 +576,8 @@ struct DefaultProviders {
                 }
                 throw TemplateException("provider {} does not provide name: '{}' - in template: '{}'", this->get_name(), data.name, template_text);
             }
+            data.name.clear();
+            return result;
         }
 
 
