@@ -30,7 +30,7 @@ namespace xl::templates {
 
 
 struct TemplateSubjects {
-    inline static std::string subject_names[] = {"default"};
+    inline static std::string subject_names[] = {"default", "compile"};
 
     enum class Subjects {
         Default, Compile, LOG_LAST_SUBJECT
@@ -88,6 +88,9 @@ class provider_data;
 
 template<typename ProviderContainer, class T>
 std::string Template::fill(T && source, ProviderData && input_data) const {
+
+    XL_TEMPLATE_LOG("Filling template: '{}'", this->c_str());
+
     if (!this->is_compiled()) {
         this->compile();
     }
@@ -103,8 +106,6 @@ std::string Template::fill(T && source, ProviderData && input_data) const {
             return this->fill(named_provider, std::move(input_data));
         }
     }
-
-
 
     // used for storing the provider if necessary
     std::unique_ptr<Provider_Interface> provider_interface_unique_pointer;
@@ -255,7 +256,7 @@ void Template::compile() const {
 
 
     (?<CloseDelimiterHere>\}\})
-) # end Substition
+) # end Substitution
 | (?<UnmatchedOpen>\{\{) | (?<UnmatchedClose>\}\}) | $)
 
 
