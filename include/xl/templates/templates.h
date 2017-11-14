@@ -350,7 +350,7 @@ void Template::compile() const {
 
         // if no substitution found, everything was a literal and is handled as a "trailing literal" outside
         //   this loop
-        if (matches.length("Substitution") == 0) {
+        if (!matches.has("Substitution")) {
             break;
         }
 
@@ -361,11 +361,11 @@ void Template::compile() const {
             data.name = matches["SubstitutionName"];
         }
 
-        if (matches.length("JoinStringMarker")) {
+        if (matches.has("JoinStringMarker")) {
             data.join_string = matches["JoinString"];
         }
 
-        if (matches.length("LeadingJoinStringMarker")) {
+        if (matches.has("LeadingJoinStringMarker")) {
             data.leading_join_string = true;
         }
 

@@ -163,10 +163,11 @@ public:
         }
 
         auto substring_buffer_length = (this->captures[(index * 2) + 1] - this->captures[(index * 2)]);
-        std::string substring(substring_buffer_length, '\0');
-        pcre_copy_substring(source.c_str(), this->captures.get(), this->results, index, substring.data(), substring_buffer_length + 1);
-        // std::cerr << fmt::format("returning substring {}: '{}'", index, substring) << std::endl;
-        return xl::string_view(&this->source[this->captures[(index * 2)]], substring_buffer_length);
+        if (substring_buffer_length == 0) {
+            return xl::string_view();
+        } else {
+            return xl::string_view(&this->source[this->captures[(index * 2)]], substring_buffer_length);
+        }
     }
 
 
