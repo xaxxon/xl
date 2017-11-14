@@ -158,7 +158,8 @@ public:
         this->subject_names.clear();
         for(size_t i = 0; i < (size_t)SubjectsT::Subjects::LOG_LAST_SUBJECT; i++) {
             typename SubjectsT::Subjects subject = static_cast<typename SubjectsT::Subjects>(i);
-            this->subject_names.emplace_back(std::pair(log.get_subject_name(subject), log.get_subject_status(subject)));
+            auto pair = std::pair(log.get_subject_name(subject), log.get_subject_status(subject));
+            this->subject_names.emplace_back(std::move(pair));
         }
     }
 
@@ -171,7 +172,6 @@ public:
     void read() {
         std::ifstream file(filename);
         if (!file) {
-            std::cerr << fmt::format("file not found") << std::endl;
             return;
         }
         std::string line;
@@ -457,7 +457,7 @@ public:
     }
 
     CallbackT & add_callback(std::ostream & ostream, std::string prefix = "") {
-        return this->add_callback([this, prefix](LogMessage const & message) {
+        return this->add_callback([&ostream, prefix](LogMessage const & message) {
             ostream << prefix << message.string << std::endl;
         });
     }
