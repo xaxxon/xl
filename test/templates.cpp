@@ -570,4 +570,24 @@ TEST(template, VectorOfGetProviderableObjects) {
 }
 
 
+TEST(template, MissingCloseCurlyBrace) {
+    EXPECT_THROW(Template("{{a}{{b}}").compile(), TemplateException);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

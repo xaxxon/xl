@@ -239,7 +239,7 @@ void Template::compile() const {
     (?<TemplateInsertionMarker>!)?
 
     # Replacement name
-    (?:(?<SubstitutionName>(?:\\\}|\\\{|[^|%>]|>(?!}}))*?)\s*(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||\%|>|$))
+    (?:(?<SubstitutionName>(?:\\\}|\\\{|[^|%>](?!{{)|>(?!}}))*?)\s*(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||\%|>|$))
 
     # Join string, starting with %, if specified
     (?:(?<JoinStringMarker>%)(?<LeadingJoinStringMarker>%?)(?<JoinString>(?:\\\||>(?!}})|[^|>])*))?

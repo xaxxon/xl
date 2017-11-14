@@ -548,7 +548,12 @@ struct DefaultProviders {
         std::string operator()(ProviderData & data) override {
             MapT & map = this->map_holder;
             auto provider_iterator = map.find(data.name);
-            XL_TEMPLATE_LOG("Looked up map name {} in operator()", data.name);
+
+            auto name = std::move(data.name); // keep a copy that isn't cleared
+            data.name.clear();
+
+
+            XL_TEMPLATE_LOG("Looked up map name {} in operator()", name);
             std::string result;
             if (provider_iterator != map.end()) {
 
@@ -574,9 +579,8 @@ struct DefaultProviders {
                 if (data.current_template != nullptr) {
                     template_text = data.current_template->c_str();
                 }
-                throw TemplateException("provider {} does not provide name: '{}' - in template: '{}'", this->get_name(), data.name, template_text);
+                throw TemplateException("provider {} does not provide name: '{}' - in template: '{}'", this->get_name(), name, template_text);
             }
-            data.name.clear();
             return result;
         }
 
