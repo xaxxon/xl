@@ -275,7 +275,8 @@ struct DefaultProviders {
 //            std::cerr << fmt::format("t: {}", (void*)&t) << std::endl;
 
             if (data.inline_template) {
-                return data.inline_template->fill<ProviderContainer>(provider, std::move(data));
+                auto tmpl = data.inline_template.get();
+                return tmpl->fill<ProviderContainer>(provider, std::move(data));
             } else {
                 return provider->operator()(data);
             }
@@ -485,7 +486,7 @@ struct DefaultProviders {
                 //   not based on whatever is done by a previous element
                 auto fill_result = tmpl.fill<ProviderContainer>(p, ProviderData(data));
 
-                XL_TEMPLATE_LOG("replacement is {}, ignore is {}", fill_result, data.ignore_empty_replacements);
+                XL_TEMPLATE_LOG("replacement is {}\n - Ignore_empty_replacements is {}", fill_result, data.ignore_empty_replacements);
                 if (fill_result == "" && data.ignore_empty_replacements) {
                     needs_join_string = false;
                 }
