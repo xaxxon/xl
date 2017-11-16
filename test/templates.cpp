@@ -165,7 +165,7 @@ struct B {
     std::vector<A> vec_a{1,2,3,4,5};
 
     std::vector<A> const & get_vec_a() {
-        std::cerr << fmt::format("get_vec_a  -- this: {}", (void*)this) << std::endl;
+//        std::cerr << fmt::format("get_vec_a  -- this: {}", (void*)this) << std::endl;
         return this->vec_a;}
 
     B(B&&) = delete;
@@ -280,7 +280,7 @@ public:
     std::vector<Arm> const & get_arms() const {return this->arms;}
 
     std::unique_ptr<Provider_Interface> get_provider() {
-        std::cerr << fmt::format("Getting Person provider") << std::endl;
+//        std::cerr << fmt::format("Getting Person provider") << std::endl;
         return make_provider(
                 std::pair("NAME", this->name)//,
             );
@@ -374,11 +374,13 @@ class Uncopyable {
 public:
     Uncopyable() {}
     Uncopyable(Uncopyable &&) = default;
-    std::unique_ptr<Provider_Interface> get_provider() const {
+    ProviderPtr get_provider() const {
         return make_provider(std::pair("A", "B"),std::pair("C", "D"), std::pair("strings", make_provider(strings)));
     }
 };
 
+
+static_assert(DefaultProviders<void>::can_get_provider_for_type_v<xl::remove_refs_and_wrapper_t<std::reference_wrapper<Uncopyable>>>);
 
 /**
  * Provides a vector of Uncopyable objects
@@ -550,22 +552,55 @@ class HasProvider2 {
 public:
     HasProvider2(string s)  {
         v.push_back(HasProvider(s+s));
+        v.push_back(HasProvider(s+s));
     }
     ProviderPtr get_provider() const {
-        return make_provider(std::pair("has_provider", std::ref(v)));
+        return make_provider(
+            std::pair("has_provider", std::ref(v)),
+            std::pair("has_provider_copy", v)
+
+        );
     }
 };
+
 
 
 TEST(template, VectorOfGetProviderableObjects) {
 
     {
         auto result = Template("{{has_provider|!{{string}}}}").fill(HasProvider2("hp2"));
+        EXPECT_EQ(result, "hp2hp2\nhp2hp2");
     }
 
     {
         HasProvider2 hp2("hp2-2");
-        Template("{{has_provider|!{{string}}}}").fill(std::ref(hp2));
+        auto result = Template("{{has_provider_copy|!!\n{{string}}}}").fill(std::ref(hp2));
+
+        EXPECT_EQ(result, "hp2-2hp2-2\nhp2-2hp2-2");
+    }
+}
+
+class VectorOfUniquePtrToHasProvider {
+    vector<unique_ptr<HasProvider>> v;
+
+public:
+    VectorOfUniquePtrToHasProvider(string s)  {
+        v.push_back(make_unique<HasProvider>(s+s));
+        v.push_back(make_unique<HasProvider>(s+s));
+    }
+    ProviderPtr get_provider() const {
+        return make_provider(
+            std::pair("has_provider", xl::copy(v))
+        );
+    }
+};
+
+TEST(template, RefToGetProviderableWithVectorOfGetProviderable) {
+    {
+        VectorOfUniquePtrToHasProvider hp2("hp2-2");
+        auto result = Template("{{has_provider|!!\nAAA {{string}}}}").fill(std::ref(hp2));
+
+        EXPECT_EQ(result, "AAA hp2-2hp2-2\nAAA hp2-2hp2-2");
     }
 }
 

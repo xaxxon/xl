@@ -95,27 +95,14 @@ std::string Template::fill(T && source, ProviderData && input_data) const {
         this->compile();
     }
 
-    if constexpr(is_passthrough_provider_v<T>) {
-        XL_TEMPLATE_LOG("fill got passthrough provider {}, recursively calling fill with underlying provider", source.get_name());
-        return fill<ProviderContainer>(source.get_underlying_provider(), input_data.templates);
-    }
-
-    if constexpr(std::is_same_v<ProviderPtr, std::remove_reference_t<T>>) {
-        if (!input_data.name.empty()) {
-            auto named_provider = source->get_named_provider(input_data);
-            return this->fill(named_provider, std::move(input_data));
-        }
-    }
-
-
     // used for storing the provider if necessary
     std::unique_ptr<Provider_Interface> provider_interface_unique_pointer;
 
     // used for consistent interface for assigning to reference later
     Provider_Interface * provider_interface_pointer;
     if constexpr(std::is_base_of_v<Provider_Interface, std::decay_t<T>>) {
-//        std::cerr << fmt::format("**** already had provider interface") << std::endl;
         provider_interface_pointer = & source;
+
     } else {
 
         // need to store the unique_ptr to maintain object lifetime then assign to normal pointer
@@ -128,15 +115,24 @@ std::string Template::fill(T && source, ProviderData && input_data) const {
 
     XL_TEMPLATE_LOG("outside: provider interface pointer to {}", (void*)provider_interface_pointer);
 
+    if (!provider_interface_pointer->is_fillable_provider()) {
+        auto fillable_provider = provider_interface_pointer->get_fillable_provider();
+        provider_interface_unique_pointer = std::move(fillable_provider);
+        provider_interface_pointer = provider_interface_unique_pointer.get();
+    }
 
 
     // whichever way the object was provided, get a reference to the object for convenience here
     Provider_Interface & provider = *provider_interface_pointer;
 
+    if (provider.is_template_passthrough()) {
+        return provider(input_data);
+    }
+
+
     std::string result{""};
     XL_TEMPLATE_LOG("just created variable 'result': '{}'", result);
     result.reserve(this->minimum_result_length);
-
 
     for(int i = 0; i < this->compiled_static_strings.size(); i++) {
 
@@ -145,9 +141,6 @@ std::string Template::fill(T && source, ProviderData && input_data) const {
 
         if (this->compiled_substitutions.size() > i) {
             ProviderData data(this->compiled_substitutions[i]);
-            if (input_data.inline_template) {
-                data.inline_template = input_data.inline_template;
-            }
             XL_TEMPLATE_LOG("grabbed data for compiled_subsitution {} - it has name {} and inline template: {}",
                             i, data.name, (void*)data.inline_template.get());
             data.templates = input_data.templates;

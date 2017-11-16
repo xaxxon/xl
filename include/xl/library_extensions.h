@@ -526,6 +526,7 @@ struct _remove_reference_wrapper<std::reference_wrapper<T>> {
     using type = T;
 };
 
+// this is required so that if it's a NOT a reference wrapper that the type isn't std::decay'd
 template<typename T>
 struct remove_reference_wrapper<T, std::enable_if_t<is_template_for_v<std::reference_wrapper, T>>> :
     public _remove_reference_wrapper<std::decay_t<T>>

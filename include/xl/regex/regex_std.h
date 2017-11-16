@@ -102,7 +102,7 @@ public:
 //        std::cout << fmt::format("Creating regex with '{}'", regex_string.c_str()) << std::endl;
         this->regex = std::regex(regex_string.c_str(), make_std_regex_flags(flags));
     } catch (std::regex_error const & e) {
-        std::cerr << fmt::format("caught error creating std::regex for '{}'", regex_string.c_str()) << std::endl;
+//        std::cerr << fmt::format("caught error creating std::regex for '{}'", regex_string.c_str()) << std::endl;
         throw xl::RegexException(e.what());
     }
 

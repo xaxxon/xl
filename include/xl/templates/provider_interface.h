@@ -37,6 +37,19 @@ public:
         throw TemplateException("Provider does not support get_named_provider call");
     };
 
+    virtual bool is_fillable_provider() {
+        return false;
+    }
+
+    virtual ProviderPtr get_fillable_provider() {
+        throw TemplateException("Called get_fillable_provider on Provider which doesn't override it");
+    }
+
+
+    // is this provider something that is fillable and does not consume a template (basically just container provider)
+    virtual bool is_template_passthrough() {
+        return false;
+    }
 
 };
 

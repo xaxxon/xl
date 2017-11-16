@@ -161,6 +161,10 @@ struct DefaultProviders {
             data.name.clear();
             return std::make_unique<Provider>(*this);
         }
+
+        bool is_fillable_provider() override {
+            return true;
+        }
     };
 
 
@@ -205,6 +209,11 @@ struct DefaultProviders {
 
         std::string get_name() const override {
             return fmt::format("Provider: Callback {} returning Providerable type {}", demangle<NoRefT>(), demangle<CallbackResultT>());
+        }
+
+        ProviderPtr get_fillable_provider() override {
+            auto result = this->callback();
+            return Provider<CallbackResultT>(std::move(result)).get_fillable_provider();
         }
     };
 
@@ -274,12 +283,12 @@ struct DefaultProviders {
 //            std::cerr << fmt::format("got underlying provider name: {}", provider->get_name()) << std::endl;
 //            std::cerr << fmt::format("t: {}", (void*)&t) << std::endl;
 
-            if (data.inline_template) {
-                auto tmpl = data.inline_template.get();
-                return tmpl->fill<ProviderContainer>(provider, std::move(data));
-            } else {
+//            if (data.inline_template) {
+//                auto tmpl = data.inline_template.get();
+//                return tmpl->fill<ProviderContainer>(provider, std::move(data));
+//            } else {
                 return provider->operator()(data);
-            }
+//            }
         }
 
         auto get_underlying_provider() {
@@ -299,6 +308,10 @@ struct DefaultProviders {
 
         std::string get_name() const override {
             return fmt::format("Provider: can_get_provider_for_type_v<{}>", demangle<T>());
+        }
+
+        ProviderPtr get_fillable_provider() override {
+            return this->get_underlying_provider();
         }
 
     };
@@ -337,6 +350,11 @@ struct DefaultProviders {
         }
         std::string get_name() const override {
             return fmt::format("Provider: unique_ptr<{}> passthrough", demangle<PointeeT>());
+        }
+
+        ProviderPtr get_fillable_provider() override {
+            UniquePtrT & unique_ptr = t;
+            return std::make_unique<Provider<make_reference_wrapper_t<PointeeT>>>(*unique_ptr);
         }
 
     };
@@ -386,6 +404,10 @@ struct DefaultProviders {
 
         auto get_underlying_provider() {
             return Provider<make_reference_wrapper_t<NoPtrT>>(*t);
+        }
+
+        ProviderPtr get_fillable_provider() override {
+            return std::make_unique<Provider<make_reference_wrapper_t<NoPtrT>>>(*t);
         }
     };
 
@@ -499,8 +521,15 @@ struct DefaultProviders {
         std::string get_name() const override {
             return fmt::format("Provider: container of {}", demangle<T>());
         }
-    };
 
+        bool is_fillable_provider() override {
+            return true;
+        }
+
+        bool is_template_passthrough() override {
+            return true;
+        }
+    };
 
 
     /**
@@ -528,6 +557,7 @@ struct DefaultProviders {
             }
         }
 
+
         Provider(T map_holder) :
             map_holder(std::move(map_holder))
         {
@@ -540,6 +570,7 @@ struct DefaultProviders {
                 XL_TEMPLATE_LOG("{}: {}", a, (void*)&b);
             }
         }
+
 
         ~Provider() {
             XL_TEMPLATE_LOG("std::map provider destructor called for provider at {}", (void*)this);
@@ -567,7 +598,16 @@ struct DefaultProviders {
                 } else {
                     XL_TEMPLATE_LOG("value needs to be converted to provider");
 
-                    result = Provider<make_reference_wrapper_t<MapValueT>>(std::ref(provider_iterator->second))(data);
+                    auto provider = Provider<make_reference_wrapper_t<MapValueT>>(std::ref(provider_iterator->second));
+                    if (data.inline_template) {
+                        auto inline_template = data.inline_template;
+//                        data.inline_template.reset();
+//                        std::cerr << fmt::format("created provider from map value: {}", provider.get_name()) << std::endl;
+                        return inline_template->fill(std::move(provider), std::move(data));
+                    } else {
+                        result = provider(data);
+                    }
+
                 }
 
             } else {
@@ -597,9 +637,11 @@ struct DefaultProviders {
             return result;
         }
 
+
         bool provides_named_lookup() override {
             return true;
         }
+
 
         ProviderPtr get_named_provider(ProviderData & data) override {
 
@@ -618,8 +660,11 @@ struct DefaultProviders {
             }
         }
 
-    };
 
+        bool is_fillable_provider() override {
+            return true;
+        }
+    };
 
 
     static_assert(!can_get_provider_for_type_v<std::string>);
