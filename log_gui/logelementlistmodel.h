@@ -83,7 +83,7 @@ public:
 class LogStatusFileGuiWrapper
 {
 private:
-    std::unique_ptr<xl::LogStatusFile> status_file;
+    std::unique_ptr<xl::log::LogStatusFile> status_file;
     QListView * levelList;
     QCheckBox * allLevels;
     QListView * subjectList;

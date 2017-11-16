@@ -107,6 +107,7 @@ std::string Template::fill(T && source, ProviderData && input_data) const {
         }
     }
 
+
     // used for storing the provider if necessary
     std::unique_ptr<Provider_Interface> provider_interface_unique_pointer;
 

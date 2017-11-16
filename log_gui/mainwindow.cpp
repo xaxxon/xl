@@ -50,9 +50,6 @@ MainWindow::MainWindow(QString input_filename, QWidget *parent) :
 
     this->filename_label = new QLabel(this->filename);
     this->ui->statusBar->addPermanentWidget(this->filename_label);
-
-    initialize_from_status_file();
-    this->update_combined_checkboxes();
 }
 
 

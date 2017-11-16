@@ -29,9 +29,7 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    void update_combined_checkboxes();
 
-    void initialize_from_status_file();
 
     QLabel * filename_label;
 
