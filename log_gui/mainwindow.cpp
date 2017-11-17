@@ -20,14 +20,13 @@ MainWindow::MainWindow(QStringList filenames, QWidget *parent) :
         tabs->removeTab(0);
     }
 
+    this->ui->logStatusTabs->setTabsClosable(true);
 
     for(auto const & filename : filenames) {
         // if it's a directory, then load up all the .log_status files in it
         QDir dir(filename);
         if (dir.exists()) {
             for (auto entry : dir.entryInfoList({"*.log_status"})) {
-                std::cerr << fmt::format("Looking at filename: {} - {}", entry.canonicalFilePath().toStdString(),
-                                         entry.fileName().toStdString()) << std::endl;
                 tabs->addTab(new LogStatus(entry.canonicalFilePath()), entry.fileName());
             }
         } else {

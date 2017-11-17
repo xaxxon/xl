@@ -25,7 +25,7 @@ target_compile_definitions(log_gui PRIVATE -DXL_USE_PCRE)
 add_custom_target(copy_example_log_status)
 add_custom_command(TARGET copy_example_log_status PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/example.log_status ${CMAKE_CURRENT_BINARY_DIR}/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/example.log_status ${CMAKE_CURRENT_BINARY_DIR}/example2.log_status)
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/example2.log_status ${CMAKE_CURRENT_BINARY_DIR}/example2.log_status)
 
 
 add_dependencies(log_gui copy_example_log_status)
