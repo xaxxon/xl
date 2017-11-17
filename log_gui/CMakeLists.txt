@@ -20,6 +20,7 @@ add_executable(log_gui  ${SOURCE_FILES})
 # Use the Widgets module from Qt 5.
 target_link_libraries(log_gui Qt5::Widgets xl::xl fmt pcre c++experimental)
 
+target_compile_definitions(log_gui PRIVATE -DXL_USE_PCRE)
 
 add_custom_target(copy_example_log_status)
 add_custom_command(TARGET copy_example_log_status PRE_BUILD
