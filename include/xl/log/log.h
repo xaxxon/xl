@@ -72,6 +72,12 @@ struct LogLevelsBase {
     static std::string const & get_level_name(typename T::Levels level) {
         return T::level_names[static_cast<std::underlying_type_t<typename T::Levels>>(level)];
     }
+
+    using UnderlyingType = std::underlying_type_t<typename T::Levels>;
+
+    static auto get(typename T::Levels level) {
+        return static_cast<UnderlyingType>(level);
+    }
 };
 
 
@@ -88,6 +94,12 @@ struct LogSubjectsBase {
 
     static std::string const & get_subject_name(typename T::Subjects subject) {
         return T::subject_names[static_cast<std::underlying_type_t<typename T::Subjects>>(subject)];
+    }
+
+    using UnderlyingType = std::underlying_type_t<typename T::Subjects>;
+
+    static auto get(typename T::Subjects subject) {
+        return static_cast<UnderlyingType>(subject);
     }
 };
 
@@ -150,13 +162,13 @@ public:
     template<typename LevelsT, typename SubjectsT>
     void initialize_from_log(Log<LevelsT, SubjectsT> const & log) {
         this->level_names.clear();
-        for(size_t i = 0; i < (size_t)LevelsT::Levels::LOG_LAST_LEVEL; i++) {
+        for(size_t i = 0; i < LogLevelsBase<LevelsT>::get(LevelsT::Levels::LOG_LAST_LEVEL); i++) {
             typename LevelsT::Levels level = static_cast<typename LevelsT::Levels>(i);
             this->level_names.emplace_back(std::pair(log.get_level_name(level), log.get_level_status(level)));
         }
 
         this->subject_names.clear();
-        for(size_t i = 0; i < (size_t)SubjectsT::Subjects::LOG_LAST_SUBJECT; i++) {
+        for(size_t i = 0; i < LogSubjectsBase<SubjectsT>::get(SubjectsT::Subjects::LOG_LAST_SUBJECT); i++) {
             typename SubjectsT::Subjects subject = static_cast<typename SubjectsT::Subjects>(i);
             auto pair = std::pair(log.get_subject_name(subject), log.get_subject_status(subject));
             this->subject_names.emplace_back(std::move(pair));
@@ -283,29 +295,24 @@ class Log {
     static_assert((size_t)SubjectsT::Subjects::LOG_LAST_SUBJECT >= 0, "Subjects enumeration must have LOG_LAST_SUBJECT as its final entry");
 public:
 
+    using LevelsBase = log::LogLevelsBase<LevelsT>;
+    using SubjectsBase = log::LogSubjectsBase<SubjectsT>;
 
-    using Levels = log::LogLevelsBase<LevelsT>;
-    using Subjects = log::LogSubjectsBase<SubjectsT>;
+    using Levels = typename log::LogLevelsBase<LevelsT>::Levels;
+    using Subjects = typename log::LogSubjectsBase<SubjectsT>::Subjects;
 
-    using LevelsUnderlyingType = std::underlying_type_t<typename Levels::Levels>;
-    using SubjectsUnderlyingType = std::underlying_type_t<typename Subjects::Subjects>;
+    using LevelsUnderlyingType = std::underlying_type_t<Levels>;
+    using SubjectsUnderlyingType = std::underlying_type_t<Subjects>;
 
-    static constexpr LevelsUnderlyingType level_count = static_cast<LevelsUnderlyingType>(Levels::Levels::LOG_LAST_LEVEL);
-    static constexpr SubjectsUnderlyingType subject_count = static_cast<SubjectsUnderlyingType>(Subjects::Subjects::LOG_LAST_SUBJECT);
+    static constexpr LevelsUnderlyingType level_count = static_cast<LevelsUnderlyingType>(Levels::LOG_LAST_LEVEL);
+    static constexpr SubjectsUnderlyingType subject_count = static_cast<SubjectsUnderlyingType>(Subjects::LOG_LAST_SUBJECT);
 
-    auto subjects() const {
-        return Subjects();
-    }
 
-    auto levels() const {
-        return Levels();
-    }
-
-    auto get(typename Levels::Levels level) {
+    auto get(Levels level) {
         return static_cast<LevelsUnderlyingType>(level);
     }
 
-    auto get(typename Subjects::Subjects subject) {
+    auto get(Subjects subject) {
         return static_cast<SubjectsUnderlyingType>(subject);
     }
 
@@ -314,11 +321,11 @@ public:
      * Also includes a reference to the log object so
      */
     struct LogMessage {
-        typename Levels::Levels level;
-        typename Subjects::Subjects subject;
+        Levels level;
+        Subjects subject;
         std::string string;
 
-        LogMessage(typename Levels::Levels level, typename Subjects::Subjects subject, std::string string) :
+        LogMessage(Levels level, Subjects subject, std::string string) :
             level(level),
             subject(subject),
             string(std::move(string))
@@ -352,14 +359,14 @@ private:
 
         for(LevelsUnderlyingType i = 0; i < level_count; i++) {
             if (i < temp->level_names.size()) {
-                typename LevelsT::Levels level = static_cast<typename LevelsT::Levels>(i);
+                typename LevelsT::Levels level = static_cast<Levels>(i);
                 this->set_level_status(level, temp->level_names[i].second);
             }
         }
 
         for(SubjectsUnderlyingType i = 0; i < subject_count; i++) {
             if (i < temp->subject_names.size()) {
-                typename SubjectsT::Subjects subject = static_cast<typename SubjectsT::Subjects>(i);
+                typename SubjectsT::Subjects subject = static_cast<Subjects>(i);
                 this->set_subject_status(subject, temp->subject_names[i].second);
             }
         }
@@ -369,22 +376,30 @@ private:
     }
 
 public:
+
+    auto subjects() const {
+        return LogSubjectsBase<SubjectsT>();
+    }
+
+    auto levels() const {
+        return log::LogLevelsBase<LevelsT>();
+    }
     
     std::string get_status_string() {
         std::stringstream status;
 
         for(size_t i = 0; i < (size_t)LevelsT::Levels::LOG_LAST_LEVEL; i++) {
-            auto level = (typename LevelsT::Levels)i;
+            auto level = (Levels)i;
             status << fmt::format("{}: {}", LevelsT::get_level_name(level), (bool)get_level_status(level));
         }
         for(size_t i = 0; i < (size_t)SubjectsT::Subjects::LOG_LAST_SUBJECT; i++) {
-            auto subject = (typename SubjectsT::Subjects)i;
+            auto subject = (Subjects)i;
             status << fmt::format("{}: {}", SubjectsT::get_subject_name(subject), (bool)get_subject_status(subject));
         }
         return status.str();
     }
 
-    bool set_level_status(typename Levels::Levels level, bool new_status) {
+    bool set_level_status(Levels level, bool new_status) {
 //        std::cerr << fmt::format("setting {} to {}", (int)level, new_status) << std::endl;
         bool previous_status;
         previous_status = level_status[get(level)];
@@ -396,7 +411,7 @@ public:
         return previous_status;
     }
     
-    bool get_level_status(typename Levels::Levels level) const {
+    bool get_level_status(Levels level) const {
         if (level_status.size() <= (int)level) {
             return true;
         } else {
@@ -405,19 +420,19 @@ public:
     }
 
     void set_all_subjects(bool new_status) {
-        for(size_t i = 0; i < (size_t)Subjects::Subjects::LOG_LAST_SUBJECT; i++) {
-            set_subject_status(static_cast<typename Subjects::Subjects>(i), new_status);
+        for(size_t i = 0; i < get(Subjects::LOG_LAST_SUBJECT); i++) {
+            set_subject_status(static_cast<Subjects>(i), new_status);
         }
     }
 
     void set_all_levels(bool new_status) {
-        for(size_t i = 0; i < (size_t)Levels::Levels::LOG_LAST_LEVEL; i++) {
-            set_level_status((typename Levels::Levels)i, new_status);
+        for(size_t i = 0; i < get(Levels::LOG_LAST_LEVEL); i++) {
+            set_level_status((Levels)i, new_status);
         }
     }
 
 
-    bool set_subject_status(typename Subjects::Subjects subject, bool new_status) {
+    bool set_subject_status(Subjects subject, bool new_status) {
         bool previous_status;
             previous_status = subject_status[get(subject)];
         subject_status[get(subject)] = new_status;
@@ -427,7 +442,7 @@ public:
         return previous_status;
     }
     
-    bool get_subject_status(typename Subjects::Subjects subject) const {
+    bool get_subject_status(Subjects subject) const {
         if (subject_status.size() <= (int)subject) {
             return true;
         } else {
@@ -498,7 +513,7 @@ public:
     }
 
 
-    void log(typename Levels::Levels level, typename Subjects::Subjects subject, xl::zstring_view const & string) {
+    void log(Levels level, Subjects subject, xl::zstring_view const & string) {
         if (this->log_status_file) {
             if (this->log_status_file->check()) {
                 this->initialize_from_status_file();
@@ -512,34 +527,34 @@ public:
         }
     }
 
-    template<class T = Levels, std::enable_if_t<(int)T::Levels::Info >= 0, int> = 0>
-    void info(typename Subjects::Subjects subject, xl::zstring_view message) {
-        log(Levels::Levels::Info, subject, message);
+    template<class T = Levels, std::enable_if_t<(int)T::Info >= 0, int> = 0>
+    void info(Subjects subject, xl::zstring_view message) {
+        log(Levels::Info, subject, message);
     }
 
     template<class L = Levels, class S = Subjects,
-             std::enable_if_t<(int)L::Levels::Info >= 0 && (int)S::Subjects::Default >= 0, int> = 0>
+             std::enable_if_t<(int)L::Levels::Info >= 0 && (int)S::Default >= 0, int> = 0>
     void info(xl::zstring_view message) {
-        log(Levels::Levels::Info, Subjects::Subjects::Default, message);
+        log(Levels::Info, Subjects::Default, message);
     }
 
 
-    template<class T = Levels, std::enable_if_t<(int)T::Levels::Warn >= 0, int> = 0>
-    void warn(typename Subjects::Subjects subject, xl::zstring_view message) {
-        log(Levels::Levels::Warn, subject, message);
+    template<class T = Levels, std::enable_if_t<(int)T::Warn >= 0, int> = 0>
+    void warn(Subjects subject, xl::zstring_view message) {
+        log(Levels::Warn, subject, message);
     }
 
-    template<class T = Levels, std::enable_if_t<(int)T::Levels::Error >= 0, int> = 0>
-    void error(typename Subjects::Subjects subject, xl::zstring_view message) {
-        log(Levels::Levels::Error, subject, message);
+    template<class T = Levels, std::enable_if_t<(int)T::Error >= 0, int> = 0>
+    void error(Subjects subject, xl::zstring_view message) {
+        log(Levels::Error, subject, message);
     }
 
-    static std::string const & get_subject_name(typename Subjects::Subjects subject) {
-        return Subjects::get_subject_name(subject);
+    static std::string const & get_subject_name(Subjects subject) {
+        return SubjectsBase::get_subject_name(subject);
     }
 
-    static std::string const & get_level_name(typename Levels::Levels level) {
-        return Levels::get_level_name(level);
+    static std::string const & get_level_name(Levels level) {
+        return LevelsBase::get_level_name(level);
     }
 
     auto get_status_of_levels() const {
@@ -567,26 +582,26 @@ public:
 
 #ifdef XL_USE_LIB_FMT
     template<class... Ts>
-    void log(typename Levels::Levels level, typename Subjects::Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
+    void log(Levels level, Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
         log(level, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
     }
     template<class L = Levels, class S = Subjects, class... Ts,
-        std::enable_if_t<(int)L::Levels::Info >= 0 && (int)S::Subjects::Default >= 0, int> = 0>
+        std::enable_if_t<(int)L::Info >= 0 && (int)S::Default >= 0, int> = 0>
     void info(xl::zstring_view format_string, Ts&&... ts) {
-        log(Levels::Levels::Info, Subjects::Subjects::Default, fmt::format(format_string.c_str(), std::forward<Ts>(ts)...));
+        log(Levels::Info, Subjects::Default, fmt::format(format_string.c_str(), std::forward<Ts>(ts)...));
     }
 
-    template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Levels::Info >= 0, int> = 0>
-    void info(typename Subjects::Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
-        log(Levels::Levels::Info, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
+    template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Info >= 0, int> = 0>
+    void info(Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
+        log(Levels::Info, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
     }
-    template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Levels::Warn >= 0, int> = 0>
-    void warn(typename Subjects::Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
-        log(Levels::Levels::Warn, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
+    template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Warn >= 0, int> = 0>
+    void warn(Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
+        log(Levels::Warn, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
     }
-    template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Levels::Error >= 0, int> = 0>
-    void error(typename Subjects::Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
-        log(Levels::Levels::Error, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
+    template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Error >= 0, int> = 0>
+    void error(Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
+        log(Levels::Error, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
     }
 #endif
 

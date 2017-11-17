@@ -64,6 +64,12 @@ TEST(template, CallbackSubstitutionTemplate) {
     auto m = make_provider(std::pair{"TEST", std::function<std::string()>([](){return std::string("REPLACEMENT-CALLBACK");})});
     EXPECT_EQ(Template("replace: {{TEST}}").fill(m),
               "replace: REPLACEMENT-CALLBACK");
+
+    {
+        auto result = Template("{{set|!{{dummy}}}}").fill(
+           make_provider(std::pair("set", [](){return std::set<string>{"a", "b", "c"};})));
+        EXPECT_EQ(result, "a\nb\nc");
+    }
 }
 
 

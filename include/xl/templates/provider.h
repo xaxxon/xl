@@ -213,7 +213,12 @@ struct DefaultProviders {
 
         ProviderPtr get_fillable_provider() override {
             auto result = this->callback();
-            return Provider<CallbackResultT>(std::move(result)).get_fillable_provider();
+            auto provider = Provider<CallbackResultT>(std::move(result));
+            if (provider.is_fillable_provider()) {
+                return std::make_unique<decltype(provider)>(std::move(provider)); // turn it into a ProviderPtr
+            } else {
+                return provider.get_fillable_provider();
+            }
         }
     };
 
@@ -589,12 +594,18 @@ struct DefaultProviders {
             std::string result;
             if (provider_iterator != map.end()) {
 
-                if constexpr(std::is_base_of_v<Provider_Interface, MapValueT>) {
-                    XL_TEMPLATE_LOG("value is a provider interface");
-                    result = provider_iterator->second()(data);
-                } else if constexpr(std::is_same_v<ProviderPtr, MapValueT>) {
-                    XL_TEMPLATE_LOG("value is a unique_ptr<provider interface>");
-                    result = provider_iterator->second->operator()(data);
+                if constexpr(
+                    std::is_base_of_v<Provider_Interface, MapValueT> ||
+                    std::is_same_v<ProviderPtr, MapValueT>) {
+
+                    XL_TEMPLATE_LOG("value is a provider interface or ProviderPtr");
+                    if (data.inline_template) {
+                        result = data.inline_template->fill(provider_iterator->second, std::move(data));
+                    } else {
+                        result = provider_iterator->second->operator()(data);
+                    }
+
+
                 } else {
                     XL_TEMPLATE_LOG("value needs to be converted to provider");
 
@@ -603,7 +614,7 @@ struct DefaultProviders {
                         auto inline_template = data.inline_template;
 //                        data.inline_template.reset();
 //                        std::cerr << fmt::format("created provider from map value: {}", provider.get_name()) << std::endl;
-                        return inline_template->fill(std::move(provider), std::move(data));
+                        result = inline_template->fill(provider, std::move(data));
                     } else {
                         result = provider(data);
                     }

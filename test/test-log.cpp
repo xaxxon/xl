@@ -14,7 +14,7 @@ TEST(log, SimpleLog) {
         int call_count = 0;
         LogT log([&call_count](auto & message){call_count++;});
         EXPECT_EQ(call_count, 0);
-        log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
+        log.log(xl::log::DefaultLevels::Levels::Warn, LogT::Subjects::Default, "test");
         EXPECT_EQ(call_count, 1);
         log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
         EXPECT_EQ(call_count, 2);
@@ -304,7 +304,7 @@ TEST(log, LogStatusFile) {
         EXPECT_TRUE(false); // this shouldn't be called
     });
 
-    log.warn(LogT::Subjects::Subjects::Default, "This should be filtered");
+    log.warn(LogT::Subjects::Default, "This should be filtered");
 
 
     // enable it in file, but not time for actual logger to check so it should still be filtered
@@ -313,17 +313,17 @@ TEST(log, LogStatusFile) {
 
     // sleep before write so the timestamp changes
     sleep(1);
-    log.warn(LogT::Subjects::Subjects::Default, "This should be filtered because not time to re-check status file");
+    log.warn(LogT::Subjects::Default, "This should be filtered because not time to re-check status file");
     other.write();
 
-    log.warn(LogT::Subjects::Subjects::Default, "This should be filtered because not time to re-check status file");
+    log.warn(LogT::Subjects::Default, "This should be filtered because not time to re-check status file");
     log.remove_callback(callback);
 
     // sleep so next log picks up the changes
     sleep(1);
 
     int before_count = log_count;
-    log.warn(LogT::Subjects::Subjects::Default, "This should not be filtered");
+    log.warn(LogT::Subjects::Default, "This should not be filtered");
     EXPECT_EQ(log_count, before_count+1);
 }
 
