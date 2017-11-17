@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 
 #include <qfiledialog.h>
+#include <QDir>
 
 #include "logstatus.h"
 #include "../include/xl/log.h"
@@ -19,7 +20,16 @@ MainWindow::MainWindow(QString filename, QWidget *parent) :
         tabs->removeTab(0);
     }
 
-    tabs->addTab(new LogStatus(filename), filename);
+    // if it's a directory, then load up all the .log_status files in it
+    QDir dir(filename);
+    if (dir.exists()) {
+        for (auto entry : dir.entryInfoList({"*.log_status"})) {
+            std::cerr << fmt::format("Looking at filename: {} - {}", entry.canonicalFilePath().toStdString(), entry.fileName().toStdString()) << std::endl;
+            tabs->addTab(new LogStatus(entry.canonicalFilePath()), entry.fileName());
+        }
+    } else {
+        tabs->addTab(new LogStatus(filename), filename);
+    }
 }
 
 MainWindow::~MainWindow() = default;

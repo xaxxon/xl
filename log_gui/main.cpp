@@ -6,7 +6,8 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
 
 
-    MainWindow w(argc > 1 ? argv[1] : "example.log_status");
+    MainWindow w(argc > 1 ? argv[1] : "./");
+//    MainWindow w(argc > 1 ? argv[1] : "example.log_status");
     w.show();
 
     return a.exec();
