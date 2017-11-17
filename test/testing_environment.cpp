@@ -2,7 +2,10 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "templates.h"
+#include <fmt/format.h>
+#include "../include/xl/log.h"
+
+#include "../include/xl/templates/exceptions.h"
 
 
 
@@ -16,7 +19,7 @@ public:
         xl::templates::log.set_level_status(xl::log::DefaultLevels::Levels::Info, false);
 
         xl::templates::log.add_callback([](xl::templates::LogT::LogMessage const & message) {
-           std::cerr << fmt::format("xl::templates: '{}'", message.string) << std::endl;
+           std::cerr << fmt::format("xl::templates ({}): '{}'", xl::templates::log.get_subject_name(message.subject), message.string) << std::endl;
         });
 
         // use status file settings if they exist, otherwise create it with the current settings

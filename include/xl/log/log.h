@@ -388,11 +388,11 @@ public:
     std::string get_status_string() {
         std::stringstream status;
 
-        for(size_t i = 0; i < (size_t)LevelsT::Levels::LOG_LAST_LEVEL; i++) {
+        for(size_t i = 0; i < get(Levels::LOG_LAST_LEVEL); i++) {
             auto level = (Levels)i;
             status << fmt::format("{}: {}", LevelsT::get_level_name(level), (bool)get_level_status(level));
         }
-        for(size_t i = 0; i < (size_t)SubjectsT::Subjects::LOG_LAST_SUBJECT; i++) {
+        for(size_t i = 0; i < get(Subjects::LOG_LAST_SUBJECT); i++) {
             auto subject = (Subjects)i;
             status << fmt::format("{}: {}", SubjectsT::get_subject_name(subject), (bool)get_subject_status(subject));
         }

@@ -615,7 +615,23 @@ TEST(template, MissingCloseCurlyBrace) {
     EXPECT_THROW(Template("{{a}{{b}}").compile(), TemplateException);
 }
 
-
+TEST(template, Comments) {
+    {
+        auto result = Template("{{#This is a comment}}").fill("BOGUS");
+        EXPECT_EQ(result, "");
+    }
+    {
+        auto result = Template("BEFORE {{#This is a comment}} AFTER").fill("BOGUS");
+        EXPECT_EQ(result, "BEFORE  AFTER");
+    }
+    {
+        auto result = Template("{{early}} BEFORE {{#This is a comment}} AFTER {{late}}").fill(make_provider(
+            std::pair("early", "EARLY"),
+            std::pair("late", "LATE")
+        ));
+        EXPECT_EQ(result, "EARLY BEFORE  AFTER LATE");
+    }
+}
 
 
 

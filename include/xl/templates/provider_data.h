@@ -43,6 +43,8 @@ struct ProviderData {
     /// if true, the join string will be placed in front of the first element of multiple replacements
     bool leading_join_string = false;
 
+    bool comment = false;
+
     /// an inline template, if specified
     std::shared_ptr<Template> inline_template;
 

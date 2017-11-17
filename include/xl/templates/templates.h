@@ -29,16 +29,6 @@
 namespace xl::templates {
 
 
-struct TemplateSubjects {
-    inline static std::string subject_names[] = {"default", "compile"};
-
-    enum class Subjects {
-        Default, Compile, LOG_LAST_SUBJECT
-    };
-};
-
-using LogT = ::xl::log::Log<::xl::log::DefaultLevels, TemplateSubjects>;
-inline LogT log;
 
 struct ProviderData;
 class Provider_Interface;
@@ -168,22 +158,28 @@ std::string Template::fill(T && source, ProviderData && input_data) const {
             // filling a template
             else {
 
-                XL_TEMPLATE_LOG("created ProviderData data on the stack at {}", (void*) &data);
+                if (data.comment) {
+                    XL_TEMPLATE_LOG("Handled comment");
+                } else {
 
-                XL_TEMPLATE_LOG("about to call provider() named '{}' at {} and inline_template: {}",
-                                provider.get_name(), (void*)&provider, (void*)data.inline_template.get());
-                auto substitution_result = provider(data);
-                XL_TEMPLATE_LOG("provider() named {} returned: '{}'", provider.get_name(), substitution_result);
-                if (!data.contingent_leading_content.empty() && !substitution_result.empty()) {
-                    XL_TEMPLATE_LOG("adding contingent data: {}", data.contingent_leading_content);
+                    XL_TEMPLATE_LOG("created ProviderData data on the stack at {}", (void *) &data);
 
-                    result.insert(result.end(), data.contingent_leading_content.begin(),
-                                  data.contingent_leading_content.end());
-                }
-                result.insert(result.end(), substitution_result.begin(), substitution_result.end());
-                if (!data.contingent_trailing_content.empty() && !substitution_result.empty()) {
-                    XL_TEMPLATE_LOG("inserting trailing content: {}", data.contingent_trailing_content);
-                    result.insert(result.end(), data.contingent_trailing_content.begin(), data.contingent_trailing_content.end());
+                    XL_TEMPLATE_LOG("about to call provider() named '{}' at {} and inline_template: {}",
+                                    provider.get_name(), (void *) &provider, (void *) data.inline_template.get());
+                    auto substitution_result = provider(data);
+                    XL_TEMPLATE_LOG("provider() named {} returned: '{}'", provider.get_name(), substitution_result);
+                    if (!data.contingent_leading_content.empty() && !substitution_result.empty()) {
+                        XL_TEMPLATE_LOG("adding contingent data: {}", data.contingent_leading_content);
+
+                        result.insert(result.end(), data.contingent_leading_content.begin(),
+                                      data.contingent_leading_content.end());
+                    }
+                    result.insert(result.end(), substitution_result.begin(), substitution_result.end());
+                    if (!data.contingent_trailing_content.empty() && !substitution_result.empty()) {
+                        XL_TEMPLATE_LOG("inserting trailing content: {}", data.contingent_trailing_content);
+                        result.insert(result.end(), data.contingent_trailing_content.begin(),
+                                      data.contingent_trailing_content.end());
+                    }
                 }
             }
         }
@@ -226,28 +222,30 @@ void Template::compile() const {
 (?:(?<Substitution>
     (?<OpenDelimiterHere>\{\{)
     \s*
-    (?<IgnoreEmptyBeforeMarker><)?
-    \s*
+    (?:
+        (?<Comment>\#.*?)|
+        (?<IgnoreEmptyBeforeMarker><)?
+        \s*
 
-    # If there's a leading !, then another template is inserted here instead of a value from a provider
-    (?<TemplateInsertionMarker>!)?
+        # If there's a leading !, then another template is inserted here instead of a value from a provider
+        (?<TemplateInsertionMarker>!)?
 
-    # Replacement name
-    (?:(?<SubstitutionName>(?:\\\}|\\\{|[^|%>](?!{{)|>(?!}}))*?)\s*(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||\%|>|$))
+        # Replacement name
+        (?:(?<SubstitutionName>(?:\\\}|\\\{|[^|%>](?!{{)|>(?!}}))*?)\s*(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||\%|>|$))
 
-    # Join string, starting with %, if specified
-    (?:(?<JoinStringMarker>%)(?<LeadingJoinStringMarker>%?)(?<JoinString>(?:\\\||>(?!}})|[^|>])*))?
+        # Join string, starting with %, if specified
+        (?:(?<JoinStringMarker>%)(?<LeadingJoinStringMarker>%?)(?<JoinString>(?:\\\||>(?!}})|[^|>])*))?
 
-    # Everything after the | before the }}
-    (?:[|]
-        (?<InlineTemplateMarker>!)?
-        (?<IgnoreWhitespaceTilEndOfLine>!(?&UntilEndOfLine))?
-        (?<SubstitutionData>((?&UntilDoubleBrace)(?&Substitution)?)*)
+        # Everything after the | before the }}
+        (?:[|]
+            (?<InlineTemplateMarker>!)?
+            (?<IgnoreWhitespaceTilEndOfLine>!(?&UntilEndOfLine))?
+            (?<SubstitutionData>((?&UntilDoubleBrace)(?&Substitution)?)*)
 
 
-    )? # end PIPE
-    (?<IgnoreEmptyAfterMarker>>)?
-
+        )? # end PIPE
+        (?<IgnoreEmptyAfterMarker>>)?
+    )
 
     (?<CloseDelimiterHere>\}\})
 ) # end Substitution
@@ -306,7 +304,7 @@ void Template::compile() const {
 
         bool ignore_empty_replacements_before = matches.has("IgnoreEmptyBeforeMarker");
         log.info(TemplateSubjects::Subjects::Compile, "ignoring empty replacements? {}", ignore_empty_replacements_before);
-        std::string contingent_leading_content;
+        std::string contingent_leading_content = "";
 
         if (first_line_belongs_to_last_substitution) {
             first_line_belongs_to_last_substitution = false;
@@ -338,6 +336,9 @@ void Template::compile() const {
 
 
         this->compiled_static_strings.push_back(literal_string);
+
+
+
         this->minimum_result_length += this->compiled_static_strings.back().size();
 
 
@@ -350,6 +351,11 @@ void Template::compile() const {
 
 
         ProviderData data;
+
+        // if the substition is a comment, nothing else matters
+        if (matches.has("Comment")) {
+            data.comment = true;
+        }
 
         if (!matches.has("TemplateInsertionMarker")) {
             data.name = matches["SubstitutionName"];
