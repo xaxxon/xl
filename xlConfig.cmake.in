@@ -1,4 +1,4 @@
-set(FOO_VERSION @XL_VERSION@)
+set(XL_VERSION @XL_VERSION@)
 
 # Include xlTargets.cmake from the same directory
 get_filename_component(
@@ -53,4 +53,4 @@ endif()
 
 @PACKAGE_INIT@
 
-set_and_check(FOO_INCLUDE_DIR "@PACKAGE_INCLUDE_INSTALL_DIR@")
+set_and_check(XL_INCLUDE_DIR "@PACKAGE_INCLUDE_INSTALL_DIR@")
