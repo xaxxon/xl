@@ -33,5 +33,6 @@ private:
 private slots:
 
     void on_action_Open_triggered();
+    void onTabCloseRequested(int index);
 };
 

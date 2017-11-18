@@ -21,6 +21,7 @@ MainWindow::MainWindow(QStringList filenames, QWidget *parent) :
     }
 
     this->ui->logStatusTabs->setTabsClosable(true);
+    QObject::connect(tabs, &QTabWidget::tabCloseRequested, this, &MainWindow::onTabCloseRequested);
 
     for(auto const & filename : filenames) {
         // if it's a directory, then load up all the .log_status files in it
@@ -50,8 +51,13 @@ void MainWindow::on_action_Open_triggered()
 }
 
 
+void MainWindow::onTabCloseRequested(int index) {
+    this->ui->logStatusTabs->removeTab(index);
 
-
+    if (this->ui->logStatusTabs->count() == 0) {
+        QApplication::quit();
+    }
+}
 
 
 
