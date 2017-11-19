@@ -256,3 +256,14 @@ TEST(LibraryExtensions, IsStdArray) {
     }
 
 }
+
+TEST(LibraryExtensions, Transform) {
+    vector<int> vi{1,2,3};
+    auto result = transform(vi, [](int i){return std::to_string(i);});
+
+    auto expected_result = vector<string>{"1", "2", "3"};
+    EXPECT_EQ(result, expected_result);
+}
+
+
+

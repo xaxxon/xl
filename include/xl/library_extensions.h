@@ -278,7 +278,7 @@ ContainerT<std::result_of_t<Callable(ValueT)>> transform(ContainerT<ValueT, Rest
 
     ContainerT<std::result_of_t<Callable(ValueT)>> result;
 
-    std::transform(begin(container), end(container), std::inserter(std::end(result), result), callable);
+    std::transform(begin(container), end(container), std::inserter(result, std::end(result)), callable);
 
     return result;
 }
@@ -292,6 +292,7 @@ ContainerT<std::result_of_t<Callable(ValueT)>> transform(ContainerT<ValueT, Rest
 template<class ValueT, class... Rest, template<class, class...> class ContainerT, class Callable,
     std::enable_if_t<is_template_for_v<std::optional, std::result_of_t<Callable(ValueT)>>, int> = 0>
 auto transform_if(ContainerT<ValueT, Rest...> const & container, Callable callable) {
+
     using result_value_type = std::remove_reference_t<decltype(*callable(std::declval<ValueT>()))>;
     ContainerT<result_value_type> result;
     for (auto const & element : container) {

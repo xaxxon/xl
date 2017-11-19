@@ -544,6 +544,27 @@ TEST(template, EmptyContainerContingentContent) {
 }
 
 
+TEST(template, ContingentContentPrecedence) {
+
+    {
+        // second should be taken by {{empty>}} not {{<not_empty}}
+        auto result = Template("FIRST {{empty>}} SECOND {{<not_empty}} THIRD").fill(make_provider(
+            std::pair("empty", ""),
+            std::pair("not_empty", "NOT_EMPTY")
+        ));
+        EXPECT_EQ(result, "FIRST NOT_EMPTY THIRD");
+    }
+    {
+        // second should be taken by {{empty>}} not {{<not_empty}}
+        auto result = Template("FIRST {{not_empty>}} SECOND {{<empty}} THIRD").fill(make_provider(
+            std::pair("empty", ""),
+            std::pair("not_empty", "NOT_EMPTY")
+        ));
+        EXPECT_EQ(result, "FIRST NOT_EMPTY SECOND  THIRD");
+    }
+}
+
+
 TEST(template, SetOfStrings) {
     set<string> s;
 

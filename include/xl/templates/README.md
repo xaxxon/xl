@@ -158,3 +158,140 @@ will be prioritized over `<` on a subsequent substitution on the same line.
 Templates are 'compiled' into chunks for increased speed when used multiple times.  Compilation happens on first use
 if not requested earlier.  However, there are numerous opportunities for further optimization. 
 
+
+
+## Detailed Substitution Description
+
+
+### Comments
+
+If the first thing in a substitution is a `#` then the substitution will be ommitted
+from the final results.  Note this may have a (very) small performance penalty because a 
+dummy substitution is still created.  
+
+    {{#This is a comment}}
+    
+
+### Contingent Data
+
+Static text before or after a substitution may be omitted if the substitution
+itself results in an empty string.
+
+A leading `<` will omit static text on the same line before the substitution and a
+trailing `>` will omit static text on the same line after the substitution.  The
+omitted text will stop at another substitution if there is another on the same
+line.  
+
+
+    static text before substitution {{<name>}} static text after substitution
+    
+if `name` substitutes to an empty string, this whole line will be blank.
+    
+#### Note: if two substitutions on the same line 'point' at each other, the one on
+the left has priority
+
+    A {{<1>}} B {{<2>}} C
+    
+If 1 is empty and 2=>2, this results in `2 C`.
+
+If 1=>1 and 2 is empty, this results in `A 1 B_` 
+
+(note the trailing space, shown with an underscore for emphasis)
+
+
+### Inline Template
+
+A template may be specified inside another template.  This will use the inline
+template to for the Provider named in the substitution.
+
+{{provider_name|!{{field1}} `-._.-' {{field2}}}}
+
+A substitution with `field1 => one` and `field2 => two` results in:
+
+    one `-._.-' two
+    
+#### Note: placing two `!`s will start the inline template on the next line
+
+It is often useful to keep the template horizontally aligned, so by starting the
+inline template with `!!`, everything from the `!!` to the end of that line is 
+ignored.
+
+        Line one
+        {{line_number_list|!!
+        Line {{number}}}}
+        Line LAST
+    
+with `line_number_list => vector<string>{"two", "three"}` results in:
+
+        Line one
+        Line two
+        Line three    
+        Line LAST
+    
+But notice how it's clear that all the `Line` parts line up, as compared to:
+
+        Line one
+        {{line_number_list|!    Line {{number}}}}
+        Line LAST
+    
+This example above will generate the same output, but makes it harder to visually
+verify that the output will be aligned.
+
+### Join String
+
+When a template used multiple times for a single substitution, a string may be 
+specified to be placed between the resulting text from each substitution.  
+Everything between a `%` and the `|` will be placed between each substitution.
+
+{{provider_name% $$|!{{string}}}}
+
+A substitution with `vector<string>{"a", "b", "c"}` will result in:
+
+    a $$b $$c
+    
+#### Note: placing two `%`s will include the join string before the first 
+substitution as well.  Changing the above example to:
+
+    {{provider_name%% $$|!{{string}}}}
+
+will result in:
+
+    _$$a $$b $$c
+    
+(note the leading space - shown with underscore for emphasis)
+
+This is useful when adding to a list with fixed elements:
+
+    A, B, C{{rest_of_list%%, |{{name}}}}
+    
+Substituted with `vector<string>{"D", "E", "F"}` results in:
+
+    A, B, C, D, E, F
+    
+(note the comma between C and D which wouldn't be present if the substitution
+only had one `%`)
+
+
+### Escaping Special Characters
+
+Putting a backslash before a character in a substitution will result in it not
+being considered as a special character for starting/stopping part of the 
+substitution.
+
+For example, to have a `|` in your join string, you must put a backslash before it
+otherwise it will be seen as the end of your join string.
+
+    {{name%\||!inline template{{value}}}}
+
+or to have a `%` in your substitution name,
+
+    {{name\%}}
+    
+or to put `}}` in your inline template:
+
+    {{name|!} \}} \}\}\}}}
+    
+The example above creates an inline template of `} }} }}}`
+
+
+

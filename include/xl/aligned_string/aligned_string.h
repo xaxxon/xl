@@ -97,7 +97,7 @@ public:
 
 
     /**
-     * Returns a c-style nul-terminated string O(1)
+     * Returns a c-style NUL-terminated string O(1)
      * @return
      */
     char const * c_str() const {
