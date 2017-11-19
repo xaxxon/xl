@@ -198,6 +198,19 @@ If 1=>1 and 2 is empty, this results in `A 1 B_`
 
 (note the trailing space, shown with an underscore for emphasis)
 
+#### Note: << and >> will also grab preceding and trailing empty lines as well
+
+    ONE
+    
+    A {{<<empty_substitution>>}} B
+    
+    TWO
+    
+results in:
+
+    ONE
+    TWO
+
 
 ### Inline Template
 

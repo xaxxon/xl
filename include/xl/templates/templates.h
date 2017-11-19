@@ -224,7 +224,7 @@ void Template::compile() const {
     \s*
     (?:
         (?<Comment>\#.*?)|
-        (?<IgnoreEmptyBeforeMarker><)?
+        (?<IgnoreEmptyBeforeMarker><<?)?
         \s*
 
         # If there's a leading !, then another template is inserted here instead of a value from a provider
@@ -244,7 +244,7 @@ void Template::compile() const {
 
 
         )? # end PIPE
-        (?<IgnoreEmptyAfterMarker>>)?
+        (?<IgnoreEmptyAfterMarker>>>?)?
     )
 
     (?<CloseDelimiterHere>\}\})
@@ -264,7 +264,10 @@ void Template::compile() const {
     std::string remaining_template = this->c_str();
     log.info(TemplateSubjects::Subjects::Compile, "compiling template: '{}'", this->_tmpl.c_str());
 
-    bool first_line_belongs_to_last_substitution = false;
+    // 0 - no contingent data
+    // 1 - same line contingent data
+    // 2 - same line and all subsequent empty lines
+    uint8_t first_line_belongs_to_last_substitution = 0;
 
     while (auto matches = r.match(remaining_template)) {
 
@@ -306,33 +309,42 @@ void Template::compile() const {
         log.info(TemplateSubjects::Subjects::Compile, "ignoring empty replacements? {}", ignore_empty_replacements_before);
         std::string contingent_leading_content = "";
 
+
+        // if the current literal string has contingent data for the previous substitution, grab it off now
         if (first_line_belongs_to_last_substitution) {
-            first_line_belongs_to_last_substitution = false;
             static Regex first_line_regex(R"(^([^\n]*)(.*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
-            if (auto results = first_line_regex.match(literal_string)) {
-                literal_string = results[2];
+            static Regex first_line_and_empty_lines_regex(R"(^([^\n]*\n*)(.*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
+
+            auto & regex = first_line_belongs_to_last_substitution == 1 ?
+                           first_line_regex : first_line_and_empty_lines_regex;
+            if (auto results = regex.match(literal_string)) {
 
                 // get previous substitution
                 this->compiled_substitutions.back().contingent_trailing_content = results[1];
+
+                literal_string = results[2];
+
             } else {
                 assert(false);
             }
+            first_line_belongs_to_last_substitution = 0;
         }
 
-        if (ignore_empty_replacements_before) {
+        if (matches.has("IgnoreEmptyBeforeMarker")) {
             // trim off everything after the last newline on the static and put it in the template
             static Regex last_line_regex(R"(^(.*?)(\n?[^\n]*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
-            auto results = last_line_regex.match(literal_string);
+            static Regex last_line_and_blank_lines_regex(R"(^(.*?\n?)(\n*[^\n]*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
+            auto & regex = matches.length("IgnoreEmptyBeforeMarker") == 1 ?
+                           last_line_regex : last_line_and_blank_lines_regex;
+
+            auto results = regex.match(literal_string);
             if (results) {
                 literal_string = results[1];
                 contingent_leading_content = results[2];
             }
         }
 
-        bool ignore_empty_replacements_after = matches.has("IgnoreEmptyAfterMarker");
-        if (ignore_empty_replacements_after) {
-            first_line_belongs_to_last_substitution = true;
-        }
+        first_line_belongs_to_last_substitution = matches.length("IgnoreEmptyAfterMarker");
 
 
         this->compiled_static_strings.push_back(literal_string);

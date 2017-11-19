@@ -535,12 +535,29 @@ TEST(template, PointerProviderForUncopyable) {
 
 
 TEST(template, EmptyContainerContingentContent) {
-    vector<string> v;
+    {
+        vector<string> v;
 
-    // newline after trailing contingent substitution shouldn't be contingent
-    auto result = Template("BEFORE\nX{{<VECTOR|!!\n{{DUMMY}}>}}Y\nAFTER").fill(pair("VECTOR", ref(v)));
+        // newline after trailing contingent substitution shouldn't be contingent
+        auto result = Template("BEFORE\nX{{<VECTOR|!!\n{{DUMMY}}>}}Y\nAFTER").fill(pair("VECTOR", ref(v)));
 
-    EXPECT_EQ(result, "BEFORE\nAFTER");
+        EXPECT_EQ(result, "BEFORE\nAFTER");
+    }
+    {
+        // second should be taken by {{empty>}} not {{<not_empty}}
+        auto result = Template("ONE\n\nA {{<<empty>>}} B\n\nTWO").fill(make_provider(
+            std::pair("empty", "")
+        ));
+        EXPECT_EQ(result, "ONE\nTWO");
+    }
+    {
+        // second should be taken by {{empty>}} not {{<not_empty}}
+        auto result = Template("ONE\nA {{<<empty>>}} B\n\nTWO").fill(make_provider(
+            std::pair("empty", "")
+        ));
+        EXPECT_EQ(result, "ONE\nTWO");
+    }
+
 }
 
 
@@ -556,11 +573,27 @@ TEST(template, ContingentContentPrecedence) {
     }
     {
         // second should be taken by {{empty>}} not {{<not_empty}}
+        auto result = Template("FIRST\n{{empty>>}} SECOND\n\n\n\n{{<not_empty}}\nTHIRD").fill(make_provider(
+            std::pair("empty", ""),
+            std::pair("not_empty", "NOT_EMPTY")
+        ));
+        EXPECT_EQ(result, "FIRST\nNOT_EMPTY\nTHIRD");
+    }
+    {
+        // second should be taken by {{not_empty>}} not {{<empty}}
         auto result = Template("FIRST {{not_empty>}} SECOND {{<empty}} THIRD").fill(make_provider(
             std::pair("empty", ""),
             std::pair("not_empty", "NOT_EMPTY")
         ));
         EXPECT_EQ(result, "FIRST NOT_EMPTY SECOND  THIRD");
+    }
+    {
+        // second should be taken by {{not_empty>}} not {{<empty}}
+        auto result = Template("FIRST {{not_empty>>}} SECOND\n\n\n\n{{<empty}} THIRD").fill(make_provider(
+            std::pair("empty", ""),
+            std::pair("not_empty", "NOT_EMPTY")
+        ));
+        EXPECT_EQ(result, "FIRST NOT_EMPTY SECOND\n\n\n\n THIRD");
     }
 }
 
