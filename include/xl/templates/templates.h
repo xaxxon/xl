@@ -210,7 +210,7 @@ void Template::compile() const {
 (?(DEFINE)(?<OpenDelimiter>(?&OpenDelimiterHead)(?&OpenDelimiterTail)))
 (?(DEFINE)(?<CloseDelimiter>(?&CloseDelimiterHead)(?&CloseDelimiterTail)))
 (?(DEFINE)(?<EitherDelimiter>( (?&OpenDelimiter) | (?&CloseDelimiter))))
-(?(DEFINE)(?<UntilDoubleBrace>(?:\s|\\(?&OpenDelimiterHead)|\\(?&CloseDelimiterHead)|[^{}>]|[{](?!\{)|[}](?!\})|>(?!\}\}))*))
+(?(DEFINE)(?<UntilDoubleBrace>(?:\s|\\(?&OpenDelimiterHead)|\\(?&CloseDelimiterHead)|[^{}>]|[{](?!\{)|[}](?!\})|>(?!(\}\}|>\}\})))*))
 (?(DEFINE)(?<UntilEndOfLine>[^\n]*\n))
 
 
@@ -236,7 +236,7 @@ void Template::compile() const {
         # Join string, starting with %, if specified
         (?:(?<JoinStringMarker>%)(?<LeadingJoinStringMarker>%?)(?<JoinString>(?:\\\||>(?!}})|[^|>])*))?
 
-        # Everything after the | before the }}
+        # Everything between | and }}
         (?:[|]
             (?<InlineTemplateMarker>!)?
             (?<IgnoreWhitespaceTilEndOfLine>!(?&UntilEndOfLine))?
@@ -244,7 +244,7 @@ void Template::compile() const {
 
 
         )? # end PIPE
-        (?<IgnoreEmptyAfterMarker>>>?)?
+        (?<IgnoreEmptyAfterMarker>>{0,2})
     )
 
     (?<CloseDelimiterHere>\}\})
@@ -271,6 +271,8 @@ void Template::compile() const {
 
     while (auto matches = r.match(remaining_template)) {
 
+
+
 //        for(auto [s,i] : each_i(matches.get_all_matches())) {
 //            if (s != "") {
 //                std::cerr << fmt::format("{}: '{}'", i, s) << std::endl;
@@ -280,7 +282,6 @@ void Template::compile() const {
 //                                 matches["Literal"],
 //                                 matches["Substitution"]
 //        ) << std::endl;
-
 //        for (int i = 0; i < matches.size(); i++) {
 //            std::cerr << fmt::format("match[{}]: '{}'", i, matches[i].str()) << std::endl;
 //        }
@@ -312,12 +313,15 @@ void Template::compile() const {
 
         // if the current literal string has contingent data for the previous substitution, grab it off now
         if (first_line_belongs_to_last_substitution) {
+//            std::cerr << fmt::format("trailing contingent ({}) on: '{}'", first_line_belongs_to_last_substitution, literal_string) << std::endl;
             static Regex first_line_regex(R"(^([^\n]*)(.*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
             static Regex first_line_and_empty_lines_regex(R"(^([^\n]*\n*)(.*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
 
             auto & regex = first_line_belongs_to_last_substitution == 1 ?
                            first_line_regex : first_line_and_empty_lines_regex;
             if (auto results = regex.match(literal_string)) {
+
+//                std::cerr << fmt::format("got '{}' and '{}'", results[1], results[2]) << std::endl;
 
                 // get previous substitution
                 this->compiled_substitutions.back().contingent_trailing_content = results[1];
@@ -327,24 +331,27 @@ void Template::compile() const {
             } else {
                 assert(false);
             }
-            first_line_belongs_to_last_substitution = 0;
         }
 
         if (matches.has("IgnoreEmptyBeforeMarker")) {
             // trim off everything after the last newline on the static and put it in the template
             static Regex last_line_regex(R"(^(.*?)(\n?[^\n]*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
-            static Regex last_line_and_blank_lines_regex(R"(^(.*?\n?)(\n*[^\n]*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
+            static Regex last_line_and_blank_lines_regex(R"(^(.+?\n?)?(\n*[^\n]*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
             auto & regex = matches.length("IgnoreEmptyBeforeMarker") == 1 ?
                            last_line_regex : last_line_and_blank_lines_regex;
 
+//            std::cerr << fmt::format("Running ignore empty before marker on '{}'", literal_string) << std::endl;
             auto results = regex.match(literal_string);
             if (results) {
+//                std::cerr << fmt::format("got '{}' and '{}'", results[1], results[2]) << std::endl;
                 literal_string = results[1];
                 contingent_leading_content = results[2];
             }
         }
 
         first_line_belongs_to_last_substitution = matches.length("IgnoreEmptyAfterMarker");
+//        std::cerr << fmt::format("ignore empty after marker: {}", matches["IgnoreEmptyAfterMarker"]) << std::endl;
+//        std::cerr << fmt::format("setting first line belongs to last substitution to {} on {}", first_line_belongs_to_last_substitution, matches["Substitution"]) << std::endl;
 
 
         this->compiled_static_strings.push_back(literal_string);

@@ -543,6 +543,7 @@ TEST(template, EmptyContainerContingentContent) {
 
         EXPECT_EQ(result, "BEFORE\nAFTER");
     }
+
     {
         // second should be taken by {{empty>}} not {{<not_empty}}
         auto result = Template("ONE\n\nA {{<<empty>>}} B\n\nTWO").fill(make_provider(
@@ -557,12 +558,18 @@ TEST(template, EmptyContainerContingentContent) {
         ));
         EXPECT_EQ(result, "ONE\nTWO");
     }
+}
 
+TEST(template, MOVEMEBACKUP) {
+    {
+        vector<string> v;
+        auto result = Template("BEFORE\n\nX{{<<VECTOR|!!\n{{<DUMMY>}}>>}}Y\n\nAFTER").fill(pair("VECTOR", ref(v)));
+        EXPECT_EQ(result, "BEFORE\nAFTER");
+    }
 }
 
 
 TEST(template, ContingentContentPrecedence) {
-
     {
         // second should be taken by {{empty>}} not {{<not_empty}}
         auto result = Template("FIRST {{empty>}} SECOND {{<not_empty}} THIRD").fill(make_provider(
