@@ -2,7 +2,8 @@
 
 #include <exception>
 #include <string>
-#include <exceptions.h>
+
+#include "../exceptions.h"
 
 namespace xl {
     enum RegexFlags {

@@ -47,8 +47,8 @@ private:
     mutable size_t minimum_result_length = 0;
 
 public:
-    Template(std::string const & tmpl) : _tmpl(tmpl) {}
-    Template(std::string && tmpl = "") : _tmpl(std::move(tmpl)) {}
+    explicit Template(std::string const & tmpl) : _tmpl(tmpl) {}
+    explicit Template(std::string && tmpl = "") : _tmpl(std::move(tmpl)) {}
 
     inline char const * c_str() const { return this->_tmpl.c_str(); }
 
