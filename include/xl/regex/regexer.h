@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <string>
+#include <exceptions.h>
 
 namespace xl {
     enum RegexFlags {
@@ -15,19 +16,12 @@ namespace xl {
     };
     using RegexFlagsT = std::underlying_type_t<RegexFlags>;
 
-    class RegexException : public std::exception {
-        std::string reason;
 
+    class RegexException : public xl::FormattedException {
     public:
-
-        RegexException(std::string const & reason) : reason(reason) {}
-        RegexException(std::string && reason) : reason(std::move(reason)) {}
-
-        const char * what() const noexcept {
-            return reason.c_str();
-        }
-
+        using xl::FormattedException::FormattedException;
     };
+
 } // end namespace xl
 
 #if defined XL_USE_PCRE

@@ -25,6 +25,8 @@ public:
         RegexResultStd(string, std::regex(regex_string.c_str()))
     {}
 
+    RegexResultStd(RegexResultStd &&) = default;
+
 
     xl::string_view prefix() {
         auto prefix_length = (this->_matches.prefix().second - this->_matches.prefix().first);

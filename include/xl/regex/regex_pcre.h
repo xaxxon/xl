@@ -36,17 +36,26 @@ private:
     /// buffer for storing submatch offsets (3 for each capture)
     std::unique_ptr<int[]> const captures;
 
+    RegexPcre const & regex;
+
 public:
     RegexResultPcre(pcre_ptr compiled_pattern,
                     std::string source,
                     int results,
                     std::unique_ptr<int[]> captures,
-                    size_t capture_count) :
+                    size_t capture_count,
+                    RegexPcre const & regex) :
         compiled_pattern(compiled_pattern),
         source(source),
         results(results),
-        captures(std::move(captures))
+        captures(std::move(captures)),
+        regex(regex)
     {}
+
+    RegexResultPcre(RegexResultPcre&&) = default;
+
+    // Not defined anywhere but declaration needed for NRVO to function
+    RegexResultPcre(RegexResultPcre const &);
 
 
     /**
@@ -183,6 +192,12 @@ public:
         return results;
     }
 
+    /**
+     * Returns the match from running the same regex over the suffix of this match
+     * @return next match on the same string
+     */
+    RegexResultPcre next();
+
 };
 
 
@@ -223,7 +238,7 @@ public:
         ));
 
         if (compiled_regex == nullptr) {
-            throw RegexException(std::string("Invalid regex: ") + error_string);
+            throw RegexException("Invalid regex: {} - '{}'", error_string, regex_string);
         }
 
         if (flags & OPTIMIZE) {
@@ -267,7 +282,7 @@ public:
                                          buffer.get(),
                                          buffer_length); // Length of subStrVec
 
-        return RegexResultPcre(this->compiled_regex, data, results, std::move(buffer), buffer_length);
+        return RegexResultPcre(this->compiled_regex, data, results, std::move(buffer), buffer_length, *this);
     }
 
 
@@ -339,6 +354,13 @@ public:
     }
 
 };
+
+inline RegexResultPcre RegexResultPcre::next()
+{
+    return this->regex.match(this->suffix());
+}
+
+
 
 #endif
 

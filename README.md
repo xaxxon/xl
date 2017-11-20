@@ -32,3 +32,7 @@ turned on/off at runtime.  When used in an upstream dependency, makes it very ea
 ### magic_ptr
 
 Smart pointer class which may or may not own the object it refers to.  Deleter is specified at runtime (like in shared_ptr), but magic_ptr is not copyable (like unique_ptr) and may inherit ownership from a unique_ptr.
+
+### Json
+
+JSON parser.
