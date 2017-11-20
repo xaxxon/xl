@@ -7,6 +7,7 @@
 #include "log.h"
 
 using namespace xl;
+using namespace xl::templates;
 
 TEST(log, SimpleLog) {
     {
@@ -236,14 +237,14 @@ TEST(log, SubjectStatusSaveAndRestore) {
     EXPECT_TRUE(log.get_subject_status(CustomSubjects::Subjects::CustomSubject1));
     EXPECT_FALSE(log.get_subject_status(CustomSubjects::Subjects::CustomSubject2));
 
-    auto subject_backup = log.get_status_of_subjects();
+    auto subject_backup = log.get_statuses();
 
     log.set_all_subjects(true);
     for(auto i : log.subjects()) {
         EXPECT_TRUE(log.get_subject_status(i));
     }
 
-    log.set_status_of_subjects(std::move(subject_backup));
+    log.set_statuses(std::move(subject_backup));
     EXPECT_FALSE(log.get_subject_status(CustomSubjects::Subjects::CustomSubject2));
 }
 
@@ -319,8 +320,8 @@ TEST(log, LogStatusFile) {
     log.warn(LogT::Subjects::Default, "This should be filtered because not time to re-check status file");
     log.remove_callback(callback);
 
-    // sleep so next log picks up the changes
-    sleep(1);
+    // sleep so next log picks up the changes - got false positive with 1 second sleep
+    sleep(2);
 
     int before_count = log_count;
     log.warn(LogT::Subjects::Default, "This should not be filtered");
@@ -328,4 +329,30 @@ TEST(log, LogStatusFile) {
 }
 
 
+TEST(log, templates) {
+    using LogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+    LogT log;
+    int log_count = 0;
+    std::string last_message;
+    log.add_callback([&](LogT::LogMessage const & message) {
+        log_count++;
+        last_message = message.string;
+    });
 
+    log.info(Template("{{cheap}}").fill(make_provider(
+        std::pair("cheap", "CHEAP"),
+        std::pair("expensive", []{EXPECT_TRUE(false); return "";})
+    )));
+    EXPECT_EQ(log_count, 1);
+    EXPECT_EQ(last_message, "CHEAP");
+
+    log.set_level_status(LogT::Levels::Info, false);
+
+    log.info(LogT::Subjects::Default, Template("{{cheap}} {{expensive}}"), make_provider(
+        std::pair("cheap", "CHEAP"),
+        std::pair("expensive", []{EXPECT_TRUE(false); return "";})
+    ));
+
+    // shouldn't have changed
+    EXPECT_EQ(log_count, 1);
+}

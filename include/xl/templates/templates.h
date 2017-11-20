@@ -12,7 +12,6 @@
 #include <fmt/ostream.h>
 
 #include "../regex/regexer.h"
-#include "../log.h"
 #include "../library_extensions.h"
 #include "provider_data.h"
 
@@ -68,6 +67,8 @@ using TemplateMap = std::map<std::string, Template>;
 
 } // end namespace xl
 
+// need to call directly to this .h file because circular dependencies make things tricky
+#include "../log/log.h"
 
 #include "provider.h"
 #include "directory_loader.h"

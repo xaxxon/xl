@@ -1,4 +1,13 @@
-#pragma once
+#define XL_LOG_WITH_TEMPLATES
+
+#ifdef XL_LOG_WITH_TEMPLATES
+#include "../templates.h"
+#endif
+
+// requires a traditional include guard because of circular dependencies with xl::templates
+#ifndef XL_LOG_LOG_H
+#define XL_LOG_LOG_H
+
 
 #include <type_traits>
 #include <fstream>
@@ -308,11 +317,11 @@ public:
     static constexpr SubjectsUnderlyingType subject_count = static_cast<SubjectsUnderlyingType>(Subjects::LOG_LAST_SUBJECT);
 
 
-    auto get(Levels level) {
+    auto get(Levels level) const {
         return static_cast<LevelsUnderlyingType>(level);
     }
 
-    auto get(Subjects subject) {
+    auto get(Subjects subject) const {
         return static_cast<SubjectsUnderlyingType>(subject);
     }
 
@@ -335,11 +344,9 @@ public:
 
     using CallbackT = std::function<void(LogMessage const & message)>;
 
-    // if false, logs of this level will be ignored
-    std::vector<bool> level_status;
+    // if false, logs of this level/subject will be ignored
+    std::vector<bool> statuses;
 
-    // if false, logs for this subject will be ignored
-    std::vector<bool> subject_status;
 
     std::unique_ptr<LogStatusFile> log_status_file;
 
@@ -385,7 +392,7 @@ public:
         return log::LogLevelsBase<LevelsT>();
     }
     
-    std::string get_status_string() {
+    std::string get_status_string() const {
         std::stringstream status;
 
         for(size_t i = 0; i < get(Levels::LOG_LAST_LEVEL); i++) {
@@ -399,30 +406,32 @@ public:
         return status.str();
     }
 
+
+    bool get_level_status(Levels level) const {
+        return this->statuses[get(level)];
+    }
+
     bool set_level_status(Levels level, bool new_status) {
 //        std::cerr << fmt::format("setting {} to {}", (int)level, new_status) << std::endl;
         bool previous_status;
-        previous_status = level_status[get(level)];
+        previous_status = get_level_status(level);
 
-        level_status[get(level)] = new_status;
+        statuses[get(level)] = new_status;
         if (this->log_status_file) {
             this->log_status_file->write(*this);
         }
         return previous_status;
     }
-    
-    bool get_level_status(Levels level) const {
-        if (level_status.size() <= (int)level) {
-            return true;
-        } else {
-            return level_status[(int)level];
-        }
-    }
+
 
     void set_all_subjects(bool new_status) {
         for(size_t i = 0; i < get(Subjects::LOG_LAST_SUBJECT); i++) {
             set_subject_status(static_cast<Subjects>(i), new_status);
         }
+    }
+
+    bool get_subject_status(Subjects subject) const {
+        return statuses[get(Levels::LOG_LAST_LEVEL) + get(subject)];
     }
 
     void set_all_levels(bool new_status) {
@@ -433,25 +442,17 @@ public:
 
 
     bool set_subject_status(Subjects subject, bool new_status) {
-        bool previous_status;
-            previous_status = subject_status[get(subject)];
-        subject_status[get(subject)] = new_status;
+        bool previous_status = get_subject_status(subject);
+        statuses[get(Levels::LOG_LAST_LEVEL) + get(subject)] = new_status;
         if (this->log_status_file) {
             this->log_status_file->write(*this);
         }
         return previous_status;
     }
     
-    bool get_subject_status(Subjects subject) const {
-        if (subject_status.size() <= (int)subject) {
-            return true;
-        } else {
-            return subject_status[(int)subject];
-        }
-    }
+
     Log() :
-        level_status(level_count, true),
-        subject_status(subject_count, true)
+        statuses(level_count + subject_count, true)
     {}
 
     Log(std::string filename) : Log() {
@@ -557,27 +558,39 @@ public:
         return LevelsBase::get_level_name(level);
     }
 
-    auto get_status_of_levels() const {
-        return this->level_status;
+    auto get_statuses() const {
+        return this->statuses;
     }
 
-    auto get_status_of_subjects() const {
-        return this->subject_status;
-    }
-
-    void set_status_of_levels(decltype(Log::level_status) status_of_levels) {
-        this->level_status = std::move(status_of_levels);
+    void set_statuses(decltype(Log::statuses) statuses) {
+        this->statuses = std::move(statuses);
         if (this->log_status_file) {
             this->log_status_file->write();
         }
+
     }
 
-    void set_status_of_subjects(decltype(Log::subject_status) status_of_subjects) {
-        this->subject_status = std::move(status_of_subjects);
-        if (this->log_status_file) {
-            this->log_status_file->write();
-        }
-    }
+//    auto get_status_of_levels() const {
+//        return this->level_status;
+//    }
+//
+//    auto get_status_of_subjects() const {
+//        return this->subject_status;
+//    }
+
+//    void set_status_of_levels(decltype(Log::level_status) status_of_levels) {
+//        this->level_status = std::move(status_of_levels);
+//        if (this->log_status_file) {
+//            this->log_status_file->write();
+//        }
+//    }
+//
+//    void set_status_of_subjects(decltype(Log::subject_status) status_of_subjects) {
+//        this->subject_status = std::move(status_of_subjects);
+//        if (this->log_status_file) {
+//            this->log_status_file->write();
+//        }
+//    }
 
 
 #ifdef XL_USE_LIB_FMT
@@ -605,6 +618,30 @@ public:
     }
 #endif
 
+
+    /**
+     * For strings which are useful to log but expensive enough to be desirable to not build the string
+     * when the log level/subject is disabled, using a xl::Template will allow for specifying callbacks
+     * or user-defined provider objects which are only used if the string will be sent to a callback
+     */
+    template<typename... Ts>
+    void log(Levels level, Subjects subject, xl::templates::Template const & tmpl, Ts&&... args) {
+        if (!this->callbacks.empty() && this->get_level_status(level) && this->get_subject_status(subject)) {
+            this->log(level, subject, tmpl.fill(std::forward<Ts>(args)...));
+        }
+    };
+    template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Info >= 0, int> = 0>
+    void info(Subjects subject, xl::templates::Template const & tmpl, Ts && ... args) {
+        this->log(Levels::Info, subject, tmpl, std::forward<Ts>(args)...);
+    }
+    template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Warn >= 0, int> = 0>
+    void warn(Subjects subject, xl::templates::Template const & tmpl, Ts && ... args) {
+        this->log(Levels::Warn, subject, tmpl, std::forward<Ts>(args)...);
+    }
+    template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Error >= 0, int> = 0>
+    void error(Subjects subject, xl::templates::Template const & tmpl, Ts && ... args) {
+        this->log(Levels::Error, subject, tmpl, std::forward<Ts>(args)...);
+    }
 
 
 };
@@ -657,3 +694,5 @@ public:
 };
 
 } // end namespace xl::log
+
+#endif

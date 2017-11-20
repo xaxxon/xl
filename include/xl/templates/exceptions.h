@@ -1,4 +1,5 @@
 #pragma once
+#include "../log.h"
 
 namespace xl::templates {
 

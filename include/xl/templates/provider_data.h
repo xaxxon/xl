@@ -4,7 +4,6 @@
 #include <string>
 #include <optional>
 
-#include "exceptions.h"
 namespace xl::templates {
 
 class Template;
