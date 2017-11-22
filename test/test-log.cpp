@@ -154,7 +154,7 @@ TEST(log, MultipleCallbacks) {
 struct CustomSubjects {
 
     static inline std::string subject_names[] = {"CustomSubject1", "CustomSubject2", "CustomSubject3"};
-    enum class Subjects {CustomSubject1, CustomSubject2, CustomSubject3, LOG_LAST_SUBJECT};
+    enum class Subjects {CustomSubject1 = 0, CustomSubject2, CustomSubject3, LOG_LAST_SUBJECT};
 };
 
 

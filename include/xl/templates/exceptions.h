@@ -8,7 +8,7 @@ struct TemplateSubjects {
     inline static std::string subject_names[] = {"default", "compile", "exception"};
 
     enum class Subjects {
-        Default, Compile, Exception, LOG_LAST_SUBJECT
+        Default = 0, Compile, Exception, LOG_LAST_SUBJECT
     };
 };
 

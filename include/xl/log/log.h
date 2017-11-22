@@ -71,6 +71,8 @@ template<class T>
 struct LogLevelsBase {
 
     using Levels = typename T::Levels;
+
+
     EnumIterator<typename T::Levels> begin() {
         return EnumIterator<typename T::Levels>();
     }
@@ -87,13 +89,20 @@ struct LogLevelsBase {
     constexpr static auto get(typename T::Levels level) {
         return static_cast<UnderlyingType>(level);
     }
+
+    static_assert(get(Levels::LOG_LAST_LEVEL) == sizeof(T::level_names) / sizeof(std::string));
+
 };
 
 
 template<class T>
 struct LogSubjectsBase {
 
+
     using Subjects = typename T::Subjects;
+
+
+
     EnumIterator<typename T::Subjects> begin() const {
         return EnumIterator<typename T::Subjects>();
     }
@@ -110,6 +119,8 @@ struct LogSubjectsBase {
     constexpr static auto get(typename T::Subjects subject) {
         return static_cast<UnderlyingType>(subject);
     }
+    static_assert(get(Subjects::LOG_LAST_SUBJECT) == sizeof(T::subject_names) / sizeof(std::string));
+
 };
 
 
@@ -118,7 +129,7 @@ struct DefaultLevels  {
     inline static std::string level_names[] = {"info", "warn", "error"};
 
     enum class Levels {
-        Info, Warn, Error, LOG_LAST_LEVEL
+        Info = 0, Warn, Error, LOG_LAST_LEVEL
     };
 };
 
@@ -128,7 +139,7 @@ struct DefaultSubjects {
     inline static std::string subject_names[] = {"default"};
 
     enum class Subjects {
-        Default, LOG_LAST_SUBJECT
+        Default = 0, LOG_LAST_SUBJECT
     };
 };
 
@@ -455,11 +466,9 @@ public:
         statuses(0xffffffffffffffff)
     {
         // in case there are more statuses than a bitfield constructor will initialize
-        //   do a slow initialization of the rest of the elements
+        //   then set them here
         if constexpr(level_count + subject_count > sizeof(long long) * 8) {
-            for(int i = sizeof(long long) * 8; i < level_count + subject_count; i++) {
-                this->statuses[i] = 1;
-            }
+            this->statuses.set(); // sets all bits to 1
         }
     }
 
