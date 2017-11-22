@@ -23,15 +23,15 @@ TEST(log, SimpleLog) {
         log.warn(xl::log::DefaultSubjects::Subjects::Default, "Warning");
         log.error(xl::log::DefaultSubjects::Subjects::Default, "Error");
         EXPECT_EQ(call_count, 5);
-        log.set_level_status(xl::log::DefaultLevels::Levels::Warn, false);
+        log.set_status(xl::log::DefaultLevels::Levels::Warn, false);
         log.warn(xl::log::DefaultSubjects::Subjects::Default, "Warning");
         EXPECT_EQ(call_count, 5);
         log.info(xl::log::DefaultSubjects::Subjects::Default, "Info");
         log.error(xl::log::DefaultSubjects::Subjects::Default, "Error");
         EXPECT_EQ(call_count, 7);
 
-        EXPECT_EQ(log.get_subject_name(xl::log::DefaultSubjects::Subjects::Default), "default");
-        EXPECT_EQ(log.get_level_name(xl::log::DefaultLevels::Levels::Warn), "warn");
+        EXPECT_EQ(log.get_name(xl::log::DefaultSubjects::Subjects::Default), "default");
+        EXPECT_EQ(log.get_name(xl::log::DefaultLevels::Levels::Warn), "warn");
     }
 }
 
@@ -174,9 +174,9 @@ TEST(log, CustomLog) {
     LogT log([&call_count](auto & message){
         call_count++;
         if (message.subject == CustomSubjects::Subjects::CustomSubject1) {
-            EXPECT_EQ(LogT::get_subject_name(message.subject), "CustomSubject1");
+            EXPECT_EQ(LogT::get_name(message.subject), "CustomSubject1");
         } else if (message.subject == CustomSubjects::Subjects::CustomSubject2) {
-            EXPECT_EQ(LogT::get_subject_name(message.subject), "CustomSubject2");
+            EXPECT_EQ(LogT::get_name(message.subject), "CustomSubject2");
         } else {
             EXPECT_EQ(1,2);
         }
@@ -203,26 +203,26 @@ TEST(log, SubjectAndLevelIteration) {
     LogT log;
 
     for(auto i : log.subjects()) {
-        EXPECT_TRUE(log.get_subject_status(i));
+        EXPECT_TRUE(log.get_status(i));
     }
     for(auto i : log.levels()) {
-        EXPECT_TRUE(log.get_level_status(i));
+        EXPECT_TRUE(log.get_status(i));
     }
 
-    log.set_level_status(CustomLevels::Levels::Info, false);
-    log.set_level_status(CustomLevels::Levels::Warn, false);
+    log.set_status(CustomLevels::Levels::Info, false);
+    log.set_status(CustomLevels::Levels::Warn, false);
 
     for(auto i : log.levels()) {
-        EXPECT_FALSE(log.get_level_status(i));
+        EXPECT_FALSE(log.get_status(i));
     }
 
-    log.set_subject_status(CustomSubjects::Subjects::CustomSubject1, false);
-    log.set_subject_status(CustomSubjects::Subjects::CustomSubject2, false);
-    log.set_subject_status(CustomSubjects::Subjects::CustomSubject3, false);
+    log.set_status(CustomSubjects::Subjects::CustomSubject1, false);
+    log.set_status(CustomSubjects::Subjects::CustomSubject2, false);
+    log.set_status(CustomSubjects::Subjects::CustomSubject3, false);
 
 
     for(auto i : log.subjects()) {
-        EXPECT_FALSE(log.get_subject_status(i));
+        EXPECT_FALSE(log.get_status(i));
     }
 }
 
@@ -231,21 +231,21 @@ TEST(log, SubjectStatusSaveAndRestore) {
     using LogT = xl::log::Log<CustomLevels, CustomSubjects>;
     LogT log;
 
-    log.set_level_status(CustomLevels::Levels::Warn, false);
-    log.set_subject_status(CustomSubjects::Subjects::CustomSubject2, false);
+    log.set_status(CustomLevels::Levels::Warn, false);
+    log.set_status(CustomSubjects::Subjects::CustomSubject2, false);
 
-    EXPECT_TRUE(log.get_subject_status(CustomSubjects::Subjects::CustomSubject1));
-    EXPECT_FALSE(log.get_subject_status(CustomSubjects::Subjects::CustomSubject2));
+    EXPECT_TRUE(log.get_status(CustomSubjects::Subjects::CustomSubject1));
+    EXPECT_FALSE(log.get_status(CustomSubjects::Subjects::CustomSubject2));
 
     auto subject_backup = log.get_statuses();
 
     log.set_all_subjects(true);
     for(auto i : log.subjects()) {
-        EXPECT_TRUE(log.get_subject_status(i));
+        EXPECT_TRUE(log.get_status(i));
     }
 
     log.set_statuses(std::move(subject_backup));
-    EXPECT_FALSE(log.get_subject_status(CustomSubjects::Subjects::CustomSubject2));
+    EXPECT_FALSE(log.get_status(CustomSubjects::Subjects::CustomSubject2));
 }
 
 
@@ -287,7 +287,7 @@ TEST(log, LogStatusFile) {
         EXPECT_TRUE(status);
     }
 
-    log.set_level_status((xl::log::DefaultLevels::Levels)0, false);
+    log.set_status((xl::log::DefaultLevels::Levels)0, false);
 
     other.read();
     EXPECT_EQ(other.subject_names.size(), 1);
@@ -346,7 +346,7 @@ TEST(log, templates) {
     EXPECT_EQ(log_count, 1);
     EXPECT_EQ(last_message, "CHEAP");
 
-    log.set_level_status(LogT::Levels::Info, false);
+    log.set_status(LogT::Levels::Info, false);
 
     log.info(LogT::Subjects::Default, Template("{{cheap}} {{expensive}}"), make_provider(
         std::pair("cheap", "CHEAP"),

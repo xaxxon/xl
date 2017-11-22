@@ -9,20 +9,19 @@
 namespace xl::json {
 
 inline xl::RegexPcre json_regex(R"REGEX(
-^
-(?(DEFINE)(?<ObjectEntry>(\s*"[^"]*"\s*:\s*(?&any)\s*)))
+^\s*
+(?(DEFINE)(?<StringContents>(?:\\"|[^"])*))
+(?(DEFINE)(?<ObjectEntry>(\s*"(?&StringContents)"\s*:\s*(?&any)\s*)))
 (?(DEFINE)(?<ArrayEntry>(\s*(?&any)\s*)))
-\s*
 (?<any>
    (?<number>(?:-?\d+\.?\d*|-?\.\d+)([Ee][+-]?\d+)?) |
    (?<boolean>true|false) |
-   (?:"(?<string>.*?)") |
+   (?:"(?<string>(?&StringContents))") |
    (?<array>\[(?:(?<ArrayHead>(?&ArrayEntry))\s*,?\s*)?(?<ArrayTail>((?&ArrayEntry)\s*,?\s*)*)\]) |
-   (?<object>{((\s*"(?<Key>.*?)"\s*:\s*(?<Value>(?&any))\s*)\s*,?\s*)?(?<ObjectTail>(?&ObjectEntry)\s*,?\s*)* }) |
+   (?<object>{(\s*"(?<Key>(?&StringContents))"\s*:\s*(?<Value>(?&any)))?\s*,?\s*(?<ObjectTail>(?&ObjectEntry)\s*,?\s*)* }) |
    (?<null>null)
-)
-\s*
-$
+) # end any
+\s*$
 )REGEX",  xl::OPTIMIZE | xl::EXTENDED | xl::DOTALL);
 
 

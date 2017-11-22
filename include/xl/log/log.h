@@ -78,13 +78,13 @@ struct LogLevelsBase {
         return EnumIterator<typename T::Levels>(T::Levels::LOG_LAST_LEVEL);
     }
 
-    static std::string const & get_level_name(typename T::Levels level) {
+    static std::string const & get_name(typename T::Levels level) {
         return T::level_names[static_cast<std::underlying_type_t<typename T::Levels>>(level)];
     }
 
     using UnderlyingType = std::underlying_type_t<typename T::Levels>;
 
-    static auto get(typename T::Levels level) {
+    constexpr static auto get(typename T::Levels level) {
         return static_cast<UnderlyingType>(level);
     }
 };
@@ -101,13 +101,13 @@ struct LogSubjectsBase {
         return T::Subjects::LOG_LAST_SUBJECT;
     }
 
-    static std::string const & get_subject_name(typename T::Subjects subject) {
+    static std::string const & get_name(typename T::Subjects subject) {
         return T::subject_names[static_cast<std::underlying_type_t<typename T::Subjects>>(subject)];
     }
 
     using UnderlyingType = std::underlying_type_t<typename T::Subjects>;
 
-    static auto get(typename T::Subjects subject) {
+    constexpr static auto get(typename T::Subjects subject) {
         return static_cast<UnderlyingType>(subject);
     }
 };
@@ -173,13 +173,13 @@ public:
         this->level_names.clear();
         for(size_t i = 0; i < LogLevelsBase<LevelsT>::get(LevelsT::Levels::LOG_LAST_LEVEL); i++) {
             typename LevelsT::Levels level = static_cast<typename LevelsT::Levels>(i);
-            this->level_names.emplace_back(std::pair(log.get_level_name(level), log.get_level_status(level)));
+            this->level_names.emplace_back(std::pair(log.get_name(level), log.get_status(level)));
         }
 
         this->subject_names.clear();
         for(size_t i = 0; i < LogSubjectsBase<SubjectsT>::get(SubjectsT::Subjects::LOG_LAST_SUBJECT); i++) {
             typename SubjectsT::Subjects subject = static_cast<typename SubjectsT::Subjects>(i);
-            auto pair = std::pair(log.get_subject_name(subject), log.get_subject_status(subject));
+            auto pair = std::pair(log.get_name(subject), log.get_status(subject));
             this->subject_names.emplace_back(std::move(pair));
         }
     }
@@ -196,7 +196,7 @@ public:
             return;
         }
         std::string line;
-        xl::RegexPcre line_regex("^([01])\\s+(.+)\\n*$");
+        static xl::RegexPcre const line_regex("^([01])\\s+(.+)\\n*$");
 
 
         std::getline(file, line);
@@ -295,8 +295,8 @@ public:
 
 /**
  * Objects of this type take messages to be logged and route them to the registered callback.
- * @tparam Levels must provide an enum named Levels and static std::string const & get_level_name(Levels)
- * @tparam Subjects must provide an enum named Subjects and static std::string const & get_subject_name(Subjects)
+ * @tparam Levels must provide an enum named Levels and static std::string const & get_name(Levels)
+ * @tparam Subjects must provide an enum named Subjects and static std::string const & get_name(Subjects)
  */
 template<class LevelsT = log::DefaultLevels, class SubjectsT = log::DefaultSubjects>
 class Log {
@@ -317,11 +317,11 @@ public:
     static constexpr SubjectsUnderlyingType subject_count = static_cast<SubjectsUnderlyingType>(Subjects::LOG_LAST_SUBJECT);
 
 
-    auto get(Levels level) const {
+    constexpr static auto get(Levels level) {
         return static_cast<LevelsUnderlyingType>(level);
     }
 
-    auto get(Subjects subject) const {
+    constexpr static auto get(Subjects subject) {
         return static_cast<SubjectsUnderlyingType>(subject);
     }
 
@@ -345,7 +345,7 @@ public:
     using CallbackT = std::function<void(LogMessage const & message)>;
 
     // if false, logs of this level/subject will be ignored
-    std::vector<bool> statuses;
+    std::bitset<level_count + subject_count> statuses;
 
 
     std::unique_ptr<LogStatusFile> log_status_file;
@@ -367,14 +367,14 @@ private:
         for(LevelsUnderlyingType i = 0; i < level_count; i++) {
             if (i < temp->level_names.size()) {
                 typename LevelsT::Levels level = static_cast<Levels>(i);
-                this->set_level_status(level, temp->level_names[i].second);
+                this->set_status(level, temp->level_names[i].second);
             }
         }
 
         for(SubjectsUnderlyingType i = 0; i < subject_count; i++) {
             if (i < temp->subject_names.size()) {
                 typename SubjectsT::Subjects subject = static_cast<Subjects>(i);
-                this->set_subject_status(subject, temp->subject_names[i].second);
+                this->set_status(subject, temp->subject_names[i].second);
             }
         }
 
@@ -397,24 +397,24 @@ public:
 
         for(size_t i = 0; i < get(Levels::LOG_LAST_LEVEL); i++) {
             auto level = (Levels)i;
-            status << fmt::format("{}: {}", LevelsT::get_level_name(level), (bool)get_level_status(level));
+            status << fmt::format("{}: {}", LevelsT::get_name(level), (bool)get_status(level));
         }
         for(size_t i = 0; i < get(Subjects::LOG_LAST_SUBJECT); i++) {
             auto subject = (Subjects)i;
-            status << fmt::format("{}: {}", SubjectsT::get_subject_name(subject), (bool)get_subject_status(subject));
+            status << fmt::format("{}: {}", SubjectsT::get_name(subject), (bool)get_status(subject));
         }
         return status.str();
     }
 
 
-    bool get_level_status(Levels level) const {
+    bool get_status(Levels level) const {
         return this->statuses[get(level)];
     }
 
-    bool set_level_status(Levels level, bool new_status) {
+    bool set_status(Levels level, bool new_status) {
 //        std::cerr << fmt::format("setting {} to {}", (int)level, new_status) << std::endl;
         bool previous_status;
-        previous_status = get_level_status(level);
+        previous_status = get_status(level);
 
         statuses[get(level)] = new_status;
         if (this->log_status_file) {
@@ -426,23 +426,23 @@ public:
 
     void set_all_subjects(bool new_status) {
         for(size_t i = 0; i < get(Subjects::LOG_LAST_SUBJECT); i++) {
-            set_subject_status(static_cast<Subjects>(i), new_status);
+            set_status(static_cast<Subjects>(i), new_status);
         }
     }
 
-    bool get_subject_status(Subjects subject) const {
+    bool get_status(Subjects subject) const {
         return statuses[get(Levels::LOG_LAST_LEVEL) + get(subject)];
     }
 
     void set_all_levels(bool new_status) {
         for(size_t i = 0; i < get(Levels::LOG_LAST_LEVEL); i++) {
-            set_level_status((Levels)i, new_status);
+            set_status((Levels)i, new_status);
         }
     }
 
 
-    bool set_subject_status(Subjects subject, bool new_status) {
-        bool previous_status = get_subject_status(subject);
+    bool set_status(Subjects subject, bool new_status) {
+        bool previous_status = get_status(subject);
         statuses[get(Levels::LOG_LAST_LEVEL) + get(subject)] = new_status;
         if (this->log_status_file) {
             this->log_status_file->write(*this);
@@ -452,8 +452,16 @@ public:
     
 
     Log() :
-        statuses(level_count + subject_count, true)
-    {}
+        statuses(0xffffffffffffffff)
+    {
+        // in case there are more statuses than a bitfield constructor will initialize
+        //   do a slow initialization of the rest of the elements
+        if constexpr(level_count + subject_count > sizeof(long long) * 8) {
+            for(int i = sizeof(long long) * 8; i < level_count + subject_count; i++) {
+                this->statuses[i] = 1;
+            }
+        }
+    }
 
     Log(std::string filename) : Log() {
         this->enable_status_file(filename);
@@ -521,8 +529,8 @@ public:
             }
         }
         for (auto & callback : this->callbacks) {
-            if (this->get_level_status(level) &&
-                this->get_subject_status(subject)) {
+            if (this->get_status(level) &&
+                this->get_status(subject)) {
                 (*callback)(LogMessage(level, subject, string));
             }
         }
@@ -550,12 +558,12 @@ public:
         log(Levels::Error, subject, message);
     }
 
-    static std::string const & get_subject_name(Subjects subject) {
-        return SubjectsBase::get_subject_name(subject);
+    static std::string const & get_name(Subjects subject) {
+        return SubjectsBase::get_name(subject);
     }
 
-    static std::string const & get_level_name(Levels level) {
-        return LevelsBase::get_level_name(level);
+    static std::string const & get_name(Levels level) {
+        return LevelsBase::get_name(level);
     }
 
     auto get_statuses() const {
@@ -626,7 +634,7 @@ public:
      */
     template<typename... Ts>
     void log(Levels level, Subjects subject, xl::templates::Template const & tmpl, Ts&&... args) {
-        if (!this->callbacks.empty() && this->get_level_status(level) && this->get_subject_status(subject)) {
+        if (!this->callbacks.empty() && this->get_status(level) && this->get_status(subject)) {
             this->log(level, subject, tmpl.fill(std::forward<Ts>(args)...));
         }
     };

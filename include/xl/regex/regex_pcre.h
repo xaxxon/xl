@@ -1,17 +1,18 @@
 #pragma once
 
+#if defined XL_USE_PCRE
+
 #include <sstream>
 #include <string_view>
 #include <string>
 
-#if defined XL_USE_PCRE
-
 #include <pcre.h>
-#include "../zstring_view.h"
-
 #include <fmt/format.h>
 
+#include "../zstring_view.h"
+
 namespace xl {
+
 
 class RegexPcre;
 

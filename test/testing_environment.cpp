@@ -16,10 +16,10 @@ public:
     virtual void SetUp() {
 
         // default Info to off but if there's a status file, use that
-        xl::templates::log.set_level_status(xl::log::DefaultLevels::Levels::Info, false);
+        xl::templates::log.set_status(xl::log::DefaultLevels::Levels::Info, false);
 
         xl::templates::log.add_callback([](xl::templates::LogT::LogMessage const & message) {
-           std::cerr << fmt::format("xl::templates ({}): '{}'", xl::templates::log.get_subject_name(message.subject), message.string) << std::endl;
+           std::cerr << fmt::format("xl::templates ({}): '{}'", xl::templates::log.get_name(message.subject), message.string) << std::endl;
         });
 
         // use status file settings if they exist, otherwise create it with the current settings
