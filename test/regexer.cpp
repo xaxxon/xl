@@ -61,6 +61,36 @@ TEST(Regexer, NoMatch) {
     }
 }
 
+
+TEST(Regexer, Next) {
+    {
+        RegexPcre char_regex("(.)");
+
+        auto result = char_regex.match("ab");
+        EXPECT_EQ(result[0], "a");
+        EXPECT_EQ(result[1], "a");
+
+        auto next = result.next();
+        EXPECT_EQ(next[0], "b");
+        EXPECT_EQ(next[1], "b");
+
+        auto third = next.next();
+        EXPECT_FALSE(third);
+    }
+}
+
+TEST(Regexer, LoopedRegex) {
+    {
+        RegexPcre char_regex("(.)");
+        std::vector<std::string> chars;
+        for(auto & result : char_regex.match("abcde")) {
+            chars.push_back(result[1]);
+        }
+        auto expected = std::vector<std::string>{"a", "b", "c", "d", "e"};
+        EXPECT_EQ(chars, expected);
+    }
+}
+
 #if defined XL_USE_PCRE
 
 TEST(Regexer, RecursivePattern) {
@@ -81,6 +111,11 @@ TEST(Regexer, RecursivePattern) {
 TEST(Regexer, Replace_DoNothing) {
     {
         auto result = RegexPcre("").replace("part1:part2", "");
+        EXPECT_EQ(result, "part1:part2");
+    }
+    {
+        // replace all, but match is empty, so it should not go forever
+        auto result = RegexPcre("").replace("part1:part2", "", true);
         EXPECT_EQ(result, "part1:part2");
     }
 }
@@ -112,6 +147,9 @@ TEST(Regexer, Replace) {
     }
     {
         EXPECT_EQ(RegexPcre("(.*):(.*)").replace("part1part2", "$1$2$9"), "part1part2");
+    }
+    {
+        EXPECT_EQ(RegexPcre("[abc]").replace("abcdef", "X", true), "XXXdef");
     }
 
 }

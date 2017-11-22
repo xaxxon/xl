@@ -24,3 +24,21 @@ or (when named patterns are supported), by name.
 
 The results object stores a copy of the original string so as long as the results 
 object is still around, the matching patterns may still be accessed.
+
+
+### Regex Result Range Loop
+
+Puttinga a regex match in a range loop will run the regex over the portion of the 
+original string after the previous successful match and stop when no match is available
+
+    for (auto & match : Regex(".").match("abc")) {
+        std::cout << match[0] << std::endl;
+    }
+    
+will print out
+
+    a
+    b
+    c
+    
+    

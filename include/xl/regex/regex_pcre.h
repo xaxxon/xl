@@ -28,34 +28,37 @@ private:
     pcre_ptr compiled_pattern;
 
     /// original regex string
-    std::string const source;
+    std::string source;
 
     /// number of actual captures from running the regex
     int results = 0;
 
     /// buffer for storing submatch offsets (3 for each capture)
-    std::unique_ptr<int[]> const captures;
+    std::vector<int> captures;
 
-    RegexPcre const & regex;
+    RegexPcre const * regex;
 
 public:
     RegexResultPcre(pcre_ptr compiled_pattern,
                     std::string source,
                     int results,
-                    std::unique_ptr<int[]> captures,
+                    std::vector<int> captures,
                     size_t capture_count,
                     RegexPcre const & regex) :
         compiled_pattern(compiled_pattern),
         source(source),
         results(results),
         captures(std::move(captures)),
-        regex(regex)
+        regex(&regex)
     {}
 
     RegexResultPcre(RegexResultPcre&&) = default;
 
     // Not defined anywhere but declaration needed for NRVO to function
-    RegexResultPcre(RegexResultPcre const &);
+    RegexResultPcre(RegexResultPcre const &) = default;
+
+    RegexResultPcre & operator=(RegexResultPcre &&) = default;
+    RegexResultPcre & operator=(RegexResultPcre const &) = default;
 
 
     /**
@@ -91,11 +94,15 @@ public:
      * @return
      */
     char const * suffix() const {
+        if (*this) {
 //        std::cerr << fmt::format("string length: {}, captures[1]: {}", this->source.length(), this->captures[1]) << std::endl;
 //        std::cerr << fmt::format("suffix: '{}'", this->source.data() + this->captures[1]) << std::endl;
-        char const * result = this->source.data() + this->captures[1];
+            char const * result = this->source.data() + this->captures[1];
 //        std::cerr << fmt::format("returning suffix address {} vs base {}", (void*)result, (void*)this->source.c_str()) << std::endl;
-        return result;
+            return result;
+        } else {
+            return source.c_str();
+        }
     }
 
     /**
@@ -107,6 +114,10 @@ public:
         auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name.c_str());
         // std::cerr << fmt::format("Looked up named capture '{}' => {}", name.c_str(), index) << std::endl;
         return this->length(index) > 0;
+    }
+
+    bool has(int position) const {
+        return this->length(position) > 0;
     }
 
 
@@ -192,12 +203,38 @@ public:
         return results;
     }
 
+
     /**
      * Returns the match from running the same regex over the suffix of this match
      * @return next match on the same string
      */
     RegexResultPcre next();
 
+    RegexResultPcre & operator*() {
+        return *this;
+    }
+
+
+    RegexResultPcre & begin() {
+        return *this;
+    }
+
+
+    bool end() {
+        return false;
+    }
+
+
+    RegexResultPcre & operator++() {
+        *this = this->next();
+        return *this;
+    }
+
+
+    bool operator!=(bool) {
+        // if this returns true, then the range is not complete because this does not equal the end
+        return *this;
+    }
 };
 
 
@@ -272,14 +309,15 @@ public:
      */
     RegexResultPcre match(xl::zstring_view data) const {
         auto buffer_length = this->capture_count * 3;
-        auto buffer = std::make_unique<int[]>(buffer_length);
+        std::vector<int> buffer;
+        buffer.resize(buffer_length);
         auto results = pcre_exec(this->compiled_regex.get(),
                                          this->extra,
                                          data.c_str(),
                                          data.length(),  // length of string
                                          0,              // Start looking at this point
                                          0,              // OPTIONS
-                                         buffer.get(),
+                                         buffer.data(),
                                          buffer_length); // Length of subStrVec
 
         return RegexResultPcre(this->compiled_regex, data, results, std::move(buffer), buffer_length, *this);
@@ -303,50 +341,58 @@ public:
      * @return copy of the new string
      * @ifnot
      */
-    std::string replace(xl::zstring_view source, xl::zstring_view format) {
+    std::string replace(xl::zstring_view source, xl::zstring_view format, bool all = false) {
+
 
         auto matches = this->match(source);
         if (!matches) {
             return source;
         }
 
-
         std::stringstream result;
-        result << matches.prefix();
-        bool found_escape = false;
-        for(int i = 0; format.c_str()[i] != '\0'; i++) {
-            char c = format.c_str()[i];
-//            std::cerr << fmt::format("looking at '{}'", c) << std::endl;
-            if (c == '$') {
-                if (found_escape) {
-//                    std::cerr << fmt::format("adding backslash") << std::endl;
-                    result << '$';
-                } else {
-//                    std::cerr << fmt::format("found escape char.. not doing anything yet") << std::endl;
-                    found_escape = true;
-                }
-            } else {
-                if (found_escape) {
-                    if (c >= '0' && c <= '9') {
-                        int index = c - '0';
-//                        std::cerr << fmt::format("index {} matches.results {}", index, matches.results) << std::endl;
-                        if (index >= matches.results) {
-                            throw RegexException(
-                                std::string("Regex doesn't contain match index") + std::to_string(index));
-                        }
-//                        std::cerr << fmt::format("adding match {}: '{}'", index, matches[index]) << std::endl;
 
-                        result << matches[index];
+
+        while(matches) {
+            result << matches.prefix();
+            bool found_escape = false;
+            for (int i = 0; format.c_str()[i] != '\0'; i++) {
+                char c = format.c_str()[i];
+//            std::cerr << fmt::format("looking at '{}'", c) << std::endl;
+                if (c == '$') {
+                    if (found_escape) {
+//                    std::cerr << fmt::format("adding backslash") << std::endl;
+                        result << '$';
                     } else {
-//                        std::cerr << fmt::format("adding escaped '{}'", c) << std::endl;
-                        result << c;
+//                    std::cerr << fmt::format("found escape char.. not doing anything yet") << std::endl;
+                        found_escape = true;
                     }
                 } else {
+                    if (found_escape) {
+                        if (c >= '0' && c <= '9') {
+                            int index = c - '0';
+//                        std::cerr << fmt::format("index {} matches.results {}", index, matches.results) << std::endl;
+                            if (index >= matches.results) {
+                                throw RegexException(
+                                    std::string("Regex doesn't contain match index") + std::to_string(index));
+                            }
+//                        std::cerr << fmt::format("adding match {}: '{}'", index, matches[index]) << std::endl;
+
+                            result << matches[index];
+                        } else {
+//                        std::cerr << fmt::format("adding escaped '{}'", c) << std::endl;
+                            result << c;
+                        }
+                    } else {
 //                    std::cerr << fmt::format("adding '{}'", c) << std::endl;
-                    result << c;
+                        result << c;
+                    }
+                    found_escape = false;
                 }
-                found_escape = false;
             }
+            if (!all || !matches.has(0)) {
+                break;
+            }
+            ++matches;
         }
 
         result << matches.suffix();
@@ -357,7 +403,7 @@ public:
 
 inline RegexResultPcre RegexResultPcre::next()
 {
-    return this->regex.match(this->suffix());
+    return this->regex->match(this->suffix());
 }
 
 

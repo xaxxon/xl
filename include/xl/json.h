@@ -16,7 +16,7 @@ inline xl::RegexPcre json_regex(R"REGEX(
 (?<any>
    (?<number>(?:-?\d+\.?\d*|-?\.\d+)([Ee][+-]?\d+)?) |
    (?<boolean>true|false) |
-   (?<string>".*?") |
+   (?:"(?<string>.*?)") |
    (?<array>\[(?:(?<ArrayHead>(?&ArrayEntry))\s*,?\s*)?(?<ArrayTail>((?&ArrayEntry)\s*,?\s*)*)\]) |
    (?<object>{((\s*"(?<Key>.*?)"\s*:\s*(?<Value>(?&any))\s*)\s*,?\s*)?(?<ObjectTail>(?&ObjectEntry)\s*,?\s*)* }) |
    (?<null>null)
@@ -25,6 +25,8 @@ inline xl::RegexPcre json_regex(R"REGEX(
 $
 )REGEX",  xl::OPTIMIZE | xl::EXTENDED | xl::DOTALL);
 
+
+inline xl::RegexPcre escaped_character_regex("\\\\(.)", xl::OPTIMIZE | xl::EXTENDED | xl::DOTALL);
 
 struct JsonException : public xl::FormattedException {
     using xl::FormattedException::FormattedException;
@@ -55,8 +57,12 @@ struct Json {
     }
 
     std::optional<std::string> get_string() const {
-        auto result = parse()["string"];
-        return !result.empty() ? result : std::optional<std::string>{};
+        std::string result = parse()["string"];
+        if (!result.empty()) {
+            return escaped_character_regex.replace(result, "$1", true);
+        } else {
+            return {};
+        }
     }
 
     std::optional<std::map<std::string, Json>> get_object() const {
@@ -65,7 +71,8 @@ struct Json {
             std::map<std::string, Json> results;
             std::string object_string = matches["object"];
             while(auto object_entry_match = json_regex.match(object_string)) {
-                results.emplace(object_entry_match["Key"], Json(object_entry_match["Value"]));
+                std::string key = object_entry_match["Key"];
+                results.emplace(escaped_character_regex.replace(key, "$1", true), Json(object_entry_match["Value"]));
                 if (!object_entry_match.has("ObjectTail")) {
                     break;
                 }

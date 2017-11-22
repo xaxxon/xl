@@ -52,12 +52,26 @@ TEST(json, boolean) {
     EXPECT_FALSE(Json("\"asdf\"").get_boolean().has_value());
 }
 
+TEST(json, string) {
+    EXPECT_EQ(*Json("\"string\"").get_string(), "string");
+
+    // test escaped quotation marks in strings
+    EXPECT_EQ(*Json("\"\\\"string\\\"\"").get_string(), "\"string\"");
+}
+
 TEST(json, object) {
     {
         auto result = Json("{\"a\": 4}").get_object();
         EXPECT_TRUE(result.has_value());
         EXPECT_EQ((*result).size(), 1);
     }
+    { // test escaped quotations in object keys
+        auto result = Json("{\"\\\"a\": 4}").get_object();
+        EXPECT_TRUE(result.has_value());
+        EXPECT_EQ((*result).size(), 1);
+        EXPECT_TRUE(result->find("\"a") != result->end());
+    }
+
     {
         auto result = Json("{\"a\": 1, \"b\": 2,}").get_object();
         EXPECT_TRUE(result.has_value());
