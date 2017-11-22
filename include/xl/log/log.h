@@ -584,7 +584,10 @@ public:
         if (this->log_status_file) {
             this->log_status_file->write();
         }
+    }
 
+    bool is_live(Levels level, Subjects subject) {
+        return !this->callbacks.empty() && this->get_status(level) && this->get_status(subject);
     }
 
 //    auto get_status_of_levels() const {
@@ -613,7 +616,9 @@ public:
 #ifdef XL_USE_LIB_FMT
     template<class... Ts>
     void log(Levels level, Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
-        log(level, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
+        if (this->is_live(level, subject)) { // don't build the string if it wont be used
+            log(level, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
+        }
     }
     template<class L = Levels, class S = Subjects, class... Ts,
         std::enable_if_t<(int)L::Info >= 0 && (int)S::Default >= 0, int> = 0>
@@ -643,7 +648,7 @@ public:
      */
     template<typename... Ts>
     void log(Levels level, Subjects subject, xl::templates::Template const & tmpl, Ts&&... args) {
-        if (!this->callbacks.empty() && this->get_status(level) && this->get_status(subject)) {
+        if (this->is_live(level, subject)) { // don't build the string if it wont be used
             this->log(level, subject, tmpl.fill(std::forward<Ts>(args)...));
         }
     };
