@@ -12,6 +12,7 @@
 #include <type_traits>
 #include <fstream>
 #include <chrono>
+
 #include <fmt/ostream.h>
 #include <experimental/filesystem>
 #include "../library_extensions.h"
@@ -144,7 +145,7 @@ struct DefaultSubjects {
 };
 
 
-template<class LevelsT, class SubjectsT>
+template<class LevelsT, class SubjectsT, class Clock>
 class Log;
 
 class LogStatusFile {
@@ -165,8 +166,8 @@ public:
     std::vector<std::pair<std::string, bool>> subject_names;
 
 
-    template<typename LevelsT, typename SubjectsT>
-    LogStatusFile(Log<LevelsT, SubjectsT> const & log, std::string filename, bool force_reset) :
+    template<typename LevelsT, typename SubjectsT, typename Clock>
+    LogStatusFile(Log<LevelsT, SubjectsT, Clock> const & log, std::string filename, bool force_reset) :
         LogStatusFile(filename)
     {
         if (!std::experimental::filesystem::exists(this->status_file) || force_reset) {
@@ -179,8 +180,8 @@ public:
     }
 
 
-    template<typename LevelsT, typename SubjectsT>
-    void initialize_from_log(Log<LevelsT, SubjectsT> const & log) {
+    template<typename LevelsT, typename SubjectsT, typename Clock>
+    void initialize_from_log(Log<LevelsT, SubjectsT, Clock> const & log) {
         this->level_names.clear();
         for(size_t i = 0; i < LogLevelsBase<LevelsT>::get(LevelsT::Levels::LOG_LAST_LEVEL); i++) {
             typename LevelsT::Levels level = static_cast<typename LevelsT::Levels>(i);
@@ -246,8 +247,8 @@ public:
     }
 
 
-    template<typename LevelsT, typename SubjectsT>
-    void write(Log<LevelsT, SubjectsT> const & log) {
+    template<typename LevelsT, typename SubjectsT, typename Clock>
+    void write(Log<LevelsT, SubjectsT, Clock> const & log) {
         this->initialize_from_log(log);
         this->write();
     };
@@ -309,7 +310,7 @@ public:
  * @tparam Levels must provide an enum named Levels and static std::string const & get_name(Levels)
  * @tparam Subjects must provide an enum named Subjects and static std::string const & get_name(Subjects)
  */
-template<class LevelsT = log::DefaultLevels, class SubjectsT = log::DefaultSubjects>
+template<class LevelsT = log::DefaultLevels, class SubjectsT = log::DefaultSubjects, class Clock = std::chrono::system_clock>
 class Log {
     static_assert((size_t)LevelsT::Levels::LOG_LAST_LEVEL >= 0, "Levels enumeration must have LOG_LAST_LEVEL as its final entry");
     static_assert((size_t)SubjectsT::Subjects::LOG_LAST_SUBJECT >= 0, "Subjects enumeration must have LOG_LAST_SUBJECT as its final entry");
@@ -344,12 +345,21 @@ public:
         Levels level;
         Subjects subject;
         std::string string;
+        typename Clock::time_point time = Clock::now();
 
         LogMessage(Levels level, Subjects subject, std::string string) :
             level(level),
             subject(subject),
             string(std::move(string))
         {}
+
+        template<typename ClockCopy = Clock>
+        std::string get_time_string() const {
+            static_assert(std::is_same_v<Clock, std::chrono::system_clock>, "Time string only available for clock type std::chrono::system_clock");
+            std::time_t time_t = std::chrono::system_clock::to_time_t(this->time);
+            return std::ctime(&time_t);
+        }
+
     };
 
 

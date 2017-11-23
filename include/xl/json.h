@@ -126,15 +126,12 @@ public:
         } else {
             return {};
         }
-
     }
 
     std::optional<bool> get_boolean() const {
         auto result = parse()["boolean"];
         return !result.empty() ? result == "true" : std::optional<bool>{};
     }
-
-
 
 
     /**
@@ -144,20 +141,22 @@ public:
      * @param name key name to return Json object for
      * @return Json object - either valid if the key request is valid, otherwise a 'invalid' Json object
      */
-    std::map<std::string, Json> get_object_by_key(xl::string_view name) const {
+    Json get_by_key(xl::string_view name) const {
         if (auto object = this->get_object()) {
-            return (*object)[name].as_object();
+            return (*object)[name];
         } else {
-            return {};
+            return Json{};
         }
     }
 
+
     auto operator[](xl::string_view name) const {
-        return get_object_by_key(name);
+        return get_by_key(name);
     }
 
+
     auto operator[](char const * name) const {
-        return get_object_by_key(name);
+        return get_by_key(name);
     }
 
 
@@ -168,13 +167,17 @@ public:
      * @param name array index to return Json object for
      * @return Json object - either valid if the array index request is valid, otherwise a 'invalid' Json object
      */
-    Json get_array_index(size_t index) const {
+    Json get_by_index(size_t index) const {
         if (auto array = this->get_array()) {
             if (array->size() > index) {
                 return (*array)[index];
             }
         }
         return Json{};
+    }
+
+    auto operator[](size_t index) const {
+        return get_by_index(index);
     }
 
     bool is_null() const {
@@ -191,19 +194,6 @@ public:
 };
 
 
-class JsonObject : public Json, public std::map<xl::string_view, Json> {
-
-
-public:
-    void begin() const {
-
-    }
-
-    void end() const {
-
-    }
-
-};
 
 } // end namespace xl::json
 

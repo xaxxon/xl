@@ -100,18 +100,16 @@ TEST(json, array) {
 
 
 TEST(Json, WalkingNonexistantElements) {
-    EXPECT_TRUE(Json().get_object_by_key("Foo").empty());
-    EXPECT_FALSE(Json().get_array_index(100).is_valid());
+    EXPECT_FALSE(Json()["Foo"]);
+    EXPECT_FALSE(Json()[100]);
 
-    EXPECT_FALSE(Json().
-        get_object_by_key("Foo")["bar"].get_array_index(100).
-        get_object_by_key("Foo")["bar"].get_array_index(100).is_valid());
+    EXPECT_FALSE(Json()["Foo"][100]["Foo"][100]);
 
-    EXPECT_EQ(*Json("{\"key\": 1}").as_object()["key"].get_number(), 1);
-    EXPECT_FALSE(Json("{\"key\": 1}").get_object_by_key("not_key")["some_key"].get_number());
+    EXPECT_EQ(*Json("{\"key\": 1}")["key"].get_number(), 1);
+    EXPECT_FALSE(Json("{\"key\": 1}")["not_key"].get_number());
 
-    EXPECT_EQ(*Json("[0, 1, 2]").get_array_index(1).get_number(), 1);
-    EXPECT_FALSE(Json("[0, 1, 2]").get_array_index(3).get_number());
+    EXPECT_EQ(*Json("[0, 1, 2]")[1].get_number(), 1);
+    EXPECT_FALSE(Json("[0, 1, 2]")[3].get_number());
 
 }
 
