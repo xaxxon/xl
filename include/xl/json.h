@@ -86,7 +86,6 @@ public:
                 if (!object_entry_match.has("ObjectTail")) {
                     break;
                 }
-                std::cerr << fmt::format("object tail: {}", object_entry_match["ObjectTail"]) << std::endl;
                 object_string = fmt::format("{{{}}}", object_entry_match["ObjectTail"]);
             }
             return results;
