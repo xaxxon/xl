@@ -70,7 +70,7 @@ public:
         }
         return this->_buffer.get();
     }
-    auto const buffer() const { return const_cast<AlignedStringBuffer_Dynamic<alignment> *>(this)->buffer(); }
+    char const * buffer() const { return const_cast<AlignedStringBuffer_Dynamic<alignment> *>(this)->buffer(); }
 
 
     char const * c_str() {

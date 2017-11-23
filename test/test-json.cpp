@@ -8,18 +8,15 @@ using namespace xl;
 using namespace xl::json;
 
 TEST(json, empty) {
-    EXPECT_THROW(Json("").get_number(), JsonException);
+    EXPECT_FALSE(Json("").is_valid());
 }
 
 TEST(json, invalid) {
-    EXPECT_THROW(Json("asdfasdf").get_number(), JsonException);
-    EXPECT_THROW(Json("\"asdfasdf").get_number(), JsonException);
-    EXPECT_THROW(Json("asdfasdf\"").get_number(), JsonException);
-    EXPECT_THROW(Json("{\"a\"; 4}").get_object(), JsonException);
-    EXPECT_THROW(Json("[0, 1, 2, 3, 4").get_array(), JsonException);
-
+    EXPECT_FALSE(Json("asdfasdf").is_valid());
+    EXPECT_FALSE(Json("\"asdfasdf").is_valid());
+    EXPECT_FALSE(Json("asdfasdf\"").is_valid());
+    EXPECT_FALSE(Json("{\"a\"; 4}").is_valid());
     EXPECT_FALSE(Json("[0, 1, 2, 3, 4").is_valid());
-
 }
 
 
@@ -73,11 +70,12 @@ TEST(json, object) {
     }
 
     {
-        auto result = Json("{\"a\": 1, \"b\": 2,}").get_object();
+        auto result = Json("{\"a\": 1, \"b\": 2, \"c\": 3}").get_object();
         EXPECT_TRUE(result.has_value());
-        EXPECT_EQ((*result).size(), 2);
+        EXPECT_EQ((*result).size(), 3);
         EXPECT_EQ((*result)["a"].get_number(), 1);
         EXPECT_EQ((*result)["b"].get_number(), 2);
+        EXPECT_EQ((*result)["c"].get_number(), 3);
     }
 }
 
@@ -99,3 +97,21 @@ TEST(json, array) {
 
     }
 }
+
+
+TEST(Json, WalkingNonexistantElements) {
+    EXPECT_TRUE(Json().get_object_by_key("Foo").empty());
+    EXPECT_FALSE(Json().get_array_index(100).is_valid());
+
+    EXPECT_FALSE(Json().
+        get_object_by_key("Foo")["bar"].get_array_index(100).
+        get_object_by_key("Foo")["bar"].get_array_index(100).is_valid());
+
+    EXPECT_EQ(*Json("{\"key\": 1}").as_object()["key"].get_number(), 1);
+    EXPECT_FALSE(Json("{\"key\": 1}").get_object_by_key("not_key")["some_key"].get_number());
+
+    EXPECT_EQ(*Json("[0, 1, 2]").get_array_index(1).get_number(), 1);
+    EXPECT_FALSE(Json("[0, 1, 2]").get_array_index(3).get_number());
+
+}
+

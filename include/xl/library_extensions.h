@@ -150,6 +150,16 @@ bool contains(C && container, V && value) {
     return std::find(begin(container), end(container), value) != std::end(container);
 };
 
+template<typename Container>
+bool contains_if(Container const & container, std::function<bool(typename Container::value_type const &)> callback) {
+    for(auto const & element : container) {
+        if (callback(element)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 
 
 template<class ValueT, class... Rest, template<class, class...> class ContainerT>

@@ -29,7 +29,7 @@ private:
     pcre_ptr compiled_pattern;
 
     /// original regex string
-    std::string source;
+    std::string source = "";
 
     /// number of actual captures from running the regex
     int results = 0;
@@ -37,7 +37,7 @@ private:
     /// buffer for storing submatch offsets (3 for each capture)
     std::vector<int> captures;
 
-    RegexPcre const * regex;
+    RegexPcre const * regex = nullptr;
 
 public:
     RegexResultPcre(pcre_ptr compiled_pattern,
@@ -52,6 +52,8 @@ public:
         captures(std::move(captures)),
         regex(&regex)
     {}
+
+    RegexResultPcre() = default;
 
     RegexResultPcre(RegexResultPcre&&) = default;
 
