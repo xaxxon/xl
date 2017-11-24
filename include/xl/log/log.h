@@ -324,6 +324,7 @@ public:
  */
 template<class LevelsT = log::DefaultLevels, class SubjectsT = log::DefaultSubjects, class Clock = std::chrono::system_clock>
 class Log {
+
     static_assert((size_t)LevelsT::Levels::LOG_LAST_LEVEL >= 0, "Levels enumeration must have LOG_LAST_LEVEL as its final entry");
     static_assert((size_t)SubjectsT::Subjects::LOG_LAST_SUBJECT >= 0, "Subjects enumeration must have LOG_LAST_SUBJECT as its final entry");
 public:
@@ -380,6 +381,19 @@ public:
 
     std::unique_ptr<LogStatusFile> log_status_file;
 
+ void set_regex_filter(xl::zstring_view regex_string) {
+        if (regex_string.empty()) {
+            this->filter_regex = xl::Regex();
+            this->filter_string = "";
+        } else {
+            this->filter_regex = xl::Regex(regex_string);
+            this->filter_string = regex_string;
+        }
+        if (this->log_status_file) {
+            this->log_status_file->regex_filter = regex_string;
+        }
+    }
+
 private:
     // unique_ptr so the callback objects themselves don't move if the vector resizes
     std::vector<std::unique_ptr<CallbackT>> callbacks;
@@ -392,7 +406,8 @@ private:
         // disable updating status file as we update the object FROM the log file
         auto temp = std::move(this->log_status_file);
 
-        this->set_regex_filter(this->log_status_file->regex_filter);
+//        std::cerr << fmt::format("regex filter from status file: {}", temp->regex_filter) << std::endl;
+        this->set_regex_filter(temp->regex_filter);
 
 //        std::cerr << fmt::format("init from file: file level names size: {}", temp->level_names.size()) << std::endl;
 
@@ -416,6 +431,7 @@ private:
 
     // if set, only show log messages matching this regex
     xl::Regex filter_regex;
+    std::string filter_string;
 
 
 public:
@@ -428,16 +444,7 @@ public:
         return log::LogLevelsBase<LevelsT>();
     }
 
-    void set_regex_filter(xl::zstring_view regex_string) {
-        if (regex_string.empty()) {
-            this->filter_regex = xl::Regex();
-        } else {
-            this->filter_regex = xl::Regex(regex_string);
-        }
-        if (this->log_status_file) {
-            this->log_status_file->regex_filter = regex_string;
-        }
-    }
+
 
 
     std::string get_status_string() const {
@@ -575,13 +582,23 @@ public:
             }
         }
 
+        if (!is_live(level, subject)) {
+//            std::cerr << fmt::format("log mesage isn't live") << std::endl;
+        }
+
+//        std::cerr << fmt::format("running filter regex: {} against {}", this->filter_string, string) << std::endl;
+        if (this->filter_regex && !this->filter_regex.match(string)) {
+//            std::cerr << fmt::format("regex failed to match") << std::endl;
+            return;
+        }
+
+//        std::cerr << fmt::format("regex matched") << std::endl;
         // if there's no filter or if it matches, then send the log messsage to each callback
-        if (!this->filter_regex || this->filter_regex.match(string)) {
-            for (auto & callback : this->callbacks) {
-                if (this->get_status(level) &&
-                    this->get_status(subject)) {
-                    (*callback)(LogMessage(level, subject, string));
-                }
+
+        for (auto & callback : this->callbacks) {
+            if (this->get_status(level) &&
+                this->get_status(subject)) {
+                (*callback)(LogMessage(level, subject, string));
             }
         }
     }

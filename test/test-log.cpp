@@ -272,7 +272,7 @@ TEST(log, LogStatusFile) {
     });
 
     auto status_file_filename = "test_log_status_file";
-    log.enable_status_file(status_file_filename, true);
+    log.enable_status_file(status_file_filename, true); // force status reset
     EXPECT_TRUE(log.log_status_file);
     EXPECT_EQ(log.log_status_file->subject_names.size(), 1);
     EXPECT_EQ(log.log_status_file->level_names.size(), 3);
