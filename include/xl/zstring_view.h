@@ -44,6 +44,11 @@ public:
     using std::basic_string_view<CharT, Traits>::basic_string_view;
 
     operator std::basic_string<CharT>() const {return std::basic_string<CharT>(*this);}
+
+    basic_string_view(std::basic_string<CharT> const & std_string) :
+        std::basic_string_view<CharT, Traits>(std_string.data(), std_string.length())
+    {}
+
 };
 
 
