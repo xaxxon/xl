@@ -30,6 +30,11 @@ LogStatus::LogStatus(QString const & filename, QWidget *parent) :
     this->ui->levelList->setModel(&this->level_model);
     this->ui->subjectList->setModel(&this->subject_model);
 
+    QObject::connect(this->ui->regexEdit, &QLineEdit::editingFinished, [this]() {
+        this->status_file->regex_filter = this->ui->regexEdit->text().toStdString();
+        this->status_file->write();
+    });
+
     this->ui->levelList->connect(this->ui->levelList, &QListView::pressed, [this](const QModelIndex &index){
         status_file->level_names[index.row()].second = !status_file->level_names[index.row()].second;
         status_file->write();
@@ -72,6 +77,7 @@ LogStatus::LogStatus(QString const & filename, QWidget *parent) :
         if (this->status_file->check()) {
             this->subject_model.data_changed();
             this->level_model.data_changed();
+            this->ui->regexEdit->setText(this->status_file->regex_filter.c_str());
         }
     });
     this->timer.start(1000);

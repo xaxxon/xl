@@ -263,7 +263,7 @@ void Template::compile() const {
 
     // the portion of the template string which hasn't yet been parsed by the main regex
     std::string remaining_template = this->c_str();
-    log.info(TemplateSubjects::Subjects::Compile, "compiling template: '{}'", this->_tmpl.c_str());
+    log.info(TemplateSubjects::Subjects::Compile, std::string("compiling template: '") + this->_tmpl.c_str() + "'");
 
     // 0 - no contingent data
     // 1 - same line contingent data
@@ -301,14 +301,14 @@ void Template::compile() const {
         remaining_template = matches.suffix();
 
         std::string literal_string = std::string(matches["Literal"]);
-        log.info(TemplateSubjects::Subjects::Compile, "postprocessing: '{}'", literal_string);
+        log.info(TemplateSubjects::Subjects::Compile, "postprocessing: '" + literal_string + "'");
 
         literal_string = post_process_regex.replace(literal_string, "$1");
-        log.info(TemplateSubjects::Subjects::Compile, "into: '{}'", literal_string);
+        log.info(TemplateSubjects::Subjects::Compile, std::string("into: ") + literal_string);
 
 
         bool ignore_empty_replacements_before = matches.has("IgnoreEmptyBeforeMarker");
-        log.info(TemplateSubjects::Subjects::Compile, "ignoring empty replacements? {}", ignore_empty_replacements_before);
+        log.info(TemplateSubjects::Subjects::Compile, std::string("ignoring empty replacements? ") + (ignore_empty_replacements_before ? "true" : "false"));
         std::string contingent_leading_content = "";
 
 
@@ -399,9 +399,9 @@ void Template::compile() const {
         data.ignore_empty_replacements = ignore_empty_replacements_before;
 
         if (matches.has("InlineTemplateMarker")) {
-            log.info(TemplateSubjects::Subjects::Compile, "Template::compile - creating inline template from '{}'", matches["SubstitutionData"]);
+            log.info(TemplateSubjects::Subjects::Compile, std::string("Template::compile - creating inline template from '") + std::string(matches["SubstitutionData"]) + "'");
             auto inline_template_text = matches["SubstitutionData"];
-            log.info(TemplateSubjects::Subjects::Compile, "inline template text: {}", inline_template_text);
+            log.info(TemplateSubjects::Subjects::Compile, "inline template text: " + std::string(inline_template_text));
             data.inline_template = std::make_shared<Template>(inline_template_text);
         }
 
@@ -411,11 +411,7 @@ void Template::compile() const {
 
         this->compiled_substitutions.emplace_back(std::move(data));
     }
-
     assert(remaining_template.empty());
-//std::cerr << fmt::format("remaining template: '{}'", remaining_template) << std::endl;
-//    std::cerr << fmt::format("pushing on remaining template: '{}'", std::regex_replace(remaining_template, post_process_regex, "$1")) << std::endl;
-    //this->compiled_static_strings.push_back(post_process_regex.replace(remaining_template, "$1"));
 }
 
 } // end namespace xl

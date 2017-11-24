@@ -40,5 +40,13 @@ TEST(ZStringView, ConstructorTests) {
     {
         zstring_view zs("asdf");
     }
+    {
+        std::string std_string;
+        std::string_view sv(std_string);
+    }
 
 }
+
+
+
+

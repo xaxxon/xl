@@ -7,6 +7,15 @@
 using namespace xl;
 using namespace xl::json;
 
+TEST(json, CopyAndAssignmentTests) {
+    Json j;
+    Json j2(j);
+    Json j3((Json()));
+
+    j2 = j;
+    j2 = std::move(j);
+}
+
 TEST(json, empty) {
     EXPECT_FALSE(Json("").is_valid());
 }

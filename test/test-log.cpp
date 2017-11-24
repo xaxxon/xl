@@ -258,8 +258,8 @@ TEST(log, OstreamCallbackHelper) {
     log.add_callback(output2, "");
 
     log.info("test");
-    EXPECT_EQ(output.str(), "PREFIX: test\n");
-    EXPECT_EQ(output2.str(), "test\n");
+    EXPECT_TRUE(Regex("\\[[^]]+\\] PREFIX: test\n").match(output.str()));
+    EXPECT_TRUE(Regex("\\[[^]]+\\] test\n").match(output2.str()));
 }
 
 

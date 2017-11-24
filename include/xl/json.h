@@ -49,6 +49,9 @@ public:
     Json(Json const &) = default;
     Json(Json &&) = default;
 
+    Json & operator=(Json const &) = default;
+    Json & operator=(Json &&) = default;
+
     xl::RegexResultPcre parse() const {
         // an empty source will return an empty optional for all API calls
         if (this->source.empty()) {

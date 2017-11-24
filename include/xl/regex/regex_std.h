@@ -71,7 +71,7 @@ public:
 
 class RegexStd {
     std::regex regex;
-    std::string regex_string = "UNKNOWN";
+    std::string source = "";
 
     std::regex_constants::syntax_option_type make_std_regex_flags(xl::RegexFlags flags) {
 
@@ -98,13 +98,13 @@ class RegexStd {
 public:
     RegexStd(xl::zstring_view regex_string, xl::RegexFlags flags = NONE) try :
 //        regex(regex_string.c_str(), make_std_regex_flags(flags)),
-        regex_string(regex_string)
+        source(regex_string)
     {
 //        std::cerr << fmt::format("flags are {} => std::regex flag {}", (int)flags, make_std_regex_flags(flags)) << std::endl;
 //        std::cout << fmt::format("Creating regex with '{}'", regex_string.c_str()) << std::endl;
         this->regex = std::regex(regex_string.c_str(), make_std_regex_flags(flags));
     } catch (std::regex_error const & e) {
-//        std::cerr << fmt::format("caught error creating std::regex for '{}'", regex_string.c_str()) << std::endl;
+//        std::cerr << fmt::format("caught error creating std::regex for '{}'", source.c_str()) << std::endl;
         throw xl::RegexException(e.what());
     }
 
@@ -112,7 +112,7 @@ public:
         regex(std::move(regex)) {}
 
     RegexResultStd match(std::string_view source) const {
-//        std::cout << fmt::format("about to match with {}", regex_string) << std::endl;
+//        std::cout << fmt::format("about to match with {}", source) << std::endl;
         return RegexResultStd(source, this->regex);
     }
 
@@ -120,6 +120,7 @@ public:
     std::string replace(xl::zstring_view source, xl::zstring_view result) {
         return std::regex_replace(source.c_str(), this->regex, result.c_str());
     }
+
 };
 
 } // end namespace xl

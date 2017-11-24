@@ -20,6 +20,13 @@ TEST(Regexer, EmptyRegex) {
     }
 }
 
+TEST(Regexer, EmptyResult) {
+    RegexResultPcre result;
+    EXPECT_FALSE(result);
+    EXPECT_FALSE(result.has("empty"));
+    EXPECT_EQ(result["empty"], "");
+}
+
 TEST(Regexer, EmptyString) {
     {
         auto result = regexer("a", ""_re);

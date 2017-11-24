@@ -19,7 +19,7 @@ public:
         xl::templates::log.set_status(xl::log::DefaultLevels::Levels::Info, false);
 
         xl::templates::log.add_callback([](xl::templates::LogT::LogMessage const & message) {
-           std::cerr << fmt::format("xl::templates ({}): '{}'", xl::templates::log.get_name(message.subject), message.string) << std::endl;
+//           std::cerr << fmt::format("xl::templates ({}): '{}'", xl::templates::log.get_name(message.subject), message.string) << std::endl;
         });
 
         // use status file settings if they exist, otherwise create it with the current settings

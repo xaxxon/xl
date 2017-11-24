@@ -24,7 +24,7 @@ using namespace std::literals;
 #include "../regex/regexer.h"
 #include "../exceptions.h"
 #include "../zstring_view.h"
-
+#include "../date.h"
 
 namespace xl::log {
 
@@ -162,6 +162,7 @@ private:
 
 public:
 
+    std::string regex_filter;
     std::vector<std::pair<std::string, bool>> level_names;
     std::vector<std::pair<std::string, bool>> subject_names;
 
@@ -212,6 +213,14 @@ public:
 
 
         std::getline(file, line);
+
+        // handle optional regex: line
+        if (auto matches = xl::RegexPcre("^regex:(.*)$").match(line)) {
+            this->regex_filter = matches[1];
+            std::getline(file, line);
+        }
+
+
         auto level_count = std::stoi(line);
         this->level_names.clear();
         for (int i = 0; i < level_count; i++) {
@@ -259,6 +268,9 @@ public:
         if (!file) {
             return;
         }
+
+        file << "regex:" << this->regex_filter << "\n";
+
         // write number of levels
         file << this->level_names.size() << std::endl;
         for(auto const & [name, status] : this->level_names) {
@@ -353,13 +365,10 @@ public:
             string(std::move(string))
         {}
 
-        template<typename ClockCopy = Clock>
+        template<typename ClockCopy = Clock, std::enable_if_t<std::is_same_v<ClockCopy, std::chrono::system_clock>> * = nullptr>
         std::string get_time_string() const {
-            static_assert(std::is_same_v<Clock, std::chrono::system_clock>, "Time string only available for clock type std::chrono::system_clock");
-            std::time_t time_t = std::chrono::system_clock::to_time_t(this->time);
-            return std::ctime(&time_t);
+            return date::format("%H:%M:%S", this->time);
         }
-
     };
 
 
@@ -383,6 +392,8 @@ private:
         // disable updating status file as we update the object FROM the log file
         auto temp = std::move(this->log_status_file);
 
+        this->set_regex_filter(this->log_status_file->regex_filter);
+
 //        std::cerr << fmt::format("init from file: file level names size: {}", temp->level_names.size()) << std::endl;
 
         for(LevelsUnderlyingType i = 0; i < level_count; i++) {
@@ -403,6 +414,10 @@ private:
         this->log_status_file = std::move(temp);
     }
 
+    // if set, only show log messages matching this regex
+    xl::Regex filter_regex;
+
+
 public:
 
     auto subjects() const {
@@ -412,7 +427,19 @@ public:
     auto levels() const {
         return log::LogLevelsBase<LevelsT>();
     }
-    
+
+    void set_regex_filter(xl::zstring_view regex_string) {
+        if (regex_string.empty()) {
+            this->filter_regex = xl::Regex();
+        } else {
+            this->filter_regex = xl::Regex(regex_string);
+        }
+        if (this->log_status_file) {
+            this->log_status_file->regex_filter = regex_string;
+        }
+    }
+
+
     std::string get_status_string() const {
         std::stringstream status;
 
@@ -501,7 +528,7 @@ public:
 
     CallbackT & add_callback(std::ostream & ostream, std::string prefix = "") {
         return this->add_callback([&ostream, prefix](LogMessage const & message) {
-            ostream << prefix << message.string << std::endl;
+            ostream << "[" << message.get_time_string() << "] " << prefix << message.string << std::endl;
         });
     }
 
@@ -547,10 +574,14 @@ public:
                 this->initialize_from_status_file();
             }
         }
-        for (auto & callback : this->callbacks) {
-            if (this->get_status(level) &&
-                this->get_status(subject)) {
-                (*callback)(LogMessage(level, subject, string));
+
+        // if there's no filter or if it matches, then send the log messsage to each callback
+        if (!this->filter_regex || this->filter_regex.match(string)) {
+            for (auto & callback : this->callbacks) {
+                if (this->get_status(level) &&
+                    this->get_status(subject)) {
+                    (*callback)(LogMessage(level, subject, string));
+                }
             }
         }
     }

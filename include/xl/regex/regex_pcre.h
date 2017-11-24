@@ -114,6 +114,10 @@ public:
      * @return whether the specified named capture has a non-zero length
      */
     bool has(xl::zstring_view name) const {
+        if (!*this) {
+            return false;
+        }
+
         auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name.c_str());
         // std::cerr << fmt::format("Looked up named capture '{}' => {}", name.c_str(), index) << std::endl;
         return this->length(index) > 0;
@@ -130,6 +134,10 @@ public:
      * @return length of the named capturing pattern
      */
     size_t length(xl::zstring_view name) const {
+        if (!*this) {
+            return 0;
+        }
+
         auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name.c_str());
         // std::cerr << fmt::format("Looked up named capture '{}' => {}", name.c_str(), index) << std::endl;
         return this->length(index);
@@ -157,6 +165,9 @@ public:
      * @return captured string for the specified pattern
      */
     xl::string_view operator[](char const * name) const {
+        if (!*this) {
+            return xl::string_view();
+        }
         auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name);
         // std::cerr << fmt::format("Looked up named capture '{}' => {}", name, index) << std::endl;
         return this->operator[](index);
@@ -259,6 +270,8 @@ class RegexPcre {
     }
 
 public:
+
+    RegexPcre() = default;
 
     /**
      * Creates a regular expression from the given string and flags
@@ -400,6 +413,10 @@ public:
 
         result << matches.suffix();
         return result.str();
+    }
+
+    operator bool() {
+        return this->compiled_regex.get() != nullptr;
     }
 
 };
