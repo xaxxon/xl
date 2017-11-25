@@ -109,8 +109,7 @@ struct DefaultProviders {
 
 
     template<class, class = void>
-    struct can_get_provider_for_type : public std::false_type {
-    };
+    struct can_get_provider_for_type : public std::false_type {};
 
     template<class T>
     struct can_get_provider_for_type<T, std::enable_if_t<
@@ -364,9 +363,7 @@ struct DefaultProviders {
 
     };
 
-    static_assert(is_passthrough_provider_v<Provider<std::unique_ptr<int>>>);
-    static_assert(is_passthrough_provider_v<Provider<std::unique_ptr<int> const>>);
-
+//
 
 
     /**
@@ -496,7 +493,7 @@ struct DefaultProviders {
                 auto p = Provider<make_reference_wrapper_t<
                     match_const_of_t<
                         remove_refs_and_wrapper_t<ValueT>,
-                        remove_reference_wrapper_t<decltype(element)> // use eleent not container because non-const std::set has const element
+                        remove_reference_wrapper_t<decltype(element)> // use element not container because non-const std::set has const element
                     >>>(std::ref(element));
 
                 if (needs_join_string) {
@@ -544,11 +541,12 @@ struct DefaultProviders {
     class Provider<T, std::enable_if_t<is_template_for_v<std::map, remove_refs_and_wrapper_t<T>>>> : public Provider_Interface {
     public:
 
+        using NoRefMapT = std::remove_reference_t<T>;
         using MapT = remove_refs_and_wrapper_t<T>;
         using MapKeyT = typename MapT::key_type;
         using MapValueT = typename MapT::mapped_type;
 
-        T map_holder;
+        NoRefMapT map_holder;
 
         template<class... Keys, class... Values>
         Provider(std::pair<Keys, Values> && ... pairs) {
