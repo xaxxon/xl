@@ -32,7 +32,7 @@
      <item>
       <widget class="QLineEdit" name="regexEdit">
        <property name="text">
-        <string>does not work yet</string>
+        <string/>
        </property>
       </widget>
      </item>
