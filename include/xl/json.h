@@ -191,7 +191,11 @@ public:
     }
 
     bool is_valid() const {
-        return this->parse();
+        try {
+            return this->parse();
+        } catch (JsonException &) {
+            return false;
+        }
     }
 
     operator bool() const {
