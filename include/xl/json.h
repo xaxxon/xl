@@ -27,6 +27,9 @@ inline xl::RegexPcre json_regex(R"REGEX(
 
 inline xl::RegexPcre escaped_character_regex("\\\\(.)", xl::OPTIMIZE | xl::EXTENDED | xl::DOTALL);
 
+class JsonException : public xl::FormattedException {
+    using xl::FormattedException::FormattedException;
+};
 
 
 /**
@@ -59,7 +62,7 @@ public:
         }
         auto matches = json_regex.match(this->source);
         if (!matches) {
-            return xl::RegexResultPcre();
+            throw JsonException("invalid, non-empty json");
         }
         return matches;
     }
