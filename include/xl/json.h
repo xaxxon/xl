@@ -16,9 +16,9 @@ inline xl::RegexPcre json_regex(R"REGEX(
 (?<any>
    (?<number>(?:-?\d+\.?\d*|-?\.\d+)([Ee][+-]?\d+)?) |
    (?<boolean>true|false) |
-   (?:"(?<string>(?&StringContents))") |
-   (?<array>\[(?:(?<ArrayHead>(?&ArrayEntry))\s*,?\s*)?(?<ArrayTail>((?&ArrayEntry)\s*,?\s*)*)\]) |
-   (?<object>{(\s*"(?<Key>(?&StringContents))"\s*:\s*(?<Value>(?&any)))?\s*,?\s*(?<ObjectTail>((?&ObjectEntry)\s*,?\s*)*) }) |
+   (?:"(?>(?<string>(?&StringContents)))") |
+   (?<array>\[(?>(?:(?<ArrayHead>(?&ArrayEntry))\s*,?\s*)?(?<ArrayTail>((?&ArrayEntry)\s*,?\s*)*))\]) |
+   (?<object>{(?>(\s*"(?<Key>(?&StringContents))"\s*:\s*(?<Value>(?&any)))?\s*,?\s*(?>(?<ObjectTail>((?&ObjectEntry)\s*,?\s*)*)))}) |
    (?<null>null)
 ) # end any
 \s*$

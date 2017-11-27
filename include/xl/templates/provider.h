@@ -253,6 +253,8 @@ struct DefaultProviders {
     };
 
 
+    // IF YOU GET STRANGE AMBIGUITY ERRORS HERE, Make sure none of your providers are implicitly constructible
+    //   from the other provider this is ambiguous with (like std::string)
 
     /**
      * get_provider Provider

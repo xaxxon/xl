@@ -619,7 +619,6 @@ using is_std_array = _is_std_array<std::decay_t<T>>;
 template<typename T>
 constexpr bool is_std_array_v = is_std_array<T>::value;
 
-
 } // end namespace xl
 
 namespace std {
