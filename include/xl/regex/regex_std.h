@@ -4,39 +4,33 @@
 #include <iostream>
 
 #include <regex>
+#include "regexer.h"
 #include "../zstring_view.h"
 
 
 namespace xl {
 
+class RegexStd;
 
 class RegexResultStd {
-    std::smatch _matches;
-    std::string _string_copy;
-
+    std::cmatch _matches;
+    std::unique_ptr<char[]> _string_copy;
+    xl::RegexStd const * regex;
 public:
-    RegexResultStd(std::string_view string, std::regex const & regex) :
-        _string_copy(string)
-    {
-        std::regex_search(this->_string_copy, this->_matches, regex);
-    }
-
-    RegexResultStd(zstring_view regex_string, zstring_view string) :
-        RegexResultStd(string, std::regex(regex_string.c_str()))
-    {}
+    RegexResultStd(std::string_view string, xl::RegexStd const * regex);
 
     RegexResultStd(RegexResultStd &&) = default;
 
 
-    xl::string_view prefix() {
+    xl::string_view prefix() const {
         auto prefix_length = (this->_matches.prefix().second - this->_matches.prefix().first);
         return xl::string_view(&*this->_matches.prefix().first, prefix_length);
     }
 
 
     // everything after the match
-    char const * suffix() {
-        return &*(this->_matches.suffix().first);
+    char const * suffix() const {
+        return &*this->_matches.suffix().first;
     }
 
 
@@ -67,11 +61,15 @@ public:
     operator bool() const {
         return !this->empty();
     }
+
+    RegexResultStd next() const;
+
 };
 
-class RegexStd {
+class RegexStd : public RegexBase<RegexStd, RegexResultStd> {
+    friend class RegexResultStd;
     std::regex regex;
-    std::string source = "";
+    std::string regex_source = "";
 
     std::regex_constants::syntax_option_type make_std_regex_flags(xl::RegexFlags flags) {
 
@@ -96,31 +94,51 @@ class RegexStd {
     }
 
 public:
+
+    using ResultT = RegexResultStd;
+
     RegexStd(xl::zstring_view regex_string, xl::RegexFlags flags = NONE) try :
 //        regex(regex_string.c_str(), make_std_regex_flags(flags)),
-        source(regex_string)
+        regex_source(regex_string)
     {
 //        std::cerr << fmt::format("flags are {} => std::regex flag {}", (int)flags, make_std_regex_flags(flags)) << std::endl;
 //        std::cout << fmt::format("Creating regex with '{}'", regex_string.c_str()) << std::endl;
         this->regex = std::regex(regex_string.c_str(), make_std_regex_flags(flags));
     } catch (std::regex_error const & e) {
-//        std::cerr << fmt::format("caught error creating std::regex for '{}'", source.c_str()) << std::endl;
+//        std::cerr << fmt::format("caught error creating std::regex for '{}'", regex_source.c_str()) << std::endl;
         throw xl::RegexException(e.what());
     }
 
     RegexStd(std::regex regex) :
         regex(std::move(regex)) {}
 
-    RegexResultStd match(std::string_view source) const {
-//        std::cout << fmt::format("about to match with {}", source) << std::endl;
-        return RegexResultStd(source, this->regex);
+    RegexResultStd match(std::string_view input_text) const {
+//        std::cout << fmt::format("about to match with {}", input_text) << std::endl;
+        return RegexResultStd(input_text, this);
     }
 
 
-    std::string replace(xl::zstring_view source, xl::zstring_view result) {
-        return std::regex_replace(source.c_str(), this->regex, result.c_str());
+    std::string replace(xl::zstring_view replace_source, xl::zstring_view result) {
+        return std::regex_replace(replace_source.c_str(), this->regex, result.c_str());
     }
 
 };
+
+
+inline RegexResultStd::RegexResultStd(std::string_view string, xl::RegexStd const * regex) :
+_string_copy(std::make_unique<char[]>(string.length() + 1)),
+regex(regex)
+{
+    memcpy((void*)_string_copy.get(), (void const *)string.data(), string.length());
+//    _string_copy[string.length()] = 0; // should not be necessary
+    std::regex_search(this->_string_copy.get(), this->_matches, this->regex->regex);
+}
+
+
+inline RegexResultStd RegexResultStd::next() const
+{
+    return this->regex->match(this->suffix());
+}
+
 
 } // end namespace xl

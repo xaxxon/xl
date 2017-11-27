@@ -4,6 +4,8 @@
 #include <string>
 
 #include "../exceptions.h"
+#include "../zstring_view.h"
+
 
 namespace xl {
     enum RegexFlags {
@@ -23,15 +25,43 @@ namespace xl {
         using xl::FormattedException::FormattedException;
     };
 
-} // end namespace xl
 
+
+
+
+
+template<typename RegexT, typename RegexResultT>
+struct RegexBase {
+    using ResultT = RegexResultT;
+
+
+    std::vector<ResultT> all(xl::zstring_view source) {
+        std::vector<ResultT> results;
+
+        if (auto matches = static_cast<RegexT *>(this)->match(source)) {
+            results.push_back(std::move(matches));
+
+            while (true) {
+                auto next_match = results.back().next();
+                if (next_match) {
+                    results.push_back(std::move(next_match));
+                } else {
+                    break;
+                }
+            }
+        }
+        return results;
+    }
+
+};
+
+}
+
+#include "regex_std.h"
 #if defined XL_USE_PCRE
 #include "regex_pcre.h"
 #endif
 
-#include "regex_std.h"
-
-#include "../zstring_view.h"
 
 
 
@@ -39,13 +69,11 @@ namespace xl {
 namespace xl {
 
 
-
 #if defined XL_USE_PCRE
 using Regex = xl::RegexPcre;
 #else
 using Regex = xl::RegexStd;
 #endif
-
 
 inline auto regexer(zstring_view string, Regex const & regex) {
     return regex.match(string);
@@ -68,4 +96,4 @@ inline Regex operator"" _rei(char const * regex_string, unsigned long) {
 }
 
 
-}
+} // end namespace xl::regex

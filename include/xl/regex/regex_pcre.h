@@ -9,6 +9,7 @@
 #include <pcre.h>
 #include <fmt/format.h>
 
+#include "regexer.h"
 #include "../zstring_view.h"
 
 namespace xl {
@@ -222,16 +223,26 @@ public:
      * Returns the match from running the same regex over the suffix of this match
      * @return next match on the same string
      */
-    RegexResultPcre next();
-
+    RegexResultPcre next() const;
     RegexResultPcre & operator*() {
         return *this;
     }
+
+    RegexResultPcre const & operator*() const {
+        return *this;
+    }
+
 
 
     RegexResultPcre & begin() {
         return *this;
     }
+
+
+    RegexResultPcre const & begin() const {
+        return *this;
+    }
+
 
 
     bool end() {
@@ -245,7 +256,7 @@ public:
     }
 
 
-    bool operator!=(bool) {
+    bool operator!=(bool) const {
         // if this returns true, then the range is not complete because this does not equal the end
         return *this;
     }
@@ -253,7 +264,7 @@ public:
 
 
 
-class RegexPcre {
+class RegexPcre : public RegexBase<RegexPcre, RegexResultPcre> {
 
     pcre_ptr compiled_regex;
     pcre_extra * extra = nullptr;
@@ -270,6 +281,8 @@ class RegexPcre {
     }
 
 public:
+
+    using ResultT = RegexResultPcre;
 
     RegexPcre() = default;
 
@@ -421,9 +434,10 @@ public:
 
 };
 
-inline RegexResultPcre RegexResultPcre::next()
+inline RegexResultPcre RegexResultPcre::next() const
 {
     return this->regex->match(this->suffix());
+
 }
 
 

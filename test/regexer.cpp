@@ -161,5 +161,23 @@ TEST(Regexer, Replace) {
 
 }
 
+
+TEST(Regexer, all) {
+    {
+        auto match_list = RegexStd("(.)").all("abc");
+        EXPECT_EQ(match_list.size(), 3);
+        EXPECT_EQ(match_list[0][1], "a");
+        EXPECT_EQ(match_list[1][1], "b");
+        EXPECT_EQ(match_list[2][1], "c");
+    }
+    {
+        auto match_list = RegexPcre("(.)").all("abc");
+        EXPECT_EQ(match_list.size(), 3);
+        EXPECT_EQ(match_list[0][1], "a");
+        EXPECT_EQ(match_list[1][1], "b");
+        EXPECT_EQ(match_list[2][1], "c");
+    }
+}
+
 #endif
 
