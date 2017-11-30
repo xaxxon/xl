@@ -15,7 +15,7 @@ file(GLOB TEST_SRC
         *.cpp)
 
 # uncomment and adjust this line to only test one part of the library
-#set(TEST_SRC testing_environment.cpp library_extensions.cpp)
+set(TEST_SRC testing_environment.cpp test-log.cpp)
 
 # Set address sanitizer as global flag so googletest is built with it
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -O3")

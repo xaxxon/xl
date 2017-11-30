@@ -13,18 +13,15 @@
 #include <fstream>
 #include <chrono>
 
-#include <fmt/ostream.h>
-#include <experimental/filesystem>
+
 #include "../library_extensions.h"
 
-namespace fs = std::experimental::filesystem;
-
-using namespace std::literals;
-
-#include "../regex/regexer.h"
 #include "../exceptions.h"
+#include "../regex/regexer.h"
 #include "../zstring_view.h"
 #include "../date.h"
+
+#include "log_status_file.h"
 
 namespace xl::log {
 
@@ -34,94 +31,6 @@ class LogException : public xl::FormattedException {
 public:
 
     using xl::FormattedException::FormattedException;
-};
-
-
-template<class T>
-class EnumIterator {
-    using underlying_type = std::underlying_type_t<T>;
-    underlying_type value = 0;
-
-public:
-
-    EnumIterator() : value(0)
-    {}
-
-
-    EnumIterator(T t) : value(static_cast<underlying_type>(t))
-    {}
-
-
-    bool operator!=(EnumIterator<T> const & other) {
-        return this->value != other.value;
-    }
-
-    auto operator*() const {
-        //return static_cast<underlying_type>(value);
-        return static_cast<T>(value);
-    }
-
-    auto operator++() {
-        value++;
-        return *this;
-    }
-};
-
-
-template<class T>
-struct LogLevelsBase {
-
-    using Levels = typename T::Levels;
-
-
-    EnumIterator<typename T::Levels> begin() {
-        return EnumIterator<typename T::Levels>();
-    }
-    EnumIterator<typename T::Levels> end(){
-        return EnumIterator<typename T::Levels>(T::Levels::LOG_LAST_LEVEL);
-    }
-
-    static std::string const & get_name(typename T::Levels level) {
-        return T::level_names[static_cast<std::underlying_type_t<typename T::Levels>>(level)];
-    }
-
-    using UnderlyingType = std::underlying_type_t<typename T::Levels>;
-
-    constexpr static auto get(typename T::Levels level) {
-        return static_cast<UnderlyingType>(level);
-    }
-
-    static_assert(get(Levels::LOG_LAST_LEVEL) == sizeof(T::level_names) / sizeof(std::string));
-
-};
-
-
-template<class T>
-struct LogSubjectsBase {
-
-
-    using Subjects = typename T::Subjects;
-
-
-
-    EnumIterator<typename T::Subjects> begin() const {
-        return EnumIterator<typename T::Subjects>();
-    }
-    typename T::Subjects end() const {
-        return T::Subjects::LOG_LAST_SUBJECT;
-    }
-
-    static std::string const & get_name(typename T::Subjects subject) {
-        return T::subject_names[static_cast<std::underlying_type_t<typename T::Subjects>>(subject)];
-    }
-
-    using UnderlyingType = std::underlying_type_t<typename T::Subjects>;
-
-    constexpr static auto get(typename T::Subjects subject) {
-        return static_cast<UnderlyingType>(subject);
-    }
-    static_assert(get(Subjects::LOG_LAST_SUBJECT) == sizeof(T::subject_names) / sizeof(std::string));
-
 };
 
 
@@ -145,174 +54,30 @@ struct DefaultSubjects {
 };
 
 
-template<class LevelsT, class SubjectsT, class Clock>
-class Log;
+template<typename LevelsT, typename SubjectsT, typename Clock>
+class CopyLogger {
+    using Subjects = typename SubjectsT::Subjects;
+    using Levels = typename LevelsT::Levels;
 
-class LogStatusFile {
-
-private:
-    using file_clock_type = fs::file_time_type::clock;
-
-    // store these locally because the user may not have access to a Log object
-    //   so in that case, just populate from the file
-    std::string filename;
-    std::chrono::time_point<file_clock_type> last_file_change_check_time;
-    std::experimental::filesystem::path status_file;
-    file_clock_type::time_point last_seen_write_time_for_status_file;
+    Log<LevelsT, SubjectsT, Clock> & log_object;
+    Levels level;
+    Subjects subject;
+    std::string message_prefix;
 
 public:
+    CopyLogger(Log<LevelsT, SubjectsT, Clock> & log_object, Levels level, Subjects subject, xl::string_view message_prefix = {}) :
+        log_object(log_object), level(level), subject(subject), message_prefix(message_prefix)
+    {}
 
-    std::string regex_filter;
-    std::vector<std::pair<std::string, bool>> level_names;
-    std::vector<std::pair<std::string, bool>> subject_names;
-
-
-    template<typename LevelsT, typename SubjectsT, typename Clock>
-    LogStatusFile(Log<LevelsT, SubjectsT, Clock> const & log, std::string filename, bool force_reset) :
-        LogStatusFile(filename)
-    {
-        if (!std::experimental::filesystem::exists(this->status_file) || force_reset) {
-//            std::cerr << fmt::format("Creating new file") << std::endl;
-            this->initialize_from_log(log);
-            write();
-        } else {
-//            std::cerr << fmt::format("not creating new file") << std::endl;
-        }
+    template <typename... Ts>
+    CopyLogger & operator()(xl::zstring_view format_string, Ts&&... args) {
+        log_object.log(level, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
+        return *this;
     }
 
-
-    template<typename LevelsT, typename SubjectsT, typename Clock>
-    void initialize_from_log(Log<LevelsT, SubjectsT, Clock> const & log) {
-        this->level_names.clear();
-        for(size_t i = 0; i < LogLevelsBase<LevelsT>::get(LevelsT::Levels::LOG_LAST_LEVEL); i++) {
-            typename LevelsT::Levels level = static_cast<typename LevelsT::Levels>(i);
-            this->level_names.emplace_back(std::pair(log.get_name(level), log.get_status(level)));
-        }
-
-        this->subject_names.clear();
-        for(size_t i = 0; i < LogSubjectsBase<SubjectsT>::get(SubjectsT::Subjects::LOG_LAST_SUBJECT); i++) {
-            typename SubjectsT::Subjects subject = static_cast<typename SubjectsT::Subjects>(i);
-            auto pair = std::pair(log.get_name(subject), log.get_status(subject));
-            this->subject_names.emplace_back(std::move(pair));
-        }
-    }
-
-
-    LogStatusFile(std::string filename) : filename(filename), status_file(filename) {
-        read();
-    }
-
-
-    void read() {
-        std::ifstream file(filename);
-        if (!file) {
-            return;
-        }
-        std::string line;
-        static xl::RegexPcre const line_regex("^([01])\\s+(.+)\\n*$");
-
-
-        std::getline(file, line);
-
-        // handle optional regex: line
-        if (auto matches = xl::RegexPcre("^regex:(.*)$").match(line)) {
-            this->regex_filter = matches[1];
-            std::getline(file, line);
-        }
-
-
-        auto level_count = std::stoi(line);
-        this->level_names.clear();
-        for (int i = 0; i < level_count; i++) {
-            std::getline(file, line);
-            if (auto matches = line_regex.match(line)) {
-//                std::cerr << fmt::format("read: {}: {}", matches[2], matches[1]) << std::endl;
-                this->level_names.push_back(std::pair(matches[2], std::stoi(matches[1])));
-            } else {
-                // TODO: Proper error handling
-                // should probably just delete the file if it's invalid
-                assert(false);
-            }
-        }
-
-        std::getline(file, line);
-        auto subject_count = std::stoi(line);
-        this->subject_names.clear();
-        for (int i = 0; i < subject_count; i++) {
-            std::getline(file, line);
-            if (auto matches = line_regex.match(line)) {
-                this->subject_names.push_back(std::pair(matches[2], std::stoi(matches[1])));
-            } else {
-                // TODO: Proper error handling
-                // should probably just delete the file if it's invalid
-                assert(false);
-            }
-        }
-
-        this->last_seen_write_time_for_status_file = fs::last_write_time(this->status_file);
-//        auto foo = file_clock_type::to_time_t(this->last_seen_write_time_for_status_file);
-//        std::cerr << fmt::format("in read(), setting last seen write time to {}", std::ctime(&foo)) << std::endl;
-
-    }
-
-
-    template<typename LevelsT, typename SubjectsT, typename Clock>
-    void write(Log<LevelsT, SubjectsT, Clock> const & log) {
-        this->initialize_from_log(log);
-        this->write();
-    };
-
-
-    void write() {
-        std::ofstream file(this->filename);
-        if (!file) {
-            return;
-        }
-
-        file << "regex:" << this->regex_filter << "\n";
-
-        // write number of levels
-        file << this->level_names.size() << std::endl;
-        for(auto const & [name, status] : this->level_names) {
-            // write 0/1 then name
-            file << status << " " << name << std::endl;
-        }
-
-
-        // write number of subjects
-        file << this->subject_names.size() << std::endl;
-        for(auto const & [name, status] : subject_names) {
-            // write 0/1 then name
-            file << status << " " << name << std::endl;
-        }
-    }
-
-
-    bool check() {
-        // check to see if the timestamp on the status file has been updated
-        if (std::chrono::system_clock::now() - this->last_file_change_check_time < 1000ms) {
-//            std::cerr << fmt::format("not time to check file yet") << std::endl;
-            return false;
-        }
-        this->last_file_change_check_time = std::chrono::system_clock::now();
-
-        if (std::experimental::filesystem::exists(this->status_file)) {
-            auto last_write_time = fs::last_write_time(this->status_file);
-//            auto foo1 = file_clock_type::to_time_t(last_write_time);
-//            auto foo2 = file_clock_type::to_time_t(this->last_seen_write_time_for_status_file);
-//            std::cerr << fmt::format("comparing write times: file: {} vs last read: {}", std::ctime(&foo1), std::ctime(&foo2)) << std::endl;
-            if (last_write_time > this->last_seen_write_time_for_status_file) {
-                // need to read the new values
-//                std::cerr << fmt::format("need to re-read file") << std::endl;
-                this->read();
-                return true;
-            } else {
-                // nothing to do here - status file hasn't changed
-//                std::cerr << fmt::format("file hasn't changed") << std::endl;
-                return false;
-            }
-        }
-        return false;
+    CopyLogger & operator()(xl::zstring_view log_message) {
+        log_object.log(level, subject, log_message);
+        return *this;
     }
 };
 
@@ -348,6 +113,10 @@ public:
 
     constexpr static auto get(Subjects subject) {
         return static_cast<SubjectsUnderlyingType>(subject);
+    }
+
+    auto to(Levels level, Subjects subject, xl::string_view message_prefix = "") {
+        return CopyLogger(*this, level, subject, message_prefix);
     }
 
     /**
@@ -406,24 +175,30 @@ private:
         // disable updating status file as we update the object FROM the log file
         auto temp = std::move(this->log_status_file);
 
-//        std::cerr << fmt::format("regex filter from status file: {}", temp->regex_filter) << std::endl;
         this->set_regex_filter(temp->regex_filter);
 
-//        std::cerr << fmt::format("init from file: file level names size: {}", temp->level_names.size()) << std::endl;
-
-        for(LevelsUnderlyingType i = 0; i < level_count; i++) {
-            if (i < temp->level_names.size()) {
-                typename LevelsT::Levels level = static_cast<Levels>(i);
-                this->set_status(level, temp->level_names[i].second);
+        if (auto all_levels = std::get_if<bool>(&temp->levels)) {
+            this->set_all_levels(*all_levels);
+        } else {
+            for(LevelsUnderlyingType i = 0; i < level_count; i++) {
+                if (i < std::get<LogStatusFile::Statuses>(temp->levels).size()) {
+                    typename LevelsT::Levels level = static_cast<Levels>(i);
+                    this->set_status(level, std::get<LogStatusFile::Statuses>(temp->levels)[i].second);
+                }
             }
         }
 
-        for(SubjectsUnderlyingType i = 0; i < subject_count; i++) {
-            if (i < temp->subject_names.size()) {
-                typename SubjectsT::Subjects subject = static_cast<Subjects>(i);
-                this->set_status(subject, temp->subject_names[i].second);
+        if (auto all_subjects = std::get_if<bool>(&temp->subjects)) {
+            this->set_all_subjects(*all_subjects);
+        } else {
+            for(SubjectsUnderlyingType i = 0; i < subject_count; i++) {
+                if (i < std::get<LogStatusFile::Statuses>(temp->subjects).size()) {
+                    typename SubjectsT::Subjects subject = static_cast<Subjects>(i);
+                    this->set_status(subject, std::get<LogStatusFile::Statuses>(temp->subjects)[i].second);
+                }
             }
         }
+
 
         // re-enable status file
         this->log_status_file = std::move(temp);
@@ -436,15 +211,15 @@ private:
 
 public:
 
-    auto subjects() const {
+
+    static auto subjects() {
         return LogSubjectsBase<SubjectsT>();
     }
 
-    auto levels() const {
+
+    static auto levels() {
         return log::LogLevelsBase<LevelsT>();
     }
-
-
 
 
     std::string get_status_string() const {
@@ -466,8 +241,8 @@ public:
         return this->statuses[get(level)];
     }
 
+
     bool set_status(Levels level, bool new_status) {
-//        std::cerr << fmt::format("setting {} to {}", (int)level, new_status) << std::endl;
         bool previous_status;
         previous_status = get_status(level);
 
@@ -516,28 +291,35 @@ public:
         }
     }
 
+
     Log(std::string filename) : Log() {
         this->enable_status_file(filename);
     }
+
+
     Log(CallbackT log_callback) : Log()
     {
         this->add_callback(std::move(log_callback));
     }
 
+
     void clear_callbacks() {
         this->callbacks.clear();
     }
+
 
     CallbackT & add_callback(CallbackT callback) {
         this->callbacks.push_back(std::make_unique<CallbackT>(callback));
         return *this->callbacks.back();
     }
 
+
     CallbackT & add_callback(std::ostream & ostream, std::string prefix = "") {
         return this->add_callback([&ostream, prefix](LogMessage const & message) {
             ostream << "[" << message.get_time_string() << "] " << prefix << message.string << std::endl;
         });
     }
+
 
     /**
      * If the callback was passed in as a reference wrapper, this can find any corresponding entries and remove them
@@ -564,11 +346,14 @@ public:
     void enable_status_file(std::string filename, bool force_reset = false) {
         this->log_status_file = std::make_unique<LogStatusFile>(*this, filename, force_reset);
         initialize_from_status_file();
+
     }
+
 
     void disable_status_file() {
         this->log_status_file.release();
     }
+
 
     bool is_status_file_enabled() const {
         return (bool)this->log_status_file;
@@ -583,17 +368,13 @@ public:
         }
 
         if (!is_live(level, subject)) {
-//            std::cerr << fmt::format("log mesage isn't live") << std::endl;
-        }
-
-//        std::cerr << fmt::format("running filter regex: {} against {}", this->filter_string, string) << std::endl;
-        if (this->filter_regex && !this->filter_regex.match(string)) {
-//            std::cerr << fmt::format("regex failed to match") << std::endl;
             return;
         }
 
-//        std::cerr << fmt::format("regex matched") << std::endl;
-        // if there's no filter or if it matches, then send the log messsage to each callback
+        // if there's a filter, discard the message if it doesn't match
+        if (this->filter_regex && !this->filter_regex.match(string)) {
+            return;
+        }
 
         for (auto & callback : this->callbacks) {
             if (this->get_status(level) &&
@@ -647,28 +428,6 @@ public:
     bool is_live(Levels level, Subjects subject) {
         return !this->callbacks.empty() && this->get_status(level) && this->get_status(subject);
     }
-
-//    auto get_status_of_levels() const {
-//        return this->level_status;
-//    }
-//
-//    auto get_status_of_subjects() const {
-//        return this->subject_status;
-//    }
-
-//    void set_status_of_levels(decltype(Log::level_status) status_of_levels) {
-//        this->level_status = std::move(status_of_levels);
-//        if (this->log_status_file) {
-//            this->log_status_file->write();
-//        }
-//    }
-//
-//    void set_status_of_subjects(decltype(Log::subject_status) status_of_subjects) {
-//        this->subject_status = std::move(status_of_subjects);
-//        if (this->log_status_file) {
-//            this->log_status_file->write();
-//        }
-//    }
 
 
 #ifdef XL_USE_LIB_FMT

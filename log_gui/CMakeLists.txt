@@ -8,6 +8,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 
+set(CLANG_HOME $ENV{CLANG_HOME})
+link_directories(. ${CLANG_HOME}/lib)
+
 
 # Find the QtWidgets library
 find_package(Qt5Widgets PATHS /Users/xaxxon/Qt5.9.0/5.9/clang_64/lib/cmake/Qt5Widgets)

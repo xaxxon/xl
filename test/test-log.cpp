@@ -8,6 +8,8 @@
 
 using namespace xl;
 using namespace xl::templates;
+using namespace xl::log;
+
 
 TEST(log, SimpleLog) {
     {
@@ -262,71 +264,94 @@ TEST(log, OstreamCallbackHelper) {
     EXPECT_TRUE(Regex("\\[[^]]+\\] test\n").match(output2.str()));
 }
 
+//int log_count = 0;
+//log.add_callback([&log_count](LogT::LogMessage const & message) {
+//log_count++;
+//});
 
-TEST(log, LogStatusFile) {
+TEST(log, LogStatusFileFromLog) {
     using LogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
     LogT log;
-    int log_count = 0;
-    log.add_callback([&log_count](LogT::LogMessage const & message) {
-        log_count++;
-    });
 
     auto status_file_filename = "test_log_status_file";
     log.enable_status_file(status_file_filename, true); // force status reset
     EXPECT_TRUE(log.log_status_file);
-    EXPECT_EQ(log.log_status_file->subject_names.size(), 1);
-    EXPECT_EQ(log.log_status_file->level_names.size(), 3);
+    EXPECT_EQ(std::get<LogStatusFile::Statuses>(log.log_status_file->subjects).size(), 1);
+    EXPECT_EQ(std::get<LogStatusFile::Statuses>(log.log_status_file->levels).size(), 3);
 
+    log.set_status(xl::log::DefaultLevels::Levels::Warn, false);
+
+    // create a second log status file sharing the same status file
     ::xl::log::LogStatusFile other(status_file_filename);
-    EXPECT_EQ(other.subject_names.size(), 1);
-    EXPECT_EQ(other.level_names.size(), 3);
-    for(auto const & [name, status] : other.level_names) {
+
+    // make sure it has the same number of subjects and levels
+    EXPECT_EQ(std::get<LogStatusFile::Statuses>(log.log_status_file->subjects).size(), 1);
+
+    EXPECT_EQ(std::get<LogStatusFile::Statuses>(log.log_status_file->levels).size(), 3);
+
+    // make sure the level and subject statuses are as expected (all true)
+    for (auto const &[name, status] : std::get<LogStatusFile::Statuses>(log.log_status_file->levels)) {
+        if (name == "warn") {
+            EXPECT_FALSE(status);
+        } else {
+            EXPECT_TRUE(status);
+        }
+    }
+
+    for (auto const &[name, status] : std::get<LogStatusFile::Statuses>(log.log_status_file->subjects)) {
         EXPECT_TRUE(status);
     }
-    for(auto const & [name, status] : other.subject_names) {
-        EXPECT_TRUE(status);
-    }
-
-    log.set_status((xl::log::DefaultLevels::Levels)0, false);
-
-    other.read();
-    EXPECT_EQ(other.subject_names.size(), 1);
-    EXPECT_EQ(other.level_names.size(), 3);
-
-
-    EXPECT_FALSE(other.level_names[0].second);
-
-
-    other.level_names[0].second = true;
-    other.level_names[1].second = false;
-    other.write();
-
-    auto & callback = log.add_callback([](LogT::LogMessage const & message) {
-        EXPECT_TRUE(false); // this shouldn't be called
-    });
-
-    log.warn(LogT::Subjects::Default, "This should be filtered");
-
-
-    // enable it in file, but not time for actual logger to check so it should still be filtered
-    other.level_names[1].second = true;
-    other.level_names[2].second = false;
-
-    // sleep before write so the timestamp changes
-    sleep(1);
-    log.warn(LogT::Subjects::Default, "This should be filtered because not time to re-check status file");
-    other.write();
-
-    log.warn(LogT::Subjects::Default, "This should be filtered because not time to re-check status file");
-    log.remove_callback(callback);
-
-    // sleep so next log picks up the changes - got false positive with 1 second sleep
-    sleep(2);
-
-    int before_count = log_count;
-    log.warn(LogT::Subjects::Default, "This should not be filtered");
-    EXPECT_EQ(log_count, before_count+1);
 }
+
+
+TEST(log, LogStatusFileFromFileAllStatusesTrueByDefault) {
+    using TestLogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+    TestLogT log;
+
+    auto status_file_filename = "LogStatusFileFromFileAllStatusesTrueByDefault";
+    ::xl::log::LogStatusFile other(status_file_filename, true);
+
+    log.enable_status_file(status_file_filename, false); // do not force status reset - load what was just written
+
+    // there shouldn't be any levels/subjects listed, just the boolean version of the variant
+    EXPECT_TRUE(std::get<bool>(log.log_status_file->subjects));
+    EXPECT_TRUE(std::get<bool>(log.log_status_file->levels));
+
+    for (auto level : TestLogT::levels()) {
+        EXPECT_TRUE(log.get_status(level));
+    }
+    for (auto subject : TestLogT::subjects()) {
+        EXPECT_TRUE(log.get_status(subject));
+    }
+}
+
+
+TEST(log, LogStatusFileFromFileAllStatusesSetToFalse) {
+    using TestLogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+    TestLogT log;
+
+    auto status_file_filename = "LogStatusFileFromFileAllStatusesSetToFalse";
+    ::xl::log::LogStatusFile other(status_file_filename, true);
+    other.subjects = false;
+    other.levels = false;
+    other.write();
+
+    log.enable_status_file(status_file_filename, false); // do not force status reset - load what was just written
+
+    // there shouldn't be any levels/subjects listed, just the boolean version of the variant
+    EXPECT_FALSE(std::get<bool>(log.log_status_file->subjects));
+    EXPECT_FALSE(std::get<bool>(log.log_status_file->levels));
+
+    for (auto level : TestLogT::levels()) {
+        EXPECT_FALSE(log.get_status(level));
+    }
+    for (auto subject : TestLogT::subjects()) {
+        EXPECT_FALSE(log.get_status(subject));
+    }
+}
+
+
+
 
 
 TEST(log, templates) {
@@ -355,4 +380,33 @@ TEST(log, templates) {
 
     // shouldn't have changed
     EXPECT_EQ(log_count, 1);
+}
+
+
+
+TEST(log, copy_logger) {
+    using LogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+    LogT log;
+    auto logger = log.to(LogT::Levels::Warn, LogT::Subjects::Default);
+    int log_count = 0;
+    log.add_callback([&](LogT::LogMessage const & message) {
+        log_count++;
+        EXPECT_EQ(message.level, LogT::Levels::Warn);
+        EXPECT_EQ(message.subject, LogT::Subjects::Default);
+    });
+
+    logger("Message 1");
+    logger("Message 2");
+
+    EXPECT_EQ(log_count, 2);
+
+}
+
+
+TEST(log, xl_string_views) {
+    using LogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+    LogT log;
+    auto logger = log.to(LogT::Levels::Warn, LogT::Subjects::Default);
+
+    logger("{}", xl::string_view("test xl stringview"));
 }

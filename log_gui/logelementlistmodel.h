@@ -1,6 +1,9 @@
+
 #pragma once
 
+#include <variant>
 #include <memory>
+
 #include "QAbstractListModel"
 #include "QListView"
 #include "QCheckBox"
@@ -12,11 +15,11 @@
  */
 class LogElementListModel : public QAbstractListModel {
 
-    std::vector<std::pair<std::string, bool>> * elements;
+    std::variant<bool, std::vector<std::pair<std::string, bool>>> * elements;
 
 public:
 
-    LogElementListModel(std::vector<std::pair<std::string, bool>> & elements);
+    LogElementListModel(std::variant<bool, std::vector<std::pair<std::string, bool>>> & elements);
 
     QVariant data(const QModelIndex &index, int role) const override;
     int rowCount(const QModelIndex &parent) const override;
