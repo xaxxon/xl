@@ -79,6 +79,10 @@ public:
     T & operator*() {
         return *this->value;
     }
+
+    T const & operator*() const {
+	return *this->value;
+    }
     
     T * operator->() {
         return this->value;
@@ -101,3 +105,4 @@ auto make_cloneable_unique_ptr(Args&&... args) {
 };
 
 } // end namespace xl
+
