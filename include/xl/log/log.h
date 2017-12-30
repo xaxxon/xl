@@ -439,21 +439,21 @@ public:
     }
     template<class L = Levels, class S = Subjects, class... Ts,
         std::enable_if_t<(int)L::Info >= 0 && (int)S::Default >= 0, int> = 0>
-    void info(xl::zstring_view format_string, Ts&&... ts) {
-        log(Levels::Info, Subjects::Default, fmt::format(format_string.c_str(), std::forward<Ts>(ts)...));
+    void info(xl::zstring_view format_string, Ts&&... args) {
+        log(Levels::Info, Subjects::Default, format_string, std::forward<Ts>(args)...);
     }
 
     template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Info >= 0, int> = 0>
     void info(Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
-        log(Levels::Info, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
+        log(Levels::Info, subject, format_string, std::forward<Ts>(args)...);
     }
     template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Warn >= 0, int> = 0>
     void warn(Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
-        log(Levels::Warn, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
+        log(Levels::Warn, subject, format_string, std::forward<Ts>(args)...);
     }
     template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Error >= 0, int> = 0>
     void error(Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
-        log(Levels::Error, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
+        log(Levels::Error, subject, format_string, std::forward<Ts>(args)...);
     }
 #endif
 
