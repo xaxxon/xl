@@ -23,6 +23,24 @@ namespace xl {
 #endif
 
 
+/**
+ * Creates an object that is never cleaned up by using placement new into a local memory buffer
+ * Useful for singletons
+ */
+template<class T>
+struct Immortal {
+    template<class... Args>
+    Immortal(Args&&... args) {
+        ::new(space) T(std::forward<Args>(args)...);
+    }
+
+    operator T&() & noexcept { return reinterpret_cast<T&>(space); }
+private:
+    alignas(T) unsigned char space[sizeof(T)];
+};
+
+
+
 template<typename T, typename = void>
 struct has_insertion_operator : std::false_type {};
 
@@ -166,6 +184,13 @@ template<class ValueT, class... Rest, template<class, class...> class ContainerT
 auto find(ContainerT<ValueT, Rest...> const & container, ValueT const & value) {
     return std::find(begin(container), end(container), value);
 };
+
+
+template<typename Container, typename Callback>
+auto find_if(Container & container, Callback && callback) {
+    return std::find_if(std::begin(container), std::end(container), std::forward<Callback>(callback));
+};
+
 
 template<class Container, class Callback>
 auto copy_if(Container const & container, Callback && callback) {

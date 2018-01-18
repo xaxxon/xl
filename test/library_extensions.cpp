@@ -267,3 +267,18 @@ TEST(LibraryExtensions, Transform) {
 
 
 
+TEST(LibraryExtensions, Find) {
+    std::vector<int> v{1,2,3,4,5};
+
+    EXPECT_NE(xl::find(v, 1), v.end());
+    EXPECT_EQ(xl::find(v, 0), v.end());
+    {
+        auto result = xl::find_if(v, [](int i){return i==5;});
+        EXPECT_NE(result, v.end());
+    }
+    {
+        auto result = xl::find_if(v, [](int i){return i==0;});
+        EXPECT_EQ(result, v.end());
+    }
+}
+

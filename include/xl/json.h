@@ -55,6 +55,12 @@ public:
     Json & operator=(Json const &) = default;
     Json & operator=(Json &&) = default;
 
+
+    /**
+     * Parses content as JSON, returning the regex match info
+     * @throw JsonException if the json is invalid
+     * @return regex matches against content
+     */
     xl::RegexResultPcre parse() const {
         // an empty source will return an empty optional for all API calls
         if (this->source.empty()) {
@@ -67,19 +73,51 @@ public:
         return matches;
     }
 
-    std::optional<double> get_number() const {
+
+    std::optional<double> get_number(std::optional<double> alternate_number = std::optional<double>{}) const {
         auto matches = parse();
-        return matches.has("number") ? std::stod(matches["number"]) : std::optional<double>{};
+        ;
+        if (auto number = matches["number"]; number.empty()) {
+            if (alternate_number) {
+                return *alternate_number;
+            } else {
+                return {};
+            }
+        } else {
+            return std::stod(matches["number"]);
+        }
     }
 
-    std::optional<std::string> get_string() const {
-        std::string result = parse()["string"];
+    std::optional<std::string> get_string(std::optional<std::string> alternate_string = std::optional<std::string>{}) const {
+        try {
+            std::string result = parse()["string"];
+            if (!result.empty()) {
+                return escaped_character_regex.replace(result, "$1", true);
+            }
+        }
+            // if there's no string at this point, check if an alternate_string was specified
+        catch (JsonException const &) {
+            if (!alternate_string) {
+                throw;
+            }
+        }
+        if (alternate_string) {
+            return alternate_string;
+        } else {
+            return {};
+        }
+
+    }
+
+#if 0
+    // previous impl
+    std::string result = parse()["string"];
         if (!result.empty()) {
             return escaped_character_regex.replace(result, "$1", true);
         } else {
             return {};
         }
-    }
+#endif
 
     std::optional<std::map<std::string, Json>> get_object() const {
         auto matches = parse();
@@ -114,7 +152,9 @@ public:
             std::vector<Json> results;
             std::string array_string = matches["array"];
             while(auto array_entry_match = json_regex.match(array_string)) {
-                results.emplace_back(array_entry_match["ArrayHead"]);
+                if (array_entry_match.has("ArrayHead")) {
+                    results.emplace_back(array_entry_match["ArrayHead"]);
+                }
                 if (!array_entry_match.has("ArrayTail")) {
                     break;
                 }
@@ -134,9 +174,9 @@ public:
         }
     }
 
-    std::optional<bool> get_boolean() const {
+    std::optional<bool> get_boolean(std::optional<bool> alternate_bool = std::optional<bool>{}) const {
         auto result = parse()["boolean"];
-        return !result.empty() ? result == "true" : std::optional<bool>{};
+        return result.empty() ? alternate_bool : result == "true";
     }
 
 

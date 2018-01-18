@@ -6,6 +6,7 @@
 #if __has_include(<cxxabi.h>)
 #  define XL_DEMANGLE_NAMES
 #  include <cxxabi.h>
+#  include <mutex>
 #endif
 #endif
 #endif

@@ -22,9 +22,17 @@ TEST(json, empty) {
 
 TEST(json, invalid) {
     EXPECT_FALSE(Json("asdfasdf").is_valid());
+    EXPECT_THROW(Json("asdfasdf").get_string(), JsonException);
+    EXPECT_EQ(*Json("asdfasdf").get_string("alternate string"), "alternate string");
+
     EXPECT_FALSE(Json("\"asdfasdf").is_valid());
+    EXPECT_THROW(Json("\"asdfasdf").get_string(), JsonException);
+
     EXPECT_FALSE(Json("asdfasdf\"").is_valid());
+    EXPECT_THROW(Json("asdfasdf\"").get_string(), JsonException);
+
     EXPECT_FALSE(Json("{\"a\"; 4}").is_valid());
+    EXPECT_THROW(Json("{\"a\"; 4}").get_string(), JsonException);
     EXPECT_FALSE(Json("[0, 1, 2, 3, 4").is_valid());
 }
 
@@ -49,6 +57,7 @@ TEST(json, number) {
     EXPECT_FALSE(Json("true").get_number());
     EXPECT_FALSE(Json("[1,2,3]").get_number());
     EXPECT_FALSE(Json("{\"a\": 4}").get_number());
+    EXPECT_EQ(*Json("{\"a\": 4}").get_number(5), 5);
 }
 
 TEST(json, boolean) {
@@ -56,10 +65,14 @@ TEST(json, boolean) {
     EXPECT_FALSE(*Json("false").get_boolean());
     EXPECT_TRUE(Json("false").get_boolean().has_value());
     EXPECT_FALSE(Json("\"asdf\"").get_boolean().has_value());
+    EXPECT_TRUE(*Json("\"asdf\"").get_boolean(true));
 }
 
 TEST(json, string) {
     EXPECT_EQ(*Json("\"string\"").get_string(), "string");
+    EXPECT_FALSE(Json("5").get_string());
+    EXPECT_FALSE(Json("\"string\"")["bogus"].get_string());
+    EXPECT_EQ(*Json("\"string\"")["bogus"].get_string("alternate string"), "alternate string");
 
     // test escaped quotation marks in strings
     EXPECT_EQ(*Json("\"\\\"string\\\"\"").get_string(), "\"string\"");
@@ -90,6 +103,11 @@ TEST(json, object) {
 
 
 TEST(json, array) {
+    {
+        auto result = Json("[]").get_array();
+        EXPECT_TRUE(result);
+        EXPECT_EQ(result->size(), 0);
+    }
     {
         auto result = Json("[0, 1, 2, 3, 4]").get_array();
         EXPECT_TRUE(result.has_value());

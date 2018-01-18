@@ -13,7 +13,7 @@ link_directories(. ${CLANG_HOME}/lib)
 
 
 # Find the QtWidgets library
-find_package(Qt5Widgets PATHS /Users/xaxxon/Qt5.9.0/5.9/clang_64/lib/cmake/Qt5Widgets)
+find_package(Qt5Widgets PATHS /Users/xaxxon/Qt/5.10.0/clang_64/lib/cmake/Qt5Widgets)
 
 file(GLOB SOURCE_FILES *.cpp)
 
