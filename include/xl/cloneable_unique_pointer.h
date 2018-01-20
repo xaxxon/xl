@@ -10,7 +10,9 @@ namespace xl {
  * @tparam T 
  */
 template<class T, class = void>
-class CloneableUniquePtr;
+class CloneableUniquePtr {
+    static_assert(is_same_v<T*, void>, "CloneableUniquePtr must point to type implementing clone()");
+};
 
 
 /**
@@ -18,83 +20,25 @@ class CloneableUniquePtr;
  * contained value.  Only allows contained values with clone() method defined
  * @tparam T Contained type
  */
-template<class T>
-class CloneableUniquePtr<T, std::enable_if_t<
-        std::is_same_v<
-            std::result_of_t<decltype(&T::clone)(T)>, T*
-        >>> {
-private:
-    T * value = nullptr;
-    
-public:
-    CloneableUniquePtr() {}
-    CloneableUniquePtr(T * value) : value(value) {}
-    
-    template<class U, std::enable_if_t<std::is_base_of<T, U>::value, int> = 0>
-    CloneableUniquePtr(U const & other) : value(other.clone()) {}
-    
-    CloneableUniquePtr(CloneableUniquePtr<T> && other) : value(other.release()) {}
-    
-    explicit CloneableUniquePtr(CloneableUniquePtr<T> const & other) : 
-            value(other.value != nullptr ? other.value->clone() : nullptr) 
-    {}
-    
-    CloneableUniquePtr<T> & operator=(CloneableUniquePtr<T> && other) {
+template <class T>
+class CloneableUniquePtr<T, std::enable_if_t<std::is_same_v<std::result_of_t<decltype (&T::clone)(T)>, T *>>> : public std::unique_ptr<T>
+{
+    using std::unique_ptr<T>::unique_ptr;
+
+    template <class U, std::enable_if_t<std::is_base_of_v<T, U>, int> = 0>
+    CloneableUniquePtr(U const & other) : std::unique_ptr<T>(other.clone())
+    {
+    }
+
+    explicit CloneableUniquePtr(CloneableUniquePtr<T> const & other) : std::unique_ptr<T>(other ? other->clone() : nullptr) {}
+
+    using std::unique_ptr<T>::operator=;
+
+    CloneableUniquePtr<T> & operator=(CloneableUniquePtr<T> const & other)
+    {
         this->reset();
-        this->value = other.value;
-        other.value = nullptr;
+        this = other ? other->clone() : nullptr;
         return *this;
-    }
-
-    /**
-     * Clones `other` value to create copy
-     * @param other cloned value
-     * @return this
-     */
-    CloneableUniquePtr<T> & operator=(CloneableUniquePtr<T> const & other) {
-        this->reset();
-        this->value = other.value != nullptr ? other.value->clone() : nullptr;
-        return *this;
-    }
-
-
-    void reset() {
-        delete this->value;
-        this->value = nullptr;
-    }
-
-    ~CloneableUniquePtr() {
-        delete value;
-    }
-    
-    T * get() const {
-        return this->value;
-    }
-    T * release() {
-        T * return_value = this->value;
-        this->value = nullptr;
-        return return_value;
-    }
-    
-    T & operator*() {
-        return *this->value;
-    }
-
-    T const & operator*() const {
-	return *this->value;
-    }
-    
-    T * operator->() {
-        return this->value;
-    }
-
-    T const * operator->() const {
-        return this->value;
-    }
-
-
-    operator bool() {
-        return this->value != nullptr;
     }
 };
 
@@ -103,6 +47,48 @@ template<class T, class... Args>
 auto make_cloneable_unique_ptr(Args&&... args) {
     return CloneableUniquePtr<T>(new T(std::forward<Args>(args)...));
 };
+
+
+
+#if 0
+
+#include <type_traits>
+#include <memory>
+
+template<class T, class = void>
+class CloneableUniquePtr {
+    static_assert(is_same_v<T*, void>, "CloneableUniquePtr must point to type implementing clone()");
+};
+
+template <class T>
+class CloneableUniquePtr<T, std::enable_if_t<std::is_same_v<std::result_of_t<decltype (&T::clone)(T)>, T *>>> : public std::unique_ptr<T>
+{
+    using std::unique_ptr<T>::unique_ptr;
+
+    template <class U, std::enable_if_t<std::is_base_of_v<T, U>, int> = 0>
+    CloneableUniquePtr(U const & other) : std::unique_ptr<T>(other.clone())
+    {
+    }
+
+    explicit CloneableUniquePtr(CloneableUniquePtr<T> const & other) : std::unique_ptr<T>(other ? other->clone() : nullptr) {}
+
+    using std::unique_ptr<T>::operator=;
+
+    CloneableUniquePtr<T> & operator=(CloneableUniquePtr<T> const & other)
+    {
+        this->reset();
+        this = other ? other->clone() : nullptr;
+        return *this;
+    }
+};
+
+template <class T, class... Args>
+auto make_cloneable_unique(Args &&... args)
+{
+    return CloneableUniquePtr<T>(new T(std::forward<Args>(args)...));
+};
+
+#endif
 
 } // end namespace xl
 

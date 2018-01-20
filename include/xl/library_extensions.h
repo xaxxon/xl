@@ -612,6 +612,7 @@ using make_reference_wrapper_t = typename make_reference_wrapper<T>::type;
  */
 template<class T>
 std::string join(T const & container, std::string_view join_string = ", ") {
+    static_assert(!std::is_pointer_v<T>, "Cannot join a pointer");
     std::stringstream result;
 
     bool first_iteration = true;

@@ -342,11 +342,12 @@ public:
     /**
      * Causes a status file with the given name to be maintained with the current
      *   settings of this log object
+     * @param filename filename to use as status file
+     * @param skip_reset don't read from the file if it already exists
      */
-    void enable_status_file(std::string filename, bool force_reset = false) {
-        this->log_status_file = std::make_unique<LogStatusFile>(*this, filename, force_reset);
+    void enable_status_file(std::string filename, bool skip_reset = false) {
+        this->log_status_file = std::make_unique<LogStatusFile>(*this, filename, skip_reset);
         initialize_from_status_file();
-
     }
 
 

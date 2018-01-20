@@ -70,20 +70,22 @@ public:
 
 
     LogStatusFile(std::string filename, bool skip_read = false) : filename(filename), status_file(filename) {
-        if (!skip_read) {
-            read();
+        if (std::experimental::filesystem::exists(this->status_file) && !skip_read) {
+            this->read();
+        } else {
+            // write out default config
+            this->write();
         }
     }
 
     template<typename LevelsT, typename SubjectsT, typename Clock>
-    LogStatusFile(Log<LevelsT, SubjectsT, Clock> const & log, std::string filename, bool force_reset) :
-        LogStatusFile(filename, force_reset)
+    LogStatusFile(Log<LevelsT, SubjectsT, Clock> const & log, std::string filename, bool skip_read) :
+        LogStatusFile(filename, skip_read)
     {
-        if (!std::experimental::filesystem::exists(this->status_file) || force_reset) {
+        if (!std::experimental::filesystem::exists(this->status_file) || skip_read) {
+            std::cerr << fmt::format("initializing log status file from log object") << std::endl;
             this->initialize_from_log(log);
             this->write();
-        } else {
-            this->read();
         }
     }
 
@@ -112,6 +114,7 @@ public:
 
 
     void read() {
+        std::cerr << fmt::format("Loading from existing log status file: {}", this->filename) << std::endl;
         this->levels   = true; // default back to showing everything
         this->subjects = true; // default back to showing everything
         this->regex_filter.clear();
@@ -123,6 +126,7 @@ public:
         std::string log_status_file_contents((std::istreambuf_iterator<char>(file)),
                                                     std::istreambuf_iterator<char>());
 
+        std::cerr << fmt::format("{}", log_status_file_contents) << std::endl;
         xl::json::Json log_status(log_status_file_contents);
 
         if (auto regex = log_status["regex"].get_string()) {
@@ -172,6 +176,7 @@ public:
 
 
     void write() {
+        std::cerr << fmt::format("Writing to log status file: {}", this->filename) << std::endl;
         std::ofstream file(this->filename);
         if (!file) {
             return;
