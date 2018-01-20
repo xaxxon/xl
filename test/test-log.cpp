@@ -320,16 +320,7 @@ TEST(log, LogStatusFileFromFileAllStatusesTrueByDefault) {
     log.enable_status_file(status_file_filename, false); // do not force status reset - load what was just written
 
     // there shouldn't be any levels/subjects listed, just the boolean version of the variant
-    if (auto subjects = std::get_if<LogStatusFile::Statuses>(&log.log_status_file->subjects)) {
-        std::cerr << fmt::format("subject size: {}", subjects->size()) << std::endl;
-        for(auto const & pair : *subjects) {
-            std::cerr << fmt::format("subject and status: {} => {}", pair.first, pair.second) << std::endl;
-        }
-    } else {
-        std::cerr << fmt::format("subjects should be bool") << std::endl;
-    }
     EXPECT_TRUE(std::get<bool>(log.log_status_file->subjects));
-    std::cerr << fmt::format("checking levels:") << std::endl;
     EXPECT_TRUE(std::get<bool>(log.log_status_file->levels));
 
     for (auto level : TestLogT::levels()) {

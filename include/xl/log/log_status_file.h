@@ -83,7 +83,6 @@ public:
         LogStatusFile(filename, skip_read)
     {
         if (!std::experimental::filesystem::exists(this->status_file) || skip_read) {
-            std::cerr << fmt::format("initializing log status file from log object") << std::endl;
             this->initialize_from_log(log);
             this->write();
         }
@@ -114,7 +113,6 @@ public:
 
 
     void read() {
-        std::cerr << fmt::format("Loading from existing log status file: {}", this->filename) << std::endl;
         this->levels   = true; // default back to showing everything
         this->subjects = true; // default back to showing everything
         this->regex_filter.clear();
@@ -126,7 +124,6 @@ public:
         std::string log_status_file_contents((std::istreambuf_iterator<char>(file)),
                                                     std::istreambuf_iterator<char>());
 
-        std::cerr << fmt::format("{}", log_status_file_contents) << std::endl;
         xl::json::Json log_status(log_status_file_contents);
 
         if (auto regex = log_status["regex"].get_string()) {
@@ -176,7 +173,6 @@ public:
 
 
     void write() {
-        std::cerr << fmt::format("Writing to log status file: {}", this->filename) << std::endl;
         std::ofstream file(this->filename);
         if (!file) {
             return;
