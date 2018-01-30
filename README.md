@@ -35,4 +35,4 @@ Smart pointer class which may or may not own the object it refers to.  Deleter i
 
 ### Json
 
-JSON parser.
+JSON-ish parser.  Allows some things that JSON doesn't allow like trailing commas and newlines in strings

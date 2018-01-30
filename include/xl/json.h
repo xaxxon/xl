@@ -9,20 +9,29 @@
 namespace xl::json {
 
 inline xl::RegexPcre json_regex(R"REGEX(
-^\s*
+\A
 (?(DEFINE)(?<StringContents>(?:\\"|[^"])*))
-(?(DEFINE)(?<ObjectEntry>(\s*"(?&StringContents)"\s*:\s*(?&any)\s*)))
-(?(DEFINE)(?<ArrayEntry>(\s*(?&any)\s*)))
-(?<any>
+(?(DEFINE)(?<comment>(\s*\/\/(?>[^\n]*$)\s*)*))
+(?&comment)
+(?<any>\s*
    (?<number>(?:-?\d+\.?\d*|-?\.\d+)([Ee][+-]?\d+)?) |
    (?<boolean>true|false) |
    (?:"(?>(?<string>(?&StringContents)))") |
-   (?<array>\[(?>(?:(?<ArrayHead>(?&ArrayEntry))\s*,?\s*)?(?<ArrayTail>((?&ArrayEntry)\s*,?\s*)*))\]) |
-   (?<object>{(?>(\s*"(?<Key>(?&StringContents))"\s*:\s*(?<Value>(?&any)))?\s*,?\s*(?>(?<ObjectTail>((?&ObjectEntry)\s*,?\s*)*)))}) |
+
+   # Array
+   (?<array>\[\s*(?<ArrayGuts>(?>(?:(?<ArrayHead>(?&any))(?&comment)
+       (?:,(?&comment)\s*(?<ArrayTail>((?&ArrayGuts)\s*)))?)),?)?\s*
+   \]) |
+
+   # Object
+   (?<object>{(?&comment)\s*(?<ObjectGuts>(?>("(?<Key>(?&StringContents))"\s*:\s*(?<Value>(?&any))(?&comment)
+       (?:,(?&comment)\s*(?<ObjectTail>((?&ObjectGuts)\s*)))?)),?)?\s*
+   (?&comment)}) |
+
    (?<null>null)
-) # end any
-\s*$
-)REGEX",  xl::OPTIMIZE | xl::EXTENDED | xl::DOTALL);
+\s*) # end any
+\s*\Z
+)REGEX",  xl::OPTIMIZE | xl::EXTENDED | xl::DOTALL | xl::MULTILINE);
 
 
 inline xl::RegexPcre escaped_character_regex("\\\\(.)", xl::OPTIMIZE | xl::EXTENDED | xl::DOTALL);

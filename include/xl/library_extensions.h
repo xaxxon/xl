@@ -645,6 +645,65 @@ using is_std_array = _is_std_array<std::decay_t<T>>;
 template<typename T>
 constexpr bool is_std_array_v = is_std_array<T>::value;
 
+
+template<bool... bs>
+struct all_of;
+
+template<>
+struct all_of<> : public std::true_type {};
+
+template<bool... bs>
+struct all_of<false, bs...> : public std::false_type {};
+
+template<bool... bs>
+struct all_of<true, bs...> : public all_of<bs...> {};
+
+template<bool... bs>
+constexpr bool all_of_v = all_of<bs...>::value;
+
+
+template<bool... bs>
+struct none_of;
+
+template<>
+struct none_of<> : public std::true_type {};
+
+template<bool... bs>
+struct none_of<true, bs...> : public std::false_type {};
+
+template<bool... bs>
+struct none_of<false, bs...> : public none_of<bs...> {};
+
+template<bool... bs>
+constexpr bool none_of_v = none_of<bs...>::value;
+
+
+template<bool... bs>
+struct any_of;
+
+template<>
+struct any_of<> : public std::false_type {};
+
+template<bool... bs>
+struct any_of<true, bs...> : public std::true_type {};
+
+template<bool... bs>
+struct any_of<false, bs...> : public any_of<bs...> {};
+
+template<bool... bs>
+constexpr bool any_of_v = any_of<bs...>::value;
+
+
+
+template<typename T, typename = void>
+struct is_string_like : public std::false_type {};
+
+template<typename T>
+struct is_string_like<T, std::void_t<decltype(std::declval<T>().length())>> : public std::true_type {};
+
+template<typename T>
+constexpr bool is_string_like_v = is_string_like<T>::value;
+
 } // end namespace xl
 
 namespace std {

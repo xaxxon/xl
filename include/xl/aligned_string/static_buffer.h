@@ -36,7 +36,8 @@ public:
 
     length_t length() const {
         // if the length byte is 0, then the string is full which means there are size - 1 characters and a NUL
-        return size - this->_buffer[size - 1] - 1;
+        auto result = size - this->_buffer[size - 1] - 1;
+        return result;
     }
 
 
@@ -89,7 +90,9 @@ public:
      * @param length number of bytes to concat into this buffer
      */
     void concat(char const * source, uint32_t length)  {
-        if (this->length() + length > size) {
+
+        // the size doesn't include the NUL terminator
+        if (this->length() + length >= size) {
             throw AlignedStringException("Resulting string too long for buffer");
         }
         strncat(this->buffer(), source, length);

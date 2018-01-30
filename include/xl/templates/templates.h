@@ -93,6 +93,7 @@ std::string Template::fill(T && source, ProviderData && input_data) const {
     Provider_Interface * provider_interface_pointer;
     if constexpr(std::is_base_of_v<Provider_Interface, std::decay_t<T>>) {
         provider_interface_pointer = & source;
+        assert(provider_interface_pointer != nullptr);
 
     } else {
 
@@ -101,6 +102,7 @@ std::string Template::fill(T && source, ProviderData && input_data) const {
         provider_interface_unique_pointer = DefaultProviders<ProviderContainer>::template make_provider(source);
         XL_TEMPLATE_LOG("**** got unique ptr at {}", (void*)provider_interface_unique_pointer.get());
         provider_interface_pointer = provider_interface_unique_pointer.get();
+        assert(provider_interface_pointer != nullptr);
         XL_TEMPLATE_LOG("**** set provider interface pointer to {}", (void*)provider_interface_pointer);
     }
 

@@ -19,6 +19,8 @@
 #include <fmt/ostream.h>
 #include <exception>
 
+#include "../library_extensions.h"
+
 namespace xl {
 
 class AlignedStringException : public std::exception {
@@ -48,7 +50,7 @@ public:
     AlignedString() {};
 
 
-    template<class... Stringishes>
+    template<class... Stringishes, std::enable_if_t<xl::all_of_v<is_string_like_v<Stringishes>...>, int> = 0>
     AlignedString(Stringishes && ... stringishes) {
         auto total_size = (stringishes.length() + ...);
         auto allocation_size = total_size + 1;

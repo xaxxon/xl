@@ -87,8 +87,9 @@ public:
     auto length() const { return this->_length; }
 
     void concat(char const * source, uint32_t length)  {
-        if (this->length() + length > this->capacity()) {
-            this->allocate(this->length() + length);
+        // length doesn't include NUL terminator
+        if (this->length() + length >= this->capacity()) {
+            this->allocate(this->length() + length + 1);
         }
         strncat(this->buffer(), source, length);
         this->_length += length;

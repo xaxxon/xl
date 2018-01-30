@@ -34,6 +34,9 @@ TEST(json, invalid) {
     EXPECT_FALSE(Json("{\"a\"; 4}").is_valid());
     EXPECT_THROW(Json("{\"a\"; 4}").get_string(), JsonException);
     EXPECT_FALSE(Json("[0, 1, 2, 3, 4").is_valid());
+
+    EXPECT_FALSE(Json("{\"a\":5 \"b\":6}").is_valid());
+    EXPECT_FALSE(Json("[1 2 3]").is_valid());
 }
 
 
