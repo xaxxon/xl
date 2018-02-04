@@ -79,7 +79,12 @@ TEST(json, string) {
 
     // test escaped quotation marks in strings
     EXPECT_EQ(*Json("\"\\\"string\\\"\"").get_string(), "\"string\"");
+    EXPECT_EQ(*Json("\"str'ing\"").get_string(), "str'ing");
+    EXPECT_EQ(*Json("'string'").get_string(), "string");
+    EXPECT_EQ(*Json("'str\'ing'").get_string(), "str'ing");
+    EXPECT_EQ(*Json("'str\"ing'").get_string(), "str\"ing");
 }
+
 
 TEST(json, object) {
     {
@@ -141,5 +146,17 @@ TEST(Json, WalkingNonexistantElements) {
     EXPECT_EQ(*Json("[0, 1, 2]")[1].get_number(), 1);
     EXPECT_FALSE(Json("[0, 1, 2]")[3].get_number());
 
+}
+
+TEST(Json, Comments) {
+    EXPECT_EQ(Json("//test\n4").get_number(), 4);
+    EXPECT_EQ((*Json("[1\n// test\n]//another test\n").get_array())[0].get_number(), 1);
+    EXPECT_EQ((*Json("// foo\n"
+                       "{ // test\n"
+                       "// test\n"
+                       "\"4\": 4 // test\n"
+                       "// test\n"
+                       "} // test\n"
+                       "// test").get_object())["4"].get_number(), 4);
 }
 

@@ -11,12 +11,12 @@ namespace xl::json {
 inline xl::RegexPcre json_regex(R"REGEX(
 \A
 (?(DEFINE)(?<StringContents>(?:\\"|[^"])*))
-(?(DEFINE)(?<comment>(\s*\/\/(?>[^\n]*$)\s*)*))
+(?(DEFINE)(?<comment>(\s*(\/\/(?>[^\n]*$)\s*)?)*))
 (?&comment)
 (?<any>\s*
    (?<number>(?:-?\d+\.?\d*|-?\.\d+)([Ee][+-]?\d+)?) |
    (?<boolean>true|false) |
-   (?:"(?>(?<string>(?&StringContents)))") |
+   (?<StringQuote>"|')(?<string>(?:\\\k<StringQuote>|.)*?)(?:\k<StringQuote>) |
 
    # Array
    (?<array>\[\s*(?<ArrayGuts>(?>(?:(?<ArrayHead>(?&any))(?&comment)
@@ -30,7 +30,8 @@ inline xl::RegexPcre json_regex(R"REGEX(
 
    (?<null>null)
 \s*) # end any
-\s*\Z
+(?&comment)
+\Z
 )REGEX",  xl::OPTIMIZE | xl::EXTENDED | xl::DOTALL | xl::MULTILINE);
 
 
