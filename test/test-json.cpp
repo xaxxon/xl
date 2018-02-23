@@ -96,6 +96,10 @@ TEST(json, object) {
         auto result = Json("{\"\\\"a\": 4}").get_object();
         EXPECT_TRUE(result.has_value());
         EXPECT_EQ((*result).size(), 1);
+        std::cerr << fmt::format("size {}", result->size()) << std::endl;
+        for(auto const & [k, v] : *result) {
+            std::cerr << fmt::format("'{}', '{}'", k, v) << std::endl;
+        }
         EXPECT_TRUE(result->find("\"a") != result->end());
     }
 
@@ -140,7 +144,7 @@ TEST(Json, WalkingNonexistantElements) {
 
     EXPECT_FALSE(Json()["Foo"][100]["Foo"][100]);
 
-    EXPECT_EQ(*Json("{\"key\": 1}")["key"].get_number(), 1);
+    EXPECT_EQ(Json("{\"key\": 1}")["key"].get_number().value(), 1);
     EXPECT_FALSE(Json("{\"key\": 1}")["not_key"].get_number());
 
     EXPECT_EQ(*Json("[0, 1, 2]")[1].get_number(), 1);

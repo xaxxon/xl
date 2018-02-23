@@ -102,11 +102,18 @@ public:
 //        std::cerr << fmt::format("string length: {}, captures[1]: {}", this->source.length(), this->captures[1]) << std::endl;
 //        std::cerr << fmt::format("suffix: '{}'", this->source.data() + this->captures[1]) << std::endl;
             char const * result = this->source.data() + this->captures[1];
-//        std::cerr << fmt::format("returning suffix address {} vs base {}", (void*)result, (void*)this->source.c_str()) << std::endl;
+//            std::cerr << fmt::format("returning suffix address {} vs base {}", (void*)result, (void*)this->source.c_str()) << std::endl;
             return result;
         } else {
             return source.c_str();
         }
+    }
+
+    // first 2 bytes in the table are a 16 bit integer with the most significant byte first
+    static uint16_t get_index_from_stringtable_at(char * table_location) {
+        auto byte_pointer = reinterpret_cast<uint8_t*>(table_location);
+        uint16_t index = (byte_pointer[0] << 8) | byte_pointer[1];
+        return index;
     }
 
     /**
@@ -119,9 +126,21 @@ public:
             return false;
         }
 
-        auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name.c_str());
-        // std::cerr << fmt::format("Looked up named capture '{}' => {}", name.c_str(), index) << std::endl;
-        return this->length(index) > 0;
+        char * begin = nullptr;
+        char * end = nullptr;
+        auto size = pcre_get_stringtable_entries(this->compiled_pattern.get(), name.c_str(), &begin, &end);
+//        std::cerr << fmt::format("strintable entries return value: {}", size) << std::endl;
+//        std::cerr << fmt::format("begin {} end {}", (void*)begin, (void*)end) << std::endl;
+        while (begin != end + size) {
+            auto index = get_index_from_stringtable_at(begin);
+            begin += size;
+            if (this->has(index)) {
+                return true;
+            }
+        }
+//        auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name);
+//        std::cerr << fmt::format("Looked up named capture '{}' => {}", name, index) << std::endl;
+        return false;
     }
 
     bool has(int position) const {
@@ -169,9 +188,23 @@ public:
         if (!*this) {
             return xl::string_view();
         }
-        auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name);
-        // std::cerr << fmt::format("Looked up named capture '{}' => {}", name, index) << std::endl;
-        return this->operator[](index);
+        char * begin = nullptr;
+        char * end = nullptr;
+        auto size = pcre_get_stringtable_entries(this->compiled_pattern.get(), name, &begin, &end);
+//        std::cerr << fmt::format("strintable entries return value: {}", size) << std::endl;
+//        std::cerr << fmt::format("begin {} end {}", (void*)begin, (void*)end) << std::endl;
+        while (begin != end + size) {
+            auto index = get_index_from_stringtable_at(begin);
+//            std::cerr << fmt::format("operator[] stringtable: {} => {}", name, index) << std::endl;
+            begin += size;
+            auto possible_result = this->operator[](index);
+            if (!possible_result.empty()) {
+                return possible_result;
+            }
+        }
+//        auto index = pcre_get_stringnumber(this->compiled_pattern.get(), name);
+//         std::cerr << fmt::format("Looked up named capture '{}' => {}", name, index) << std::endl;
+        return {};
     }
 
 
@@ -277,6 +310,7 @@ class RegexPcre : public RegexBase<RegexPcre, RegexResultPcre> {
         result |= flags & DOTALL ? PCRE_DOTALL : 0;
         result |= flags & MULTILINE ? PCRE_MULTILINE : 0;
         result |= flags & DOLLAR_END_ONLY ? PCRE_DOLLAR_ENDONLY : 0;
+        result |= flags & ALLOW_DUPLICATE_SUBPATTERN_NAMES ? PCRE_DUPNAMES : 0;
         return result;
     }
 

@@ -15,7 +15,8 @@ namespace xl {
         EXTENDED  = 1 << 2,
         DOTALL    = 1 << 3,
         MULTILINE = 1 << 4,
-        DOLLAR_END_ONLY = 1 << 5
+        DOLLAR_END_ONLY = 1 << 5,
+        ALLOW_DUPLICATE_SUBPATTERN_NAMES = 1 << 6
     };
     using RegexFlagsT = std::underlying_type_t<RegexFlags>;
 

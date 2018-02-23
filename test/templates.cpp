@@ -553,6 +553,13 @@ TEST(template, EmptyContainerContingentContent) {
     }
     {
         // second should be taken by {{empty>}} not {{<not_empty}}
+        auto result = Template("ONE\n\nA {{<<empty>>}} B\n\nC {{<<empty>>}} D\n\nTWO").fill(make_provider(
+            std::pair("empty", "")
+        ));
+        EXPECT_EQ(result, "ONE\nTWO");
+    }
+    {
+        // second should be taken by {{empty>}} not {{<not_empty}}
         auto result = Template("ONE\nA {{<<empty>>}} B\n\nTWO").fill(make_provider(
             std::pair("empty", "")
         ));

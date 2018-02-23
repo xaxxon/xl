@@ -5,6 +5,7 @@
 
 #include "exceptions.h"
 #include "regexer.h"
+#include "library_extensions.h"
 
 namespace xl::json {
 
@@ -24,7 +25,17 @@ inline xl::RegexPcre json_regex(R"REGEX(
    \]) |
 
    # Object
-   (?<object>{(?&comment)\s*(?<ObjectGuts>(?>("(?<Key>(?&StringContents))"\s*:\s*(?<Value>(?&any))(?&comment)
+   (?<object>{(?&comment)\s*(?<ObjectGuts>
+
+(?>(
+ (?: # Quoted string or unquoted string
+(?<StringQuote2>"|')(?<Key>(?:\\\k<StringQuote2>|.)*?)(?:\k<StringQuote2>) |
+(?<Key>\w+?)
+
+
+)\s*:\s*(?<Value>(?&any))(?&comment)
+
+
        (?:,(?&comment)\s*(?<ObjectTail>((?&ObjectGuts)\s*)))?)),?)?\s*
    (?&comment)}) |
 
@@ -32,7 +43,7 @@ inline xl::RegexPcre json_regex(R"REGEX(
 \s*) # end any
 (?&comment)
 \Z
-)REGEX",  xl::OPTIMIZE | xl::EXTENDED | xl::DOTALL | xl::MULTILINE);
+)REGEX",  xl::OPTIMIZE | xl::EXTENDED | xl::DOTALL | xl::MULTILINE | ALLOW_DUPLICATE_SUBPATTERN_NAMES);
 
 
 inline xl::RegexPcre escaped_character_regex("\\\\(.)", xl::OPTIMIZE | xl::EXTENDED | xl::DOTALL);
@@ -86,7 +97,7 @@ public:
 
     std::optional<double> get_number(std::optional<double> alternate_number = std::optional<double>{}) const {
         auto matches = parse();
-        ;
+
         if (auto number = matches["number"]; number.empty()) {
             if (alternate_number) {
                 return *alternate_number;
@@ -134,8 +145,17 @@ public:
         if (matches.has("object")) {
             std::map<std::string, Json> results;
             std::string object_string = matches["object"];
+//            std::cerr << fmt::format("object string: {}", object_string) << std::endl;
             while(auto object_entry_match = json_regex.match(object_string)) {
+                for (auto tuple : xl::each_i(object_entry_match.get_all_matches())) {
+                    auto match = std::get<0>(tuple);
+                    int i = std::get<1>(tuple);
+//                    std::cerr << fmt::format("match {}: {}", i, match) << std::endl;
+                }
                 std::string key = object_entry_match["Key"];
+//                std::cerr << fmt::format("object entry match for key: {}", key) << std::endl;
+//                std::cerr << fmt::format("object entry amtch for value: {}", object_entry_match["Value"]) << std::endl;
+
                 results.emplace(escaped_character_regex.replace(key, "$1", true), Json(object_entry_match["Value"]));
                 if (!object_entry_match.has("ObjectTail")) {
                     break;
@@ -199,7 +219,10 @@ public:
      */
     Json get_by_key(xl::string_view name) const {
         if (auto object = this->get_object()) {
-            return (*object)[name];
+            auto result = (*object)[name];
+//            std::cerr << fmt::format("Looking up key {} got json: {}", name, result.source) << std::endl;
+
+            return result;
         } else {
             return Json{};
         }

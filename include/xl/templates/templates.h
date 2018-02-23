@@ -390,8 +390,7 @@ void Template::compile() const {
         if (matches.has("LeadingJoinStringMarker")) {
             data.leading_join_string = true;
         }
-
-
+        
         if (!matches.has("InlineTemplateMarker")) {
             data.parameters = matches["SubstitutionData"];
         }
@@ -413,6 +412,7 @@ void Template::compile() const {
 
         this->compiled_substitutions.emplace_back(std::move(data));
     }
+//    std::cerr << fmt::format("remaining template '{}', sizes: {}", remaining_template, remaining_template.size()) << std::endl;
     assert(remaining_template.empty());
 }
 
