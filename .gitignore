@@ -1,0 +1,59 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Emacs backup files
+*~
+
+# Doxygen docs
+generated_docs/
+
+*.dSYM/
+
+# Mac directory display metadat
+**/.DS_Store
+
+# clion cmake build directories
+cmake-build-*
+
+javascript
+natives_blob.bin
+sample
+snapshot_blob.bin
+thread_sample
+toolbox
+
+	
+samples/exception_sample
+
+samples/javascript_sample
+
+samples/toolbox_sample
+samples/bidirectional_sample
+
+.idea/*
