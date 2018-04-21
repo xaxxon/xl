@@ -704,6 +704,46 @@ struct is_string_like<T, std::void_t<decltype(std::declval<T>().length())>> : pu
 template<typename T>
 constexpr bool is_string_like_v = is_string_like<T>::value;
 
+
+/**
+ * Construct with multiple lambdas which take the types in the variant you want to visit
+ * std::visit(overloaded{[](T1){}, [](T2){}, ...etc...}, variant);
+ */
+ template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+ template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+ 
+ 
+/**
+ * Returns the specific class associated with the given pointer-to-member-function provided
+ * @tparam f 
+ */
+template<auto f>
+struct pointer_to_member_function_class;
+
+template<typename R, typename C, typename...Args, R(C::*f)(Args...)>
+struct pointer_to_member_function_class<f> {
+    using type = C;
+};
+
+template<auto f>
+using pointer_to_member_function_class_t = typename pointer_to_member_function_class<f>::type;
+
+
+template<typename T, typename = void>
+struct dereferenced_type {
+    using type = T;
+};
+
+template<typename T>
+struct dereferenced_type<T, std::void_t<decltype(*std::declval<T>())>> {
+    using type = std::remove_reference_t<decltype(*std::declval<T>())>;
+};
+
+template<typename T>
+using dereferenced_type_t = typename dereferenced_type<T>::type;
+
+
+ 
 } // end namespace xl
 
 namespace std {

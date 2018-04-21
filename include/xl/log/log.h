@@ -1,4 +1,3 @@
-#define XL_LOG_WITH_TEMPLATES
 
 #ifdef XL_LOG_WITH_TEMPLATES
 #include "../templates.h"
@@ -80,6 +79,8 @@ public:
         return *this;
     }
 };
+
+
 
 
 /**
@@ -292,8 +293,8 @@ public:
     }
 
 
-    Log(std::string filename) : Log() {
-        this->enable_status_file(filename);
+    Log(std::string filename, StatusFile status_file_flag = StatusFile::USE_FILE_CONTENTS) : Log() {
+        this->enable_status_file(filename, status_file_flag);
     }
 
 
@@ -338,6 +339,7 @@ public:
         }
     }
 
+    
 
     /**
      * Causes a status file with the given name to be maintained with the current
@@ -345,9 +347,15 @@ public:
      * @param filename filename to use as status file
      * @param skip_reset don't read from the file if it already exists
      */
-    void enable_status_file(std::string filename, bool skip_reset = false) {
-        this->log_status_file = std::make_unique<LogStatusFile>(*this, filename, skip_reset);
+    void enable_status_file(std::string filename, StatusFile status_file_flag = StatusFile::USE_FILE_CONTENTS) {
+        this->log_status_file = std::make_unique<LogStatusFile>(*this, filename, status_file_flag);
         initialize_from_status_file();
+        
+        // if the log status file was in the "bulk" mode of "subjects: false, levels: false",
+        //   this will expand it into the enumerated save with each subject and level status
+        //   spelled out explicitly in the file
+        this->log_status_file->initialize_from_log(*this);
+        this->log_status_file->write();
     }
 
 
@@ -459,6 +467,7 @@ public:
 #endif
 
 
+#ifdef XL_LOG_WITH_TEMPLATES
     /**
      * For strings which are useful to log but expensive enough to be desirable to not build the string
      * when the log level/subject is disabled, using a xl::Template will allow for specifying callbacks
@@ -482,7 +491,7 @@ public:
     void error(Subjects subject, xl::templates::Template const & tmpl, Ts && ... args) {
         this->log(Levels::Error, subject, tmpl, std::forward<Ts>(args)...);
     }
-
+#endif
 
 };
 

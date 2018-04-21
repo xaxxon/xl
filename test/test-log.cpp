@@ -5,6 +5,7 @@
 #include <gmock/gmock.h>
 
 #include "log.h"
+#include "templates.h"
 
 using namespace xl;
 using namespace xl::templates;
@@ -144,9 +145,6 @@ TEST(log, MultipleCallbacks) {
         log.log(xl::log::DefaultLevels::Levels::Warn, xl::log::DefaultSubjects::Subjects::Default, "test");
         EXPECT_EQ(callback1.counter, 3);
         EXPECT_EQ(callback2.counter, 1);
-
-
-
     }
 }
 
@@ -274,7 +272,7 @@ TEST(log, LogStatusFileFromLog) {
     LogT log;
 
     auto status_file_filename = "test_log_status_file";
-    log.enable_status_file(status_file_filename, true); // force status reset
+    log.enable_status_file(status_file_filename, StatusFile::RESET_FILE_CONTENTS); // force status reset
     EXPECT_TRUE(log.log_status_file);
     EXPECT_EQ(std::get<LogStatusFile::Statuses>(log.log_status_file->subjects).size(), 1);
     EXPECT_EQ(std::get<LogStatusFile::Statuses>(log.log_status_file->levels).size(), 3);
@@ -282,7 +280,7 @@ TEST(log, LogStatusFileFromLog) {
     log.set_status(xl::log::DefaultLevels::Levels::Warn, false);
 
     // create a second log status file sharing the same status file
-    ::xl::log::LogStatusFile other(status_file_filename);
+    ::xl::log::LogStatusFile other(status_file_filename, StatusFile::USE_FILE_CONTENTS);
 
     // make sure it has the same number of subjects and levels
     EXPECT_EQ(std::get<LogStatusFile::Statuses>(log.log_status_file->subjects).size(), 1);
@@ -305,23 +303,20 @@ TEST(log, LogStatusFileFromLog) {
 
 
 TEST(log, LogStatusFileFromFileAllStatusesTrueByDefault) {
-    using TestLogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
-    TestLogT log;
 
     auto status_file_filename = "LogStatusFileFromFileAllStatusesTrueByDefault";
 
-    // Create LogStatusFile object and don't erad anything that is already there.  This is so that the defaults
+    // Create LogStatusFile object and don't read anything that is already there.  This is so that the defaults
     //   are written out
-    ::xl::log::LogStatusFile other(status_file_filename, true);
+    ::xl::log::LogStatusFile other(status_file_filename, StatusFile::RESET_FILE_CONTENTS);
     other.write();
 
-    // create a logging object using the same file as was just created - and skip_read is false so the default data
-    //   which was just written is read
-    log.enable_status_file(status_file_filename, false); // do not force status reset - load what was just written
-
     // there shouldn't be any levels/subjects listed, just the boolean version of the variant
-    EXPECT_TRUE(std::get<bool>(log.log_status_file->subjects));
-    EXPECT_TRUE(std::get<bool>(log.log_status_file->levels));
+    EXPECT_TRUE(std::get<bool>(other.subjects));
+    EXPECT_TRUE(std::get<bool>(other.levels));
+
+    using TestLogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+    TestLogT log(status_file_filename);
 
     for (auto level : TestLogT::levels()) {
         EXPECT_TRUE(log.get_status(level));
@@ -332,21 +327,47 @@ TEST(log, LogStatusFileFromFileAllStatusesTrueByDefault) {
 }
 
 
+TEST(log, LogStatusShouldBeEnumeratedWhenActualLogObjectCreated) {
+
+    auto status_file_filename = "LogStatusFLogStatusShouldBeEnumeratedWhenActualLogObjectCreatedileFromFileAllStatusesSetToFalse";
+    ::xl::log::LogStatusFile other(status_file_filename, StatusFile::RESET_FILE_CONTENTS);
+    other.subjects = false;
+    other.levels = false;
+    other.write();
+
+
+    // there shouldn't be any levels/subjects listed, just the boolean version of the variant
+    EXPECT_FALSE(std::get<bool>(other.subjects));
+    EXPECT_FALSE(std::get<bool>(other.levels));
+
+    using TestLogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+    TestLogT log(status_file_filename, StatusFile::USE_FILE_CONTENTS);
+
+
+    for (auto level : TestLogT::levels()) {
+        EXPECT_FALSE(log.get_status(level));
+    }
+    for (auto subject : TestLogT::subjects()) {
+        EXPECT_FALSE(log.get_status(subject));
+    }
+}
+
 TEST(log, LogStatusFileFromFileAllStatusesSetToFalse) {
     using TestLogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
     TestLogT log;
 
     auto status_file_filename = "LogStatusFileFromFileAllStatusesSetToFalse";
-    ::xl::log::LogStatusFile other(status_file_filename, true);
+    ::xl::log::LogStatusFile other(status_file_filename, StatusFile::RESET_FILE_CONTENTS);
     other.subjects = false;
     other.levels = false;
     other.write();
 
-    log.enable_status_file(status_file_filename, false); // do not force status reset - load what was just written
 
     // there shouldn't be any levels/subjects listed, just the boolean version of the variant
-    EXPECT_FALSE(std::get<bool>(log.log_status_file->subjects));
-    EXPECT_FALSE(std::get<bool>(log.log_status_file->levels));
+    EXPECT_FALSE(std::get<bool>(other.subjects));
+    EXPECT_FALSE(std::get<bool>(other.levels));
+    
+    log.enable_status_file(status_file_filename);
 
     for (auto level : TestLogT::levels()) {
         EXPECT_FALSE(log.get_status(level));
@@ -358,6 +379,78 @@ TEST(log, LogStatusFileFromFileAllStatusesSetToFalse) {
 
 
 
+
+
+TEST(log, LogStatusFileFromFileAllStatusesSetToFalseIndividually) {
+    using TestLogT = xl::log::Log<xl::log::DefaultLevels, CustomSubjects>;
+    TestLogT log;
+    int counter = 0;
+    log.add_callback([&counter](auto&&){counter++;});
+
+    auto status_file_filename = "LogStatusFileFromFileAllStatusesSetToFalse";
+    
+    TestLogT other_log;
+    other_log.enable_status_file(status_file_filename, StatusFile::USE_FILE_CONTENTS);
+    for (auto level : TestLogT::levels()) {
+        other_log.set_status(level, false);
+    }
+    for (auto subject : TestLogT::subjects()) {
+        other_log.set_status(subject, false);
+    }
+    other_log.log_status_file->write();
+    
+
+    log.enable_status_file(status_file_filename, StatusFile::USE_FILE_CONTENTS); // do not force status reset - load what was just written
+    
+    // there shouldn't be any levels/subjects listed, just the boolean version of the variant
+    for (auto level : TestLogT::levels()) {
+        EXPECT_FALSE(log.get_status(level));
+        log.log(level, CustomSubjects::Subjects::CustomSubject1, "this should be ignored");
+    }
+    for (auto subject : TestLogT::subjects()) {
+        EXPECT_FALSE(log.get_status(subject));
+        log.log(TestLogT::Levels::Info, subject, "this should be ignored");
+    }
+    
+    EXPECT_EQ(counter, 0);
+}
+
+
+
+
+TEST(log, LogStatusFileFromFileSomeStatusesTrueSomeFalse) {
+    using TestLogT = xl::log::Log<xl::log::DefaultLevels, CustomSubjects>;
+    TestLogT log;
+    int counter = 0;
+    log.add_callback([&counter](auto&&){counter++;});
+
+    auto status_file_filename = "LogStatusFileFromFileAllStatusesSetToFalse";
+
+    TestLogT other_log;
+    other_log.enable_status_file(status_file_filename, StatusFile::USE_FILE_CONTENTS);
+    for (auto level : TestLogT::levels()) {
+        other_log.set_status(level, level == TestLogT::Levels::Warn);
+    }
+    for (auto subject : TestLogT::subjects()) {
+        other_log.set_status(subject, subject == TestLogT::Subjects::CustomSubject3);
+    }
+    other_log.log_status_file->write();
+
+
+    log.enable_status_file(status_file_filename, StatusFile::USE_FILE_CONTENTS); // do not force status reset - load what was just written
+
+    // there shouldn't be any levels/subjects listed, just the boolean version of the variant
+    for (auto level : TestLogT::levels()) {
+        EXPECT_EQ(log.get_status(level), level == TestLogT::Levels::Warn);
+        log.log(level, CustomSubjects::Subjects::CustomSubject3, "this might be ignored");
+    }
+    for (auto subject : TestLogT::subjects()) {
+        EXPECT_EQ(log.get_status(subject), subject == TestLogT::Subjects::CustomSubject3);
+        log.log(TestLogT::Levels::Warn, subject, "this might be ignored");
+    }
+
+    EXPECT_EQ(counter, 2);
+}
 
 
 TEST(log, templates) {

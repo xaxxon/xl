@@ -282,3 +282,7 @@ TEST(LibraryExtensions, Find) {
     }
 }
 
+
+static_assert(std::is_same_v<dereferenced_type_t<int*>, int>);
+static_assert(std::is_same_v<dereferenced_type_t<std::unique_ptr<char>>, char>);
+static_assert(std::is_same_v<dereferenced_type_t<int>, int>);

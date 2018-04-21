@@ -5,6 +5,7 @@
 #include <chrono>
 #include <fmt/ostream.h>
 #include <fstream>
+#include <variant>
 
 #include "../exceptions.h"
 #include "../regexer.h"
@@ -13,8 +14,14 @@
 #include "log_enum_bases.h"
 
 
-
 namespace xl::log {
+
+/**
+ * Whether the contents of an existing log status file should be used to initialize
+ * the log status or if it should be overwritten with new values
+ */
+enum class StatusFile {RESET_FILE_CONTENTS = 0, USE_FILE_CONTENTS};
+
 
 namespace fs = std::experimental::filesystem;
 using namespace std::chrono_literals;
@@ -69,8 +76,8 @@ public:
 
 
 
-    LogStatusFile(std::string filename, bool skip_read = false) : filename(filename), status_file(filename) {
-        if (std::experimental::filesystem::exists(this->status_file) && !skip_read) {
+    LogStatusFile(std::string filename, StatusFile status_file_flag) : filename(filename), status_file(filename) {
+        if (std::experimental::filesystem::exists(this->status_file) && status_file_flag == StatusFile::USE_FILE_CONTENTS) {
             this->read();
         } else {
             // write out default config
@@ -79,10 +86,12 @@ public:
     }
 
     template<typename LevelsT, typename SubjectsT, typename Clock>
-    LogStatusFile(Log<LevelsT, SubjectsT, Clock> const & log, std::string filename, bool skip_read) :
-        LogStatusFile(filename, skip_read)
+    LogStatusFile(Log<LevelsT, SubjectsT, Clock> const & log, std::string filename, StatusFile status_file_flag) :
+        LogStatusFile(filename, status_file_flag)
     {
-        if (!std::experimental::filesystem::exists(this->status_file) || skip_read) {
+        // If the file doesn't exist or user specified not to use it then write out the current state of the log
+        //   object this object is attached to
+        if (!std::experimental::filesystem::exists(this->status_file) || status_file_flag == StatusFile::RESET_FILE_CONTENTS) {
             this->initialize_from_log(log);
             this->write();
         }
@@ -123,7 +132,7 @@ public:
         }
         std::string log_status_file_contents((std::istreambuf_iterator<char>(file)),
                                                     std::istreambuf_iterator<char>());
-
+//        std::cerr << fmt::format("Just loaded log status file contents: {}", log_status_file_contents) << std::endl;
         xl::json::Json log_status(log_status_file_contents);
 
         if (auto regex = log_status["regex"].get_string()) {
@@ -139,7 +148,6 @@ public:
         if (log_status["levels"].get_array()) {
             this->levels = Statuses{};
             for (auto level : log_status["levels"].as_array()) {
-                std::get<Statuses>(this->levels).reserve(100);
                 auto name = level.as_object()["name"].get_string();
                 auto status = level.as_object()["status"].get_boolean();
                 if (!name || !status) {
