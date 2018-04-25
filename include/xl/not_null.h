@@ -12,24 +12,30 @@ namespace xl
 {
 
 
-template <class T>
+template <typename T>
 class not_null
 {
 
 public:
-    template <typename U, typename = typename std::enable_if<std::is_convertible_v<T, U>>
-    constexpr not_null(U&& u) : ptr_(std::forward<U>(u))
+    
+    using pointer = T;
+    
+    template <typename U, typename = std::enable_if<std::is_convertible_v<T, U>>>
+    constexpr not_null(U && u) : ptr_(std::forward<U>(u))
     {
-        Expects(ptr_ != nullptr);
+        if (__builtin_expect(ptr_ == nullptr, 0)) {
+            assert(false);
+            exit(0);
+        }
     }
 
-    template <typename U, typename = std::enable_if_t<std::is_convertible<U, T>::value>>
-    constexpr not_null(const not_null<U>& other) : not_null(other.get())
+    template <typename U, typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+    constexpr not_null(not_null<U> const & other) : not_null(other.get())
     {}
 
-    not_null(not_null&& other) = default;
-    not_null(const not_null& other) = default;
-    not_null& operator=(const not_null& other) = default;
+    not_null(not_null && other) = default;
+    not_null(not_null const & other) = default;
+    not_null& operator=(not_null const & other) = default;
 
     
     constexpr T const & get() const
@@ -64,67 +70,70 @@ private:
     T ptr_;
 };
 
-template <class T>
+template <typename T>
 std::ostream& operator<<(std::ostream& os, const not_null<T>& val)
 {
     os << val.get();
     return os;
 }
 
-template <class T, class U>
+template <typename T, typename U>
 auto operator==(const not_null<T>& lhs, const not_null<U>& rhs) -> decltype(lhs.get() == rhs.get())
 {
     return lhs.get() == rhs.get();
 }
 
-template <class T, class U>
+template <typename T, typename U>
 auto operator!=(const not_null<T>& lhs, const not_null<U>& rhs) -> decltype(lhs.get() != rhs.get())
 {
     return lhs.get() != rhs.get();
 }
 
-template <class T, class U>
+template <typename T, typename U>
 auto operator<(const not_null<T>& lhs, const not_null<U>& rhs) -> decltype(lhs.get() < rhs.get())
 {
     return lhs.get() < rhs.get();
 }
 
-template <class T, class U>
+template <typename T, typename U>
 auto operator<=(const not_null<T>& lhs, const not_null<U>& rhs) -> decltype(lhs.get() <= rhs.get())
 {
     return lhs.get() <= rhs.get();
 }
 
-template <class T, class U>
+template <typename T, typename U>
 auto operator>(const not_null<T>& lhs, const not_null<U>& rhs) -> decltype(lhs.get() > rhs.get())
 {
     return lhs.get() > rhs.get();
 }
 
-template <class T, class U>
+template <typename T, typename U>
 auto operator>=(const not_null<T>& lhs, const not_null<U>& rhs) -> decltype(lhs.get() >= rhs.get())
 {
     return lhs.get() >= rhs.get();
 }
 
 // more unwanted operators
-template <class T, class U>
+template <typename T, typename U>
 std::ptrdiff_t operator-(const not_null<T>&, const not_null<U>&) = delete;
-template <class T>
+template <typename T>
 not_null<T> operator-(const not_null<T>&, std::ptrdiff_t) = delete;
-template <class T>
+template <typename T>
 not_null<T> operator+(const not_null<T>&, std::ptrdiff_t) = delete;
-template <class T>
+template <typename T>
 not_null<T> operator+(std::ptrdiff_t, const not_null<T>&) = delete;
 
-} // namespace gsl
+} 
 
 namespace std
 {
-template <class T>
-struct hash<gsl::not_null<T>>
+
+template <typename T>
+struct hash<xl::not_null<T>>
 {
-    std::size_t operator()(const gsl::not_null<T>& value) const { return hash<T>{}(value); }
+    std::size_t operator()(xl::not_null<T> const & value) const { 
+        return hash<T>{}(value); 
+    }
 };
 
 } // namespace std

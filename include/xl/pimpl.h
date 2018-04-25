@@ -101,7 +101,7 @@ struct RunLaterData {
 		this->impl.get_deleter() = [](auto ptr) {		\
 		    delete reinterpret_cast<Allocation *>(ptr);		\
 		};							\
-		::new(static_cast<Pimpl*>(reinterpret_cast<Pimpl *>(static_cast<PimplHolder *>(new_run_later)))) Pimpl(f); \
+
 	    };								\
 	    return new_run_later;					\
 	}())
