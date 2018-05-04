@@ -492,6 +492,7 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("provider iterator iterating through container of size {}", t.size());
             for (auto & element : t) {
 
+
                 auto p = Provider<make_reference_wrapper_t<
                     match_const_of_t<
                         remove_refs_and_wrapper_t<ValueT>,

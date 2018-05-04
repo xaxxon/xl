@@ -579,6 +579,16 @@ template<class T>
 using remove_refs_and_wrapper_t = typename remove_refs_and_wrapper<T>::type;
 
 
+template<class T, class U>
+struct match_cv_of {
+    using volatile_match = std::conditional_t<std::is_volatile_v<U>, std::add_volatile_t<T>, T>;
+    using type = std::conditional_t<std::is_const_v<U>, std::add_const_t<volatile_match>, volatile_match>;
+};
+
+template<class T, class U>
+using match_cv_of_t = typename match_cv_of<T, U>::type;
+
+
 
 
 template<class T, class U>
@@ -713,20 +723,6 @@ constexpr bool is_string_like_v = is_string_like<T>::value;
  template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
  
  
-/**
- * Returns the specific class associated with the given pointer-to-member-function provided
- * @tparam f 
- */
-template<auto f>
-struct pointer_to_member_function_class;
-
-template<typename R, typename C, typename...Args, R(C::*f)(Args...)>
-struct pointer_to_member_function_class<f> {
-    using type = C;
-};
-
-template<auto f>
-using pointer_to_member_function_class_t = typename pointer_to_member_function_class<f>::type;
 
 
 template<typename T, typename = void>

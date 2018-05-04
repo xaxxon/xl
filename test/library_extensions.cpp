@@ -286,3 +286,227 @@ TEST(LibraryExtensions, Find) {
 static_assert(std::is_same_v<dereferenced_type_t<int*>, int>);
 static_assert(std::is_same_v<dereferenced_type_t<std::unique_ptr<char>>, char>);
 static_assert(std::is_same_v<dereferenced_type_t<int>, int>);
+
+
+#include "member_function_type_traits.h"
+
+struct MemberFunctionsClass {
+    void f1() {}
+    void f2() const {}
+    void f3() volatile {}
+    void f4() const volatile {}
+
+    void f1_lv() & {}
+    void f2_lv() const & {}
+    void f3_lv() volatile & {}
+    void f4_lv() const volatile & {}
+
+    void f1_rv() && {}
+    void f2_rv() const && {}
+    void f3_rv() volatile && {}
+    void f4_rv() const volatile && {}
+
+    void f1_noexcept() noexcept {}
+    void f2_noexcept() const noexcept {}
+    void f3_noexcept() volatile noexcept {}
+    void f4_noexcept() const volatile noexcept {}
+};
+
+
+TEST(member_function_type_traits, f1) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f1)>;
+    EXPECT_TRUE(T::const_v == false);
+    EXPECT_TRUE(T::volatile_v == false);
+    EXPECT_TRUE(T::lvalue_qualified == false);
+    EXPECT_TRUE(T::rvalue_qualified == false);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_FALSE(T::noexcept_v);
+
+}
+TEST(member_function_type_traits, f2) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f2)>;
+    EXPECT_TRUE(T::const_v == true);
+    EXPECT_TRUE(T::volatile_v == false);
+    EXPECT_TRUE(T::lvalue_qualified == false);
+    EXPECT_TRUE(T::rvalue_qualified == false);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_FALSE(T::noexcept_v);
+
+}
+TEST(member_function_type_traits, f3) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f3)>;
+    EXPECT_TRUE(T::const_v == false);
+    EXPECT_TRUE(T::volatile_v == true);
+    EXPECT_TRUE(T::lvalue_qualified == false);
+    EXPECT_TRUE(T::rvalue_qualified == false);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_FALSE(T::noexcept_v);
+
+}
+TEST(member_function_type_traits, f4) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f4)>;
+    EXPECT_TRUE(T::const_v == true);
+    EXPECT_TRUE(T::volatile_v == true);
+    EXPECT_TRUE(T::lvalue_qualified == false);
+    EXPECT_TRUE(T::rvalue_qualified == false);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_FALSE(T::noexcept_v);
+
+}
+
+// lvalue tests
+TEST(member_function_type_traits, f1_lv) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f1_lv)>;
+    EXPECT_TRUE(T::const_v == false);
+    EXPECT_TRUE(T::volatile_v == false);
+    EXPECT_TRUE(T::lvalue_qualified == true);
+    EXPECT_TRUE(T::rvalue_qualified == false);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_FALSE(T::noexcept_v);
+
+}
+TEST(member_function_type_traits, f2_lv) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f2_lv)>;
+    EXPECT_TRUE(T::const_v == true);
+    EXPECT_TRUE(T::volatile_v == false);
+    EXPECT_TRUE(T::lvalue_qualified == true);
+    EXPECT_TRUE(T::rvalue_qualified == false);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_FALSE(T::noexcept_v);
+
+}
+TEST(member_function_type_traits, f3_lv) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f3_lv)>;
+    EXPECT_TRUE(T::const_v == false);
+    EXPECT_TRUE(T::volatile_v == true);
+    EXPECT_TRUE(T::lvalue_qualified == true);
+    EXPECT_TRUE(T::rvalue_qualified == false);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_FALSE(T::noexcept_v);
+
+}
+TEST(member_function_type_traits, f4_lv) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f4_lv)>;
+    EXPECT_TRUE(T::const_v == true);
+    EXPECT_TRUE(T::volatile_v == true);
+    EXPECT_TRUE(T::lvalue_qualified == true);
+    EXPECT_TRUE(T::rvalue_qualified == false);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_FALSE(T::noexcept_v);
+
+}
+
+// rvalue tests
+TEST(member_function_type_traits, f1_rv) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f1_rv)>;
+    EXPECT_TRUE(T::const_v == false);
+    EXPECT_TRUE(T::volatile_v == false);
+    EXPECT_TRUE(T::lvalue_qualified == false);
+    EXPECT_TRUE(T::rvalue_qualified == true);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_FALSE(T::noexcept_v);
+}
+
+TEST(member_function_type_traits, f2_rv) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f2_rv)>;
+    EXPECT_TRUE(T::const_v == true);
+    EXPECT_TRUE(T::volatile_v == false);
+    EXPECT_TRUE(T::lvalue_qualified == false);
+    EXPECT_TRUE(T::rvalue_qualified == true);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_FALSE(T::noexcept_v);
+
+}
+TEST(member_function_type_traits, f3_rv) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f3_rv)>;
+    EXPECT_TRUE(T::const_v == false);
+    EXPECT_TRUE(T::volatile_v == true);
+    EXPECT_TRUE(T::lvalue_qualified == false);
+    EXPECT_TRUE(T::rvalue_qualified == true);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_FALSE(T::noexcept_v);
+
+}
+TEST(member_function_type_traits, f4_rv) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f4_rv)>;
+    EXPECT_TRUE(T::const_v == true);
+    EXPECT_TRUE(T::volatile_v == true);
+    EXPECT_TRUE(T::lvalue_qualified == false);
+    EXPECT_TRUE(T::rvalue_qualified == true);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_FALSE(T::noexcept_v);
+
+}
+
+// noexcept
+TEST(member_function_type_traits, f1_noexcept) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f1_noexcept)>;
+    EXPECT_TRUE(T::const_v == false);
+    EXPECT_TRUE(T::volatile_v == false);
+    EXPECT_TRUE(T::lvalue_qualified == false);
+    EXPECT_TRUE(T::rvalue_qualified == false);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_TRUE(T::noexcept_v);
+}
+TEST(member_function_type_traits, f2_noexcept) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f2_noexcept)>;
+    EXPECT_TRUE(T::const_v == true);
+    EXPECT_TRUE(T::volatile_v == false);
+    EXPECT_TRUE(T::lvalue_qualified == false);
+    EXPECT_TRUE(T::rvalue_qualified == false);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_TRUE(T::noexcept_v);
+
+}
+TEST(member_function_type_traits, f3_noexcept) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f3_noexcept)>;
+    EXPECT_TRUE(T::const_v == false);
+    EXPECT_TRUE(T::volatile_v == true);
+    EXPECT_TRUE(T::lvalue_qualified == false);
+    EXPECT_TRUE(T::rvalue_qualified == false);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_TRUE(T::noexcept_v);
+
+}
+TEST(member_function_type_traits, f4_noexcept) {
+    using T = pointer_to_member_function<decltype(&MemberFunctionsClass::f4_noexcept)>;
+    EXPECT_TRUE(T::const_v == true);
+    EXPECT_TRUE(T::volatile_v == true);
+    EXPECT_TRUE(T::lvalue_qualified == false);
+    EXPECT_TRUE(T::rvalue_qualified == false);
+    static_assert(std::is_same_v<T::return_type, void>);
+    static_assert(std::is_same_v<T::class_type, MemberFunctionsClass>);
+    EXPECT_EQ(T::arity, 0);
+    EXPECT_TRUE(T::noexcept_v);
+}
+

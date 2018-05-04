@@ -26,7 +26,7 @@ public:
 
     CharT const * c_str() const {return this->data();}
 
-    operator std::basic_string<CharT>() const {return std::basic_string<CharT>(*this);}
+    operator std::basic_string<CharT>() const {return std::basic_string<CharT>(this->data(), this->length());}
 };
 
 using zstring_view = basic_zstring_view<char>;
@@ -43,12 +43,11 @@ class basic_string_view : public ::std::basic_string_view<CharT, Traits> {
 public:
     using std::basic_string_view<CharT, Traits>::basic_string_view;
 
-    operator std::basic_string<CharT>() const {return std::basic_string<CharT>(*this);}
+    operator std::basic_string<CharT>() const {return std::basic_string<CharT>(this->data(), this->length());}
 
     basic_string_view(std::basic_string<CharT> const & std_string) :
         std::basic_string_view<CharT, Traits>(std_string.data(), std_string.length())
     {}
-
 };
 
 
