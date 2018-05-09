@@ -15,6 +15,7 @@ using namespace xl::templates;
 using namespace std;
 
 
+
 TEST(template, EmptyTemplate) {
     EXPECT_EQ(Template("").fill(), "");
 }
@@ -60,13 +61,15 @@ TEST(template, MultipleSubstitutionsDifferentNameTemplate) {
     EXPECT_EQ(Template("replace: {{TEST1}} and: {{TEST2}}").fill(make_provider(std::pair{"TEST1", "REPLACEMENT1"},std::pair{"TEST2", "REPLACEMENT2"})),
               "replace: REPLACEMENT1 and: REPLACEMENT2" );
 }
+
+
 TEST(template, CallbackSubstitutionTemplate) {
     auto m = make_provider(std::pair{"TEST", std::function<std::string()>([](){return std::string("REPLACEMENT-CALLBACK");})});
     EXPECT_EQ(Template("replace: {{TEST}}").fill(m),
               "replace: REPLACEMENT-CALLBACK");
 
     {
-        auto result = Template("{{set|!{{dummy}}}}").fill(
+        auto result = Template("{{set|!{{}}}}").fill(
            make_provider(std::pair("set", [](){return std::set<string>{"a", "b", "c"};})));
         EXPECT_EQ(result, "a\nb\nc");
     }
@@ -513,6 +516,43 @@ TEST(template, ProviderContainers) {
 }
 
 
+TEST(template, ProviderContainersReUse) {
+    {
+        
+        // with two pairs, it calls 
+        // ProviderPtr make_provider(Ts&&... ts) {
+        // then:
+        // **WITH BOTH PAIRS**
+//        std::__1::unique_ptr<
+//            xl::templates::Provider_Interface, std::__1::default_delete<xl::templates::Provider_Interface> 
+//        > 
+//        xl::templates::DefaultProviders<Impl1>::make_provider<
+//            std::__1::pair<char const*, std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > > >, 
+//            std::__1::pair<char const*, std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > > >, 
+//                0>
+//            (std::__1::pair<char const*, std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > > >&&, 
+//             std::__1::pair<char const*, std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > > >&&)
+        // with one pair:
+        // ProviderPtr make_provider(Ts&&... ts) {
+        //   then
+        // static ProviderPtr make_provider(T && t) {
+
+        // difference is that the with > 1 pair, it creates a map with the second type being a ProviderPtr, a unique_ptr.
+        // when passed into fill, source is a unique_ptr to a provider which is a map of unique pointers
+        // on subsequent call to fill with the unique_ptr from the selected key's value, it calls make_provider and moves
+        //   out of that unique_ptr right into another unique_ptr - losing the values associated with the key
+        
+            auto result = Template("{{container|!{{}}}} {{container|!{{}}}}").fill<Impl1>(make_provider<Impl1>(
+            std::pair("container2", std::vector<std::string>{"one", "two", "three"}),
+            std::pair("container", std::vector<std::string>{"one", "two", "three"})
+        ));
+        EXPECT_EQ(result, "one\ntwo\nthree one\ntwo\nthree");
+    }
+   
+}
+
+
+
 // test the T* Provider
 TEST(template, ContainerOfPointers) {
     HasProvider a("a"), b("b"), c("c"), d("d");
@@ -528,7 +568,7 @@ TEST(template, PointerProviderForUncopyable) {
     Uncopyable u;
     auto p = DefaultProviders<void>::Provider<Uncopyable*>(&u);
 
-    ProviderData data;
+    Substitution data;
     data.name = "A";
     p(data);
 }

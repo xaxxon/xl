@@ -16,7 +16,7 @@ using TemplateMap = std::map<std::string, Template>;
  * All the data needed to complete a specific replacement.  Initially created during Template compilation
  *   and then used each time the template is filled
  */
-struct ProviderData {
+struct Substitution {
 
     /// name to look up in the provider for a replacement value
     std::string name = "";
@@ -54,21 +54,21 @@ struct ProviderData {
     Template const * current_template = nullptr;
 
 
-    ProviderData(TemplateMap const * templates) : templates(templates)
+    Substitution(TemplateMap const * templates) : templates(templates)
     {}
 
 
-    ProviderData() {
-//        std::cerr << fmt::format("Created ProviderData at {}", (void*)this) << std::endl;
+    Substitution() {
+//        std::cerr << fmt::format("Created Substitution at {}", (void*)this) << std::endl;
     }
 
 
-    ~ProviderData(){
+    ~Substitution(){
 //        std::cerr << fmt::format("providerdata destructor for {}", (void*)this) << std::endl;
     }
 
 
-    ProviderData(ProviderData const &) = default;
+    Substitution(Substitution const &) = default;
 };
 
 

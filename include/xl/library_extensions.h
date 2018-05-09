@@ -611,6 +611,12 @@ struct make_reference_wrapper<std::reference_wrapper<T>> {
 };
 
 template<class T>
+struct make_reference_wrapper<std::reference_wrapper<T> const> {
+    using type = std::reference_wrapper<T> const;
+};
+
+
+template<class T>
 using make_reference_wrapper_t = typename make_reference_wrapper<T>::type;
 
 

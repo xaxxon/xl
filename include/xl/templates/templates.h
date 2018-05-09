@@ -29,7 +29,7 @@ namespace xl::templates {
 
 
 
-struct ProviderData;
+struct Substitution;
 class Provider_Interface;
 
 
@@ -41,7 +41,7 @@ private:
     mutable std::vector<std::string> compiled_static_strings;
 
     // substitutions in the template
-    mutable std::vector<ProviderData> compiled_substitutions;
+    std::vector<Substitution> compiled_substitutions;
 
     // sum of the length of all the fixed portions of the template
     mutable size_t minimum_result_length = 0;
@@ -53,8 +53,11 @@ public:
     inline char const * c_str() const { return this->_tmpl.c_str(); }
 
 
-    template<class ProviderContainer = void, class T = std::string>
-    std::string fill(T && source = T{}, ProviderData && = {}) const;
+    template<class ProviderContainer = void, class T = std::string, typename = std::enable_if_t<!std::is_base_of_v<Provider_Interface, std::decay_t<T>>>>
+    std::string fill(T && source = T{}, Substitution && = {}) const;
+
+    template <typename ProviderContainer = void>
+    std::string fill(Provider_Interface const & source, Substitution && input_data) const;
 
     // compiles the template for faster processing
     // benchmarks showed ~200x improvement when re-using templates 1000 times
@@ -77,36 +80,43 @@ namespace xl::templates {
 
 class provider_data;
 
-template<typename ProviderContainer, class T>
-std::string Template::fill(T && source, ProviderData && input_data) const {
+template<class T>
+struct p;
+
+template<typename ProviderContainer, class T, typename>
+std::string Template::fill(T && source, Substitution && input_data) const {
 
     XL_TEMPLATE_LOG("Filling template: '{}'", this->c_str());
 
-    if (!this->is_compiled()) {
-        this->compile();
-    }
-
     // used for storing the provider if necessary
     std::unique_ptr<Provider_Interface> provider_interface_unique_pointer;
-
     // used for consistent interface for assigning to reference later
     Provider_Interface * provider_interface_pointer;
     if constexpr(std::is_base_of_v<Provider_Interface, std::decay_t<T>>) {
-        provider_interface_pointer = & source;
+        assert(false); // this shouldn't happen anymore?
+        provider_interface_pointer = &source;
         assert(provider_interface_pointer != nullptr);
 
+    } else if constexpr(std::is_same_v<ProviderPtr, std::decay_t<T>>) {
+        provider_interface_pointer = source.get();
     } else {
 
         // need to store the unique_ptr to maintain object lifetime then assign to normal pointer
         //   so there is a common way to get the object below for assignment to reference type
         provider_interface_unique_pointer = DefaultProviders<ProviderContainer>::template make_provider(source);
-        XL_TEMPLATE_LOG("**** got unique ptr at {}", (void*)provider_interface_unique_pointer.get());
+        XL_TEMPLATE_LOG("**** got unique ptr at {}", (void *) provider_interface_unique_pointer.get());
         provider_interface_pointer = provider_interface_unique_pointer.get();
+
+        /**
+         * IF THIS IS FIRING, PERHAPS YOU ARE USING AN RVALUE PROVIDER MULTIPLE TIMES
+         */
         assert(provider_interface_pointer != nullptr);
-        XL_TEMPLATE_LOG("**** set provider interface pointer to {}", (void*)provider_interface_pointer);
+
+
+        XL_TEMPLATE_LOG("**** set provider interface pointer to {}", (void *) provider_interface_pointer);
     }
 
-    XL_TEMPLATE_LOG("outside: provider interface pointer to {}", (void*)provider_interface_pointer);
+    XL_TEMPLATE_LOG("outside: provider interface pointer to {}", (void *) provider_interface_pointer);
 
     if (!provider_interface_pointer->is_fillable_provider()) {
         auto fillable_provider = provider_interface_pointer->get_fillable_provider();
@@ -114,9 +124,20 @@ std::string Template::fill(T && source, ProviderData && input_data) const {
         provider_interface_pointer = provider_interface_unique_pointer.get();
     }
 
+    
+    return fill<ProviderContainer>(*provider_interface_pointer, std::move(input_data));
+}
+
+template <typename ProviderContainer>
+std::string Template::fill(Provider_Interface const & provider, Substitution && input_data) const {
+
+
+    if (!this->is_compiled()) {
+        this->compile();
+    }
+
 
     // whichever way the object was provided, get a reference to the object for convenience here
-    Provider_Interface & provider = *provider_interface_pointer;
 
     if (provider.is_template_passthrough()) {
         return provider(input_data);
@@ -133,55 +154,55 @@ std::string Template::fill(T && source, ProviderData && input_data) const {
         XL_TEMPLATE_LOG("fill: just added static section {}: '{}'", i, this->compiled_static_strings[i]);
 
         if (this->compiled_substitutions.size() > i) {
-            ProviderData data(this->compiled_substitutions[i]);
+            Substitution current_substitution(this->compiled_substitutions[i]);
             XL_TEMPLATE_LOG("grabbed data for compiled_subsitution {} - it has name {} and inline template: {}",
-                            i, data.name, (void*)data.inline_template.get());
-            data.templates = input_data.templates;
-            data.current_template = this;
-            XL_TEMPLATE_LOG("substitution instantiation data.name: '{}'", data.name);
+                            i, current_substitution.name, (void*)current_substitution.inline_template.get());
+            current_substitution.templates = input_data.templates;
+            current_substitution.current_template = this;
+            XL_TEMPLATE_LOG("substitution instantiation data.name: '{}'", current_substitution.name);
 
             // substituting another template in
-            if (data.template_name != "") {
+            if (current_substitution.template_name != "") {
                 if (input_data.templates->empty()) {
-                    throw TemplateException("Cannot refer to another template if no other templates specified: " + data.template_name);
+                    throw TemplateException("Cannot refer to another template if no other templates specified: " + current_substitution.template_name);
                 }
-                auto template_iterator = input_data.templates->find(data.template_name);
+                auto template_iterator = input_data.templates->find(current_substitution.template_name);
                 if (template_iterator == input_data.templates->end()) {
-                    throw TemplateException("No template found named: {}", data.template_name);
+                    throw TemplateException("No template found named: {}", current_substitution.template_name);
                 }
                 auto inline_template_result = template_iterator->second.fill<ProviderContainer>(provider, input_data.templates);
                 if (!inline_template_result.empty()) {
-                    result.insert(result.end(), data.contingent_leading_content.begin(), data.contingent_leading_content.end());
+                    result.insert(result.end(), current_substitution.contingent_leading_content.begin(), current_substitution.contingent_leading_content.end());
                 }
                 result.insert(result.end(), begin(inline_template_result), end(inline_template_result));
                 if (!inline_template_result.empty()) {
-                    result.insert(result.end(), data.contingent_trailing_content.begin(), data.contingent_trailing_content.end());
+                    result.insert(result.end(), current_substitution.contingent_trailing_content.begin(), current_substitution.contingent_trailing_content.end());
                 }
             }
             // filling a template
             else {
 
-                if (data.comment) {
+                if (current_substitution.comment) {
                     XL_TEMPLATE_LOG("Handled comment");
                 } else {
 
-                    XL_TEMPLATE_LOG("created ProviderData data on the stack at {}", (void *) &data);
+                    XL_TEMPLATE_LOG("created Substitution data on the stack at {}", (void *) &current_substitution);
 
                     XL_TEMPLATE_LOG("about to call provider() named '{}' at {} and inline_template: {}",
-                                    provider.get_name(), (void *) &provider, (void *) data.inline_template.get());
-                    auto substitution_result = provider(data);
+                                    provider.get_name(), (void *) &provider, (void *) current_substitution.inline_template.get());
+                    auto substitution_result = provider(current_substitution);
                     XL_TEMPLATE_LOG("provider() named {} returned: '{}'", provider.get_name(), substitution_result);
-                    if (!data.contingent_leading_content.empty() && !substitution_result.empty()) {
-                        XL_TEMPLATE_LOG("adding contingent data: {}", data.contingent_leading_content);
+                    if (!current_substitution.contingent_leading_content.empty() && !substitution_result.empty()) {
+                        XL_TEMPLATE_LOG("adding contingent data: {}", current_substitution.contingent_leading_content);
 
-                        result.insert(result.end(), data.contingent_leading_content.begin(),
-                                      data.contingent_leading_content.end());
+                        result.insert(result.end(), current_substitution.contingent_leading_content.begin(),
+                                      current_substitution.contingent_leading_content.end());
                     }
                     result.insert(result.end(), substitution_result.begin(), substitution_result.end());
-                    if (!data.contingent_trailing_content.empty() && !substitution_result.empty()) {
-                        XL_TEMPLATE_LOG("inserting trailing content: {}", data.contingent_trailing_content);
-                        result.insert(result.end(), data.contingent_trailing_content.begin(),
-                                      data.contingent_trailing_content.end());
+                    if (!current_substitution.contingent_trailing_content.empty() && !substitution_result.empty()) {
+                        XL_TEMPLATE_LOG("inserting trailing content: {}", current_substitution.contingent_trailing_content);
+                        result.insert(result.end(), current_substitution.contingent_trailing_content.begin(),
+                                      current_substitution.contingent_trailing_content.end());
                     }
                 }
             }
@@ -197,6 +218,8 @@ bool Template::is_compiled() const {
 
 
 void Template::compile() const {
+
+    auto & compiled_substitutions = const_cast< std::vector<Substitution> &>(this->compiled_substitutions);
 
     // regex used to parse sections of a template into 0 or more pairs of leading string literal (may be empty)
     //   and a following substitution (optional)
@@ -327,7 +350,7 @@ void Template::compile() const {
 //                std::cerr << fmt::format("got '{}' and '{}'", results[1], results[2]) << std::endl;
 
                 // get previous substitution
-                this->compiled_substitutions.back().contingent_trailing_content = results[1];
+                compiled_substitutions.back().contingent_trailing_content = results[1];
 
                 literal_string = results[2];
 
@@ -372,7 +395,7 @@ void Template::compile() const {
         }
 
 
-        ProviderData data;
+        Substitution data;
 
         // if the substition is a comment, nothing else matters
         if (matches.has("Comment")) {
@@ -410,7 +433,7 @@ void Template::compile() const {
             data.template_name = matches["SubstitutionName"];
         }
 
-        this->compiled_substitutions.emplace_back(std::move(data));
+        compiled_substitutions.emplace_back(std::move(data));
     }
 //    std::cerr << fmt::format("remaining template '{}', sizes: {}", remaining_template, remaining_template.size()) << std::endl;
     assert(remaining_template.empty());

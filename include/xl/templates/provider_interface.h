@@ -18,7 +18,7 @@ using ProviderPtr = std::unique_ptr<Provider_Interface>;
  */
 class Provider_Interface {
 public:
-    virtual std::string operator()(ProviderData & data) = 0;
+    virtual std::string operator()(Substitution & data) const = 0;
 
     /**
      * A string useful for a human to figure out what Provider this is
@@ -33,7 +33,7 @@ public:
     virtual bool provides_named_lookup() {return false;}
 
 
-    virtual ProviderPtr get_named_provider(ProviderData & data) {
+    virtual ProviderPtr get_named_provider(Substitution & data) {
         throw TemplateException("Provider does not support get_named_provider call");
     };
 
@@ -47,7 +47,7 @@ public:
 
 
     // is this provider something that is fillable and does not consume a template (basically just container provider)
-    virtual bool is_template_passthrough() {
+    virtual bool is_template_passthrough() const {
         return false;
     }
 

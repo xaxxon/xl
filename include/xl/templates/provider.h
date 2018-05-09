@@ -17,53 +17,55 @@
 namespace xl::templates {
 
 
-template<typename ProviderContainer>
+template <typename ProviderContainer>
 struct DefaultProviders {
 
-    template<class T, class = void>
+    template <class T, class = void>
     class Provider {
+        using NoRefT = std::remove_reference_t<T>;
         static_assert(!std::is_pointer_v<T>, "make sure the type of the dereferenced pointer has a get_provider method for it");
-        Provider(T &&);
-        Provider(T &);
-        Provider(T *);
+        Provider(T t);
     };
+    
+    template <typename T, typename = std::enable_if_t<std::is_pointer_v<std::remove_reference_t<T>>>>
+    Provider(T) -> Provider<std::remove_reference_t<T>, void>;
+    
 
 
-
-    template<class T, class = ProviderContainer, class = void>
+    template  <class T, class = ProviderContainer, class = void>
     struct has_get_provider_in_provider_container : public std::false_type {};
 
-    template<class T, class PC_COPY>
+    template <class T, class PC_COPY>
     struct has_get_provider_in_provider_container<T, PC_COPY, std::void_t<decltype(PC_COPY::get_provider(std::declval<T>()))>> : public std::true_type {};
 
-    template<class T>
+    template <class T>
     static constexpr bool has_get_provider_in_provider_container_v = has_get_provider_in_provider_container<T>::value;
 
 
 
     // it's a provider type if it can be turned into a provider
-    template<class, class = void>
+    template <class, class = void>
     class is_provider_type : public std::false_type {
     };
 
-    template<class T>
+    template <class T>
     class is_provider_type<T, std::enable_if_t<std::is_same_v<
         std::string,
-            std::result_of_t<Provider < remove_refs_and_wrapper_t<T>>(ProviderData &)
+            std::result_of_t<Provider < remove_refs_and_wrapper_t<T>>(Substitution &)
                 >
             > // is same
         > // enable_if
     > : public std::true_type {};
 
-    template<class T>
+    template <class T>
     static constexpr bool is_provider_type_v = is_provider_type<T>::value;
 
 
-    template<class T, class = void>
+    template <class T, class = void>
     class is_provider_callback_type : public std::false_type {
     };
 
-    template<class T>
+    template <class T>
     class is_provider_callback_type<T, std::enable_if_t<
         is_provider_type_v<
             std::result_of_t<
@@ -74,29 +76,29 @@ struct DefaultProviders {
     > : public std::true_type {
     };
 
-    template<class T>
+    template <class T>
     static constexpr bool is_provider_callback_type_v = is_provider_callback_type<T>::value;
 
 
 
-    template<class, class = void>
+    template <class, class = void>
     struct has_get_provider_member : public std::false_type {
     };
-    template<class T>
+    template <class T>
     struct has_get_provider_member<T, std::enable_if_t<std::is_same_v<
         ProviderPtr,
         decltype(std::declval<T>().get_provider())>>> : public std::true_type {
     };
 
-    template<class T>
+    template <class T>
     static inline constexpr bool has_get_provider_member_v = has_get_provider_member<T>::value;
 
 
-    template<class, class = void>
+    template <class, class = void>
     struct has_get_provider_free_function : public std::false_type {
     };
 
-    template<class T>
+    template <class T>
     struct has_get_provider_free_function<T, std::enable_if_t<std::is_same_v<
         ProviderPtr,
         decltype(get_provider(std::declval<T>()))> // end is_same
@@ -104,14 +106,14 @@ struct DefaultProviders {
     > : public std::true_type {
     };
 
-    template<class T>
+    template <class T>
     static inline constexpr bool has_get_provider_free_function_v = has_get_provider_free_function<T>::value;
 
 
-    template<class, class = void>
+    template <class, class = void>
     struct can_get_provider_for_type : public std::false_type {};
 
-    template<class T>
+    template <class T>
     struct can_get_provider_for_type<T, std::enable_if_t<
         std::disjunction_v< // logical OR
             has_get_provider_member<T>,
@@ -123,20 +125,22 @@ struct DefaultProviders {
     };
 
 
-    template<class T>
+    template <class T>
     static inline constexpr bool can_get_provider_for_type_v = can_get_provider_for_type<T>::value;
 
 
+    static_assert(std::is_convertible_v<remove_reference_wrapper_t<std::reference_wrapper<const char *const>>, std::string>);
     /**
      * String provider
      * @tparam T
      */
-    template<class T>
+    template <class T>
     class Provider<T, std::enable_if_t<std::is_convertible_v<remove_reference_wrapper_t<T>, std::string>>> : public Provider_Interface {
         std::string string;
+        using WithoutRefWrapper = xl::remove_reference_wrapper_t<T>;
 
     public:
-        Provider(T string) : string(std::move(string)) {
+        Provider(WithoutRefWrapper string) : string(std::move(string)) {
             XL_TEMPLATE_LOG("Created string provider with: '{}'", this->string);
         }
 
@@ -144,7 +148,7 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("Destroyed string provider for string '{}'", this->string);
         }
 
-        std::string operator()(ProviderData & data) override {
+        std::string operator()(Substitution & data) const override {
             return this->string;
         }
 
@@ -156,7 +160,7 @@ struct DefaultProviders {
             return true;
         }
 
-        ProviderPtr get_named_provider(ProviderData & data) override {
+        ProviderPtr get_named_provider(Substitution & data) override {
             data.name.clear();
             return std::make_unique<Provider>(*this);
         }
@@ -167,10 +171,12 @@ struct DefaultProviders {
     };
 
 
-    template<class... Ts, std::enable_if_t<std::conjunction_v<is_pair<Ts>...> && !(sizeof...(Ts) <= 1), int> = 0>
+    template <class... Ts, std::enable_if_t<std::conjunction_v<is_pair<Ts>...> && !(sizeof...(Ts) <= 1), int> = 0>
     static ProviderPtr make_provider(Ts&&... pairs) {
         return ProviderPtr(
             new Provider<std::map<std::string, ProviderPtr>>(std::forward<Ts>(pairs)...));
+        
+        //             return ProviderPtr(new Provider<decltype(map)>(std::move(map)));
     };
 
 
@@ -179,20 +185,20 @@ struct DefaultProviders {
      * Callback Provider
      * @tparam T Callback type
      */
-    template<class T>
-    class Provider<T, std::enable_if_t<is_provider_callback_type_v<T>>> : public Provider_Interface {
+    template <class T>
+    class Provider<T, std::enable_if_t<is_provider_callback_type_v<std::decay_t<xl::remove_reference_wrapper_t<T>>>>> : public Provider_Interface {
 
         using NoRefT = std::remove_reference_t<T>;
-        NoRefT callback;
+        T callback;
 
         using CallbackResultT = std::remove_reference_t<std::result_of_t<T()>>;
 
     public:
-        Provider(std::remove_reference_t<T> && callback) : callback(std::move(callback)) {
+        Provider(NoRefT && callback) : callback(std::move(callback)) {
             XL_TEMPLATE_LOG("Created callback provider with rvalue callback");
         }
 
-        Provider(std::remove_reference_t<T> & callback) : callback(callback) {
+        Provider(NoRefT & callback) : callback(callback) {
             XL_TEMPLATE_LOG("Created callback provider with lvalue callback");
         }
         
@@ -201,7 +207,7 @@ struct DefaultProviders {
         }
 
 
-        std::string operator()(ProviderData & data) override {
+        std::string operator()(Substitution & data) const override {
             auto result = this->callback();
             return Provider<CallbackResultT>(std::move(result))(data);
         }
@@ -219,12 +225,16 @@ struct DefaultProviders {
                 return provider.get_fillable_provider();
             }
         }
+
+        bool is_template_passthrough() const override {
+            return true;
+        }
     };
 
 
 
 
-    template<class T>
+    template <class T>
     static ProviderPtr make_provider(T && t) {
         if constexpr(std::is_same_v<std::decay_t<T>, ProviderPtr>) {
             return std::move(t);
@@ -247,7 +257,7 @@ struct DefaultProviders {
         }
     }
 
-    template<class R, class... Args, std::enable_if_t<is_provider_type_v<R>, int> = 0>
+    template <class R, class... Args, std::enable_if_t<is_provider_type_v<R>, int> = 0>
     static ProviderPtr make_provider(R(* f)(Args...)) {
         return ProviderPtr(new Provider<std::function<R(Args...)>>(std::function<R(Args...)>(f)));
     };
@@ -260,7 +270,7 @@ struct DefaultProviders {
      * get_provider Provider
      * @tparam T type which can have get_provider called with/on it
      */
-    template<class T>
+    template <class T>
     class Provider<T, std::enable_if_t<can_get_provider_for_type_v<remove_refs_and_wrapper_t<T>>>> : public Provider_Interface {
         using NoRefT = remove_refs_and_wrapper_t<T>;
         static_assert(!std::is_pointer_v<NoRefT>, "do not make get_provider for pointer types");
@@ -282,7 +292,7 @@ struct DefaultProviders {
         }
 
 
-        std::string operator()(ProviderData & data) override {
+        std::string operator()(Substitution & data) const override {
             NoRefT & t = this->t_holder;
 
             ProviderPtr provider = get_underlying_provider();
@@ -297,7 +307,7 @@ struct DefaultProviders {
 //            }
         }
 
-        auto get_underlying_provider() {
+        auto get_underlying_provider() const {
             NoRefT & t = this->t_holder;
             if constexpr(has_get_provider_free_function_v<NoRefT>)
             {
@@ -329,7 +339,7 @@ struct DefaultProviders {
      * @tparam T
      * @tparam Deleter
      */
-    template<class T>
+    template <class T>
     class Provider<T, std::enable_if_t<is_template_for_v<std::unique_ptr, remove_reference_wrapper_t<T>>>> : public Provider_Interface {
         using UniquePtrT = remove_reference_wrapper_t<T>;
         using PointeeT = unique_ptr_type_t<UniquePtrT>;
@@ -346,8 +356,8 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("unique_ptr provider destructor called");
         }
 
-        std::string operator()(ProviderData & data) override {
-            return make_provider(t)->operator()(data);
+        std::string operator()(Substitution & data) const override {
+            return make_provider(*static_cast<UniquePtrT &>(t))->operator()(data);
         }
 
         auto get_underlying_provider() {
@@ -372,14 +382,14 @@ struct DefaultProviders {
      * Pointer Provider -- except char (const) *
      * @tparam T
      */
-    template<class T>
+    template <class T>
     class Provider<T, std::enable_if_t<
-            std::is_pointer_v<remove_reference_wrapper_t<T>> &&
-            !std::is_same_v<std::decay_t<std::remove_pointer_t<remove_reference_wrapper_t<T>>>, char>>
+            std::is_pointer_v<remove_refs_and_wrapper_t<T>> &&
+            !std::is_same_v<std::decay_t<std::remove_pointer_t<remove_refs_and_wrapper_t<T>>>, char>>
         > : public Provider_Interface
     {
 
-        using NoRefT = remove_reference_wrapper_t<T>;
+        using NoRefT = remove_refs_and_wrapper_t<T>;
         using NoPtrT = std::remove_pointer_t<NoRefT>;
 
         NoPtrT * const t;
@@ -396,7 +406,7 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("Destroyed pointer Provider for {}", (void*)this->t);
         }
 
-        std::string operator()(ProviderData & data) override {
+        std::string operator()(Substitution & data) const override {
             return Provider<make_reference_wrapper_t<NoPtrT>>(*t)(data);
         }
 
@@ -420,7 +430,7 @@ struct DefaultProviders {
      * Container Provider
      * @tparam T Container type
      */
-    template<class T>
+    template <class T>
     class Provider<T, std::enable_if_t<is_range_for_loop_able_v<remove_reference_wrapper_t<T>> &&
                                        !std::is_convertible_v<remove_reference_wrapper_t<T>, std::string> && // std::string is iteratable
                                        !is_map_v<remove_reference_wrapper_t<T>>>> // maps are handled differently
@@ -452,9 +462,9 @@ struct DefaultProviders {
         }
 
 
-        std::string operator()(ProviderData & data) override {
+        std::string operator()(Substitution & data) const override {
 
-            ContainerT & t = this->t_holder;
+            ContainerT const & t = this->t_holder;
 
 
             XL_TEMPLATE_LOG("container provider looking at substution data for: {}, {}", data.name, (bool)data.inline_template);
@@ -478,7 +488,7 @@ struct DefaultProviders {
                                 data.name);
                         }
                         throw TemplateException(
-                            fmt::format("ContainerProvider couldn't find template named: '{}'", data.parameters));
+                            fmt::format("ContainerProvider couldn't find template named: '{}' from template {}", data.parameters, data.current_template->c_str()));
                     }
                     return template_iterator->second;
                 }
@@ -511,7 +521,7 @@ struct DefaultProviders {
 
                 // each element of the container gets its own copy of data, as each should be treated identically
                 //   not based on whatever is done by a previous element
-                auto fill_result = tmpl.fill<ProviderContainer>(p, ProviderData(data));
+                auto fill_result = tmpl.fill<ProviderContainer>(p, Substitution(data));
 
                 XL_TEMPLATE_LOG("replacement is {}\n - Ignore_empty_replacements is {}", fill_result, data.ignore_empty_replacements);
                 if (fill_result == "" && data.ignore_empty_replacements) {
@@ -531,7 +541,7 @@ struct DefaultProviders {
             return true;
         }
 
-        bool is_template_passthrough() override {
+        bool is_template_passthrough() const override {
             return true;
         }
     };
@@ -540,7 +550,7 @@ struct DefaultProviders {
     /**
      * Map Provider
      */
-    template<typename T>
+    template <typename T>
     class Provider<T, std::enable_if_t<is_template_for_v<std::map, remove_refs_and_wrapper_t<T>>>> : public Provider_Interface {
     public:
 
@@ -551,7 +561,7 @@ struct DefaultProviders {
 
         NoRefMapT map_holder;
 
-        template<class... Keys, class... Values>
+        template <class... Keys, class... Values>
         Provider(std::pair<Keys, Values> && ... pairs) {
             MapT & map = this->map_holder;
             (map.emplace(std::move(pairs.first), make_provider(pairs.second)),...);
@@ -583,8 +593,8 @@ struct DefaultProviders {
         }
 
 
-        std::string operator()(ProviderData & data) override {
-            MapT & map = this->map_holder;
+        std::string operator()(Substitution & data) const override {
+            MapT const & map = this->map_holder;
             auto provider_iterator = map.find(data.name);
 
             auto name = std::move(data.name); // keep a copy that isn't cleared
@@ -610,7 +620,7 @@ struct DefaultProviders {
                 } else {
                     XL_TEMPLATE_LOG("value needs to be converted to provider");
 
-                    auto provider = Provider<make_reference_wrapper_t<MapValueT>>(std::ref(provider_iterator->second));
+                    auto provider = Provider<make_reference_wrapper_t<MapValueT const>>(std::ref(provider_iterator->second));
                     if (data.inline_template) {
                         auto inline_template = data.inline_template;
 //                        data.inline_template.reset();
@@ -655,7 +665,7 @@ struct DefaultProviders {
         }
 
 
-        ProviderPtr get_named_provider(ProviderData & data) override {
+        ProviderPtr get_named_provider(Substitution & data) override {
 
             if (data.name.empty()) {
                 throw TemplateException("Map Provider::get_named_provider called but no name specified");
@@ -686,7 +696,7 @@ struct DefaultProviders {
 };
 
 
-template<typename ProviderContainer = void, typename... Ts>
+template <typename ProviderContainer = void, typename... Ts>
 ProviderPtr make_provider(Ts&&... ts) {
     return DefaultProviders<ProviderContainer>::make_provider(std::forward<Ts>(ts)...);
 }
