@@ -11,12 +11,12 @@ using namespace xl;
 using namespace xl::templates;
 using namespace xl::log;
 
-
+ 
 TEST(log, SimpleLog) {
     {
         using LogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
         int call_count = 0;
-        LogT log([&call_count](auto & message){call_count++;});
+        LogT log([&call_count](auto &){call_count++;});
         EXPECT_EQ(call_count, 0);
         log.log(xl::log::DefaultLevels::Levels::Warn, LogT::Subjects::Default, "test");
         EXPECT_EQ(call_count, 1);
@@ -49,7 +49,7 @@ TEST(log, LogCallbackGuard) {
         int & counter ;
 
         LogCallback(int & counter) : counter(counter) {}
-        void operator()(LogT::LogMessage const & message) {
+        void operator()(LogT::LogMessage const &) {
             counter++;
         }
     };
@@ -84,7 +84,7 @@ TEST(log, LogCallbackGuard_ReUseCallbackObject) {
         int counter = 0;
 
         LogCallback() {}
-        void operator()(LogT::LogMessage const & message) {
+        void operator()(LogT::LogMessage const &) {
             this->counter++;
         }
         ~LogCallback() {
@@ -120,7 +120,7 @@ TEST(log, MultipleCallbacks) {
         using LogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
         struct LogCallback {
             int counter = 0;
-            void operator()(LogT::LogMessage const & message) {
+            void operator()(LogT::LogMessage const &) {
                 counter++;
             }
         };
@@ -257,9 +257,10 @@ TEST(log, OstreamCallbackHelper) {
     std::stringstream output2;
     log.add_callback(output2, "");
 
+
     log.info("test");
-    EXPECT_TRUE(Regex("\\[[^]]+\\] PREFIX: test\n").match(output.str()));
-    EXPECT_TRUE(Regex("\\[[^]]+\\] test\n").match(output2.str()));
+    EXPECT_TRUE(Regex("\\[[^]]+\\] PREFIX: test").match(output.str()));
+    EXPECT_TRUE(Regex("\\[[^]]+\\] test").match(output2.str()));
 }
 
 //int log_count = 0;

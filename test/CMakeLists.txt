@@ -23,16 +23,17 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
 
 include_directories(../include/xl)
-add_definitions(-DXL_USE_LIB_FMT -DXL_TESTING -DXL_LOG_WITH_TEMPLATES)
+add_definitions(-DXL_USE_LIB_FMT -DXL_TESTING -DXL_LOG_WITH_TEMPLATES -DXL_TEMPLATE_LOG_ENABLE)
 add_definitions(-DXL_USE_PCRE) # on another line to easily add and remove during development
 
 add_executable(test-xl EXCLUDE_FROM_ALL ${TEST_SRC})
 
 # Turn off unused variables because clang 5 complains on structured assignments
 target_compile_options(test-xl
-        PRIVATE -Wall -stdlib=libc++
+        PRIVATE -Wall -Wextra -Werror -stdlib=libc++
         PUBLIC -msse4.1 -Wno-aligned-allocation-unavailable -Wno-unused-variable
         )
+
 
 
 

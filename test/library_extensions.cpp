@@ -30,23 +30,23 @@ TEST(LibraryExtensions, has_insertion_operator) {
 TEST(LibraryExtensions, erase_if) {
     vector<int> vi{1,2,3,4,5};
     erase_if(vi, [](int i){return i % 2;});
-    EXPECT_EQ(vi.size(), 2);
+    EXPECT_EQ(vi.size(), 2ul);
 
     erase_if(vector<int>{1,2,3,4,5}, [](int i){return i % 2;});
-    EXPECT_EQ(vi.size(), 2);
+    EXPECT_EQ(vi.size(), 2ul);
 }
 
 TEST(LibraryExtensions, copy_if) {
     {
         vector<int> vi{1, 2, 3, 4, 5};
         auto result = xl::copy_if(vi, [](int i) { return i % 2; });
-        EXPECT_EQ(result.size(), 3);
+        EXPECT_EQ(result.size(), 3ul);
     }
     {
         vector<int> vi{1, 2, 3, 4, 5};
         auto callback = [](int i) { return i % 2 == 0; };
         auto result = xl::copy_if(vi, callback);
-        EXPECT_EQ(result.size(), 2);
+        EXPECT_EQ(result.size(), 2ul);
     }
 }
 
@@ -110,7 +110,7 @@ TEST(TransformIf, transform_if) {
     auto v2 = transform_if(v, [](int i)->std::optional<double>{if (i%2) return i + 0.5; else return {};});
     static_assert(std::is_same_v<decltype(v2), vector<double>>);
 
-    EXPECT_EQ(v2.size(), 3);
+    EXPECT_EQ(v2.size(), 3ul);
     EXPECT_EQ(v2[0], 1.5);
     EXPECT_EQ(v2[1], 3.5);
     EXPECT_EQ(v2[2], 5.5);
@@ -121,35 +121,35 @@ TEST(FilteredContainer, filtered_vector) {
 
     std::vector<int> v;
     auto fi = filtered_inserter([](int i){return i%2;}, v, std::end(v));
-    EXPECT_EQ(v.size(), 0);
+    EXPECT_EQ(v.size(), 0ul);
 
     fi = 1;
-    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v.size(), 1ul);
     fi = 2;
-    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v.size(), 1ul);
 }
 
 TEST(FilteredContainer, filtered_set) {
 
     std::set<int> s;
     auto fi = filtered_inserter([](int i){return i%2;}, s, std::end(s));
-    EXPECT_EQ(s.size(), 0);
+    EXPECT_EQ(s.size(), 0ul);
 
     fi = 1;
-    EXPECT_EQ(s.size(), 1);
+    EXPECT_EQ(s.size(), 1ul);
     fi = 2;
-    EXPECT_EQ(s.size(), 1);
+    EXPECT_EQ(s.size(), 1ul);
 }
 
 TEST(FilteredContainer, filtered_map) {
     std::map<string, int> m;
     auto fi = filtered_inserter([](pair<string, int> i){return i.second%2;}, m, std::end(m));
-    EXPECT_EQ(m.size(), 0);
+    EXPECT_EQ(m.size(), 0ul);
 
     fi = pair("a", 1);
-    EXPECT_EQ(m.size(), 1);
+    EXPECT_EQ(m.size(), 1ul);
     fi = pair("b", 2);
-    EXPECT_EQ(m.size(), 1);
+    EXPECT_EQ(m.size(), 1ul);
 }
 
 TEST(is_template_for, is_template_for) {

@@ -151,15 +151,20 @@ TEST(template, EmptyVectorReplacementIgnored) {
 
 
 struct A {
-    int i;
+    int i = 444;
 
-    A(int i) : i(i) {}
-
+    A(int i) : i(i) {
+        std::cerr << fmt::format("Created `A` with i = {}", this->i) << std::endl;
+    }
 };
 
 
 std::unique_ptr<Provider_Interface> get_provider(A const & a) {
-    return make_provider(std::pair{"I", [a]{return fmt::format("{}", a.i);}}, std::pair{"J", "6"});
+    std::cerr << fmt::format("making provider for A.i: {}", a.i) << std::endl;
+    return make_provider(std::pair{"I", [a]{
+            std::cerr << fmt::format("in callback, A.i = {}", a.i) << std::endl;
+            return fmt::format("{}", a.i);}
+        }, std::pair{"J", "6"});
 }
 
 static_assert(DefaultProviders<void>::can_get_provider_for_type_v<A>);
@@ -179,7 +184,7 @@ struct B {
 
     B(B&&) = delete;
 
-    std::unique_ptr<Provider_Interface> get_provider() {
+    std::unique_ptr<Provider_Interface> get_provider() const {
 //        std::cerr << fmt::format("B::get_provider called with this: {}", (void*)this) << std::endl;
         return make_provider(std::pair{"NAME", this->name},
                              //std::pair("GET_VEC_A", std::bind(&B::get_vec_a, this)));
@@ -214,7 +219,7 @@ TEST(template, VectorCallbackTemplate) {
                           std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
 
     EXPECT_EQ(Template("replace: {{TEST1%, |A1}}").fill(make_provider(std::pair{"TEST1", make_provider(vector_object_callback)}), &templates),
-    "replace: {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
+              "replace: {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
 }
 
 
@@ -223,7 +228,8 @@ TEST(template, LeadingJoinString) {
     TemplateMap templates{std::pair{"A1", Template("{i: {{I}} j: {{J}}}")},
                           std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
 
-    EXPECT_EQ(Template("replace: {{TEST1%%, |A1}}").fill(make_provider(std::pair{"TEST1", make_provider(vector_object_callback)}), &templates),
+    auto provider = make_provider(std::pair{"TEST1", make_provider(vector_object_callback)});
+    EXPECT_EQ(Template("replace: {{TEST1%%, |A1}}").fill(provider, &templates),
               "replace: , {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
 }
 
@@ -275,6 +281,7 @@ public:
     std::unique_ptr<Provider_Interface> get_provider() {
         return make_provider(std::pair{"HANDS","BOGUS"});
     }
+    auto get_side() {return this->side;}
 };
 
 

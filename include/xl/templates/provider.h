@@ -140,15 +140,19 @@ struct DefaultProviders {
         using WithoutRefWrapper = xl::remove_reference_wrapper_t<T>;
 
     public:
-        Provider(WithoutRefWrapper string) : string(std::move(string)) {
+        Provider(WithoutRefWrapper string) : 
+            string(std::move(string)) 
+        {
             XL_TEMPLATE_LOG("Created string provider with: '{}'", this->string);
+            volatile int i;
+            i = 0;
         }
 
-        ~Provider() {
+        virtual ~Provider() {
             XL_TEMPLATE_LOG("Destroyed string provider for string '{}'", this->string);
         }
 
-        std::string operator()(Substitution & data) const override {
+        std::string operator()(Substitution &) const override {
             return this->string;
         }
 
@@ -189,18 +193,24 @@ struct DefaultProviders {
     class Provider<T, std::enable_if_t<is_provider_callback_type_v<std::decay_t<xl::remove_reference_wrapper_t<T>>>>> : public Provider_Interface {
 
         using NoRefT = std::remove_reference_t<T>;
-        T callback;
+        NoRefT callback;
 
         using CallbackResultT = std::remove_reference_t<std::result_of_t<T()>>;
 
     public:
-        Provider(NoRefT && callback) : callback(std::move(callback)) {
+        Provider(NoRefT && callback) : 
+            callback(std::move(callback)) 
+        {
             XL_TEMPLATE_LOG("Created callback provider with rvalue callback");
         }
+        
 
-        Provider(NoRefT & callback) : callback(callback) {
+        Provider(NoRefT & callback) : 
+            callback(callback) 
+        {
             XL_TEMPLATE_LOG("Created callback provider with lvalue callback");
         }
+        
         
         ~Provider() {
             XL_TEMPLATE_LOG("Destroyed callback provider");
@@ -208,8 +218,10 @@ struct DefaultProviders {
 
 
         std::string operator()(Substitution & data) const override {
-            auto result = this->callback();
-            return Provider<CallbackResultT>(std::move(result))(data);
+            auto callback_result = this->callback();
+            auto provider = Provider<CallbackResultT>(std::move(callback_result));
+            auto provider_result = provider(data);
+            return provider_result;
         }
 
         std::string get_name() const override {
@@ -281,7 +293,9 @@ struct DefaultProviders {
 
         using XL_TEMPLATES_PASSTHROUGH_TYPE = T;
 
-        Provider(T t_holder) : t_holder(t_holder) {
+        Provider(T t_holder) : 
+            t_holder(t_holder) 
+        {
             NoRefT & t = this->t_holder;
             XL_TEMPLATE_LOG("Created can_get_provider Provider with lvalue {}", (void*)&t);
         }
@@ -293,11 +307,12 @@ struct DefaultProviders {
 
 
         std::string operator()(Substitution & data) const override {
-            NoRefT & t = this->t_holder;
+            NoRefT const & t = this->t_holder;
 
             ProviderPtr provider = get_underlying_provider();
-//            std::cerr << fmt::format("got underlying provider name: {}", provider->get_name()) << std::endl;
-//            std::cerr << fmt::format("t: {}", (void*)&t) << std::endl;
+            XL_TEMPLATE_LOG("got underlying provider name: {}", provider->get_name());
+            XL_TEMPLATE_LOG("t: {}", (void*)&t);
+            
 
 //            if (data.inline_template) {
 //                auto tmpl = data.inline_template.get();
@@ -308,7 +323,7 @@ struct DefaultProviders {
         }
 
         auto get_underlying_provider() const {
-            NoRefT & t = this->t_holder;
+            NoRefT const & t = this->t_holder;
             if constexpr(has_get_provider_free_function_v<NoRefT>)
             {
                 return get_provider(t);
@@ -449,7 +464,11 @@ struct DefaultProviders {
 
     public:
 
-        Provider(T t_holder) : t_holder(std::move(t_holder)) {
+        // T can be either a container itself or a ref-wrapper around one, so taking it 
+        //   "by value" is fine
+        Provider(T t_holder) : 
+            t_holder(std::move(t_holder)) 
+        {
             ContainerT & t = this->t_holder;
             XL_TEMPLATE_LOG("Created container Provider for lvalue at {}", (void*)&t);
         }
@@ -464,6 +483,7 @@ struct DefaultProviders {
 
         std::string operator()(Substitution & data) const override {
 
+            std::cerr << fmt::format("types {} {}", xl::demangle<T>(), xl::demangle<ContainerT const & >()) << std::endl;
             ContainerT const & t = this->t_holder;
 
 
@@ -501,7 +521,6 @@ struct DefaultProviders {
             // Iterate through the container
             XL_TEMPLATE_LOG("provider iterator iterating through container of size {}", t.size());
             for (auto & element : t) {
-
 
                 auto p = Provider<make_reference_wrapper_t<
                     match_const_of_t<
@@ -564,7 +583,7 @@ struct DefaultProviders {
         template <class... Keys, class... Values>
         Provider(std::pair<Keys, Values> && ... pairs) {
             MapT & map = this->map_holder;
-            (map.emplace(std::move(pairs.first), make_provider(pairs.second)),...);
+            (map.emplace(std::move(pairs.first), make_provider(std::move(pairs.second))),...);
 
             XL_TEMPLATE_LOG("done adding pairs to map at: {}", (void*)this);
             XL_TEMPLATE_LOG("map size: {}", map.size());
@@ -615,8 +634,6 @@ struct DefaultProviders {
                     } else {
                         result = provider_iterator->second->operator()(data);
                     }
-
-
                 } else {
                     XL_TEMPLATE_LOG("value needs to be converted to provider");
 

@@ -190,7 +190,7 @@ public:
 
         auto needles = _mm_set_epi8(c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c);
 
-        int offset = 0;
+        size_t offset = 0;
         auto buffer = this->buffer();
 
         while (offset < this->length()) {

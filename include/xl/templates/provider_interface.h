@@ -18,6 +18,9 @@ using ProviderPtr = std::unique_ptr<Provider_Interface>;
  */
 class Provider_Interface {
 public:
+    
+    virtual ~Provider_Interface() = default;
+    
     virtual std::string operator()(Substitution & data) const = 0;
 
     /**
@@ -33,7 +36,7 @@ public:
     virtual bool provides_named_lookup() {return false;}
 
 
-    virtual ProviderPtr get_named_provider(Substitution & data) {
+    virtual ProviderPtr get_named_provider(Substitution &) {
         throw TemplateException("Provider does not support get_named_provider call");
     };
 

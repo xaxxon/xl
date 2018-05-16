@@ -24,7 +24,7 @@
 #endif
 
 
-
+ 
 namespace xl::templates {
 
 
@@ -47,8 +47,7 @@ private:
     mutable size_t minimum_result_length = 0;
 
 public:
-    explicit Template(std::string const & tmpl) : _tmpl(tmpl) {}
-    explicit Template(std::string && tmpl = "") : _tmpl(std::move(tmpl)) {}
+    explicit Template(std::string tmpl = "") : _tmpl(std::move(tmpl)) {}
 
     inline char const * c_str() const { return this->_tmpl.c_str(); }
 
@@ -148,7 +147,7 @@ std::string Template::fill(Provider_Interface const & provider, Substitution && 
     XL_TEMPLATE_LOG("just created variable 'result': '{}'", result);
     result.reserve(this->minimum_result_length);
 
-    for(int i = 0; i < this->compiled_static_strings.size(); i++) {
+    for(size_t i = 0; i < this->compiled_static_strings.size(); i++) {
 
         result.insert(result.end(), this->compiled_static_strings[i].begin(), this->compiled_static_strings[i].end());
         XL_TEMPLATE_LOG("fill: just added static section {}: '{}'", i, this->compiled_static_strings[i]);
@@ -186,11 +185,12 @@ std::string Template::fill(Provider_Interface const & provider, Substitution && 
                     XL_TEMPLATE_LOG("Handled comment");
                 } else {
 
-                    XL_TEMPLATE_LOG("created Substitution data on the stack at {}", (void *) &current_substitution);
+                    XL_TEMPLATE_LOG("created Substitution data for '{}' on the stack at {}", current_substitution.name, (void *) &current_substitution);
 
                     XL_TEMPLATE_LOG("about to call provider() named '{}' at {} and inline_template: {}",
                                     provider.get_name(), (void *) &provider, (void *) current_substitution.inline_template.get());
                     auto substitution_result = provider(current_substitution);
+                    XL_TEMPLATE_LOG("replacement is: {}", substitution_result);
                     XL_TEMPLATE_LOG("provider() named {} returned: '{}'", provider.get_name(), substitution_result);
                     if (!current_substitution.contingent_leading_content.empty() && !substitution_result.empty()) {
                         XL_TEMPLATE_LOG("adding contingent data: {}", current_substitution.contingent_leading_content);
@@ -219,6 +219,8 @@ bool Template::is_compiled() const {
 
 void Template::compile() const {
 
+    XL_TEMPLATE_LOG("Compiling: {}", this->_tmpl);
+    
     auto & compiled_substitutions = const_cast< std::vector<Substitution> &>(this->compiled_substitutions);
 
     // regex used to parse sections of a template into 0 or more pairs of leading string literal (may be empty)
@@ -299,18 +301,17 @@ void Template::compile() const {
 
 
 
-//        for(auto [s,i] : each_i(matches.get_all_matches())) {
-//            if (s != "") {
-//                std::cerr << fmt::format("{}: '{}'", i, s) << std::endl;
-//            }
-//        }
-//        std::cerr << fmt::format("literal: '{}', substutition: '{}'",
-//                                 matches["Literal"],
-//                                 matches["Substitution"]
-//        ) << std::endl;
-//        for (int i = 0; i < matches.size(); i++) {
-//            std::cerr << fmt::format("match[{}]: '{}'", i, matches[i].str()) << std::endl;
-//        }
+        for(auto [s,i] : each_i(matches.get_all_matches())) {
+            if (s != "") {
+                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "{}: '{}'", i, s);
+            }
+        }
+        XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "literal: '{}', substutition: '{}'",
+                                 matches["Literal"],
+                                 matches["Substitution"]);
+        for (size_t i = 0; i < matches.size(); i++) {
+            XL_TEMPLATE_LOG("match[{}]: '{}'", i, matches[i]);
+        }
 
 
         // check for open but no close or incorrect brace type
@@ -347,7 +348,7 @@ void Template::compile() const {
                            first_line_regex : first_line_and_empty_lines_regex;
             if (auto results = regex.match(literal_string)) {
 
-//                std::cerr << fmt::format("got '{}' and '{}'", results[1], results[2]) << std::endl;
+                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "got '{}' and '{}'", results[1], results[2]);
 
                 // get previous substitution
                 compiled_substitutions.back().contingent_trailing_content = results[1];
@@ -369,15 +370,15 @@ void Template::compile() const {
 //            std::cerr << fmt::format("Running ignore empty before marker on '{}'", literal_string) << std::endl;
             auto results = regex.match(literal_string);
             if (results) {
-//                std::cerr << fmt::format("got '{}' and '{}'", results[1], results[2]) << std::endl;
+                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "got '{}' and '{}'", results[1], results[2]);
                 literal_string = results[1];
                 contingent_leading_content = results[2];
             }
         }
 
         first_line_belongs_to_last_substitution = matches.length("IgnoreEmptyAfterMarker");
-//        std::cerr << fmt::format("ignore empty after marker: {}", matches["IgnoreEmptyAfterMarker"]) << std::endl;
-//        std::cerr << fmt::format("setting first line belongs to last substitution to {} on {}", first_line_belongs_to_last_substitution, matches["Substitution"]) << std::endl;
+        XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "ignore empty after marker: {}", matches["IgnoreEmptyAfterMarker"]);
+        XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "setting first line belongs to last substitution to {} on {}", first_line_belongs_to_last_substitution, matches["Substitution"]);
 
 
         this->compiled_static_strings.push_back(literal_string);

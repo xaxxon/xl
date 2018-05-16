@@ -214,7 +214,7 @@ struct EachI;
 template<size_t... Is, class... Containers>
 struct EachI<std::index_sequence<Is...>, Containers...> {
 public:
-    std::tuple<magic_ptr<Containers>...> containers;
+    std::tuple<Containers...> containers;
 public:
 
     template<class... ConstructorContainers>
@@ -249,11 +249,11 @@ public:
 
 
     auto begin() {
-        return iterator(std::get<Is>(this->containers)->begin()...);
+        return iterator(std::get<Is>(this->containers).begin()...);
     }
 
     auto end() {
-        return iterator(std::get<Is>(this->containers)->end()...);
+        return iterator(std::get<Is>(this->containers).end()...);
     }
 };
 

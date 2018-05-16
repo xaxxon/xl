@@ -87,7 +87,7 @@ inline auto regexer(zstring_view string, zstring_view regex_string) {
 }
 
 
-inline Regex operator"" _re(char const * regex_string, unsigned long length) {
+inline Regex operator"" _re(char const * regex_string, unsigned long) {
     return Regex(regex_string);
 }
 

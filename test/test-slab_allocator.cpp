@@ -110,3 +110,5 @@ TEST(slab_allocator, many_allocation_chunks) {
 
 static_assert(sizeof(decltype(Allocator<MyClass, 1>().allocate())) == 2*sizeof(MyClass*));
 
+
+

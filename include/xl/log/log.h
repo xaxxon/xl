@@ -181,7 +181,7 @@ private:
         if (auto all_levels = std::get_if<bool>(&temp->levels)) {
             this->set_all_levels(*all_levels);
         } else {
-            for(LevelsUnderlyingType i = 0; i < level_count; i++) {
+            for(std::make_unsigned_t<LevelsUnderlyingType> i = 0; i < level_count; i++) {
                 if (i < std::get<LogStatusFile::Statuses>(temp->levels).size()) {
                     typename LevelsT::Levels level = static_cast<Levels>(i);
                     this->set_status(level, std::get<LogStatusFile::Statuses>(temp->levels)[i].second);
@@ -192,7 +192,7 @@ private:
         if (auto all_subjects = std::get_if<bool>(&temp->subjects)) {
             this->set_all_subjects(*all_subjects);
         } else {
-            for(SubjectsUnderlyingType i = 0; i < subject_count; i++) {
+            for(std::make_unsigned_t<SubjectsUnderlyingType> i = 0; i < subject_count; i++) {
                 if (i < std::get<LogStatusFile::Statuses>(temp->subjects).size()) {
                     typename SubjectsT::Subjects subject = static_cast<Subjects>(i);
                     this->set_status(subject, std::get<LogStatusFile::Statuses>(temp->subjects)[i].second);
@@ -317,7 +317,7 @@ public:
 
     CallbackT & add_callback(std::ostream & ostream, std::string prefix = "") {
         return this->add_callback([&ostream, prefix](LogMessage const & message) {
-            ostream << "[" << message.get_time_string() << "] " << prefix << message.string << std::endl;
+            ostream << "[" << message.get_time_string() << "] " << prefix << message.string;
         });
     }
 
@@ -392,11 +392,13 @@ public:
             }
         }
     }
+    
 
     template<class T = Levels, std::enable_if_t<(int)T::Info >= 0, int> = 0>
     void info(Subjects subject, xl::zstring_view message) {
         log(Levels::Info, subject, message);
     }
+    
 
     template<class L = Levels, class S = Subjects,
              std::enable_if_t<(int)L::Levels::Info >= 0 && (int)S::Default >= 0, int> = 0>
@@ -410,29 +412,35 @@ public:
         log(Levels::Warn, subject, message);
     }
 
+    
     template<class T = Levels, std::enable_if_t<(int)T::Error >= 0, int> = 0>
     void error(Subjects subject, xl::zstring_view message) {
         log(Levels::Error, subject, message);
     }
 
+    
     static std::string const & get_name(Subjects subject) {
         return SubjectsBase::get_name(subject);
     }
+    
 
     static std::string const & get_name(Levels level) {
         return LevelsBase::get_name(level);
     }
 
+    
     auto get_statuses() const {
         return this->statuses;
     }
 
+    
     void set_statuses(decltype(Log::statuses) statuses) {
         this->statuses = std::move(statuses);
         if (this->log_status_file) {
             this->log_status_file->write();
         }
     }
+    
 
     bool is_live(Levels level, Subjects subject) {
         return !this->callbacks.empty() && this->get_status(level) && this->get_status(subject);

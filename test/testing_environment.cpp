@@ -34,3 +34,7 @@ public:
 
 static ::testing::Environment* const dummy = ::testing::AddGlobalTestEnvironment(new Environment);
 
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}

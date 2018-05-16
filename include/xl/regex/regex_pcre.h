@@ -33,7 +33,7 @@ private:
     std::string source = "";
 
     /// number of actual captures from running the regex
-    int results = 0;
+    size_t results = 0;
 
     /// buffer for storing submatch offsets (3 for each capture)
     std::vector<int> captures;
@@ -43,16 +43,17 @@ private:
 public:
     RegexResultPcre(pcre_ptr compiled_pattern,
                     std::string source,
-                    int results,
+                    size_t results,
                     std::vector<int> captures,
-                    size_t capture_count,
                     RegexPcre const & regex) :
         compiled_pattern(compiled_pattern),
         source(source),
         results(results),
         captures(std::move(captures)),
         regex(&regex)
-    {}
+    {
+        assert(results < 10000000);
+    }
 
     RegexResultPcre() = default;
 
@@ -178,13 +179,17 @@ public:
         return length;
     }
 
+    xl::string_view operator[](int index) const {
+        return this->operator[](static_cast<size_t>(index));
+    }
 
-    /**
-     * Returns the string captured by the named capturing pattern
-     * @param name name of the pattern to return the value for
-     * @return captured string for the specified pattern
-     */
-    xl::string_view operator[](char const * name) const {
+
+        /**
+         * Returns the string captured by the named capturing pattern
+         * @param name name of the pattern to return the value for
+         * @return captured string for the specified pattern
+         */
+    xl::string_view operator[](char const * const name) const {
         if (!*this) {
             return xl::string_view();
         }
@@ -223,7 +228,7 @@ public:
      * @param index index to return captured string for pattern
      * @return string captured by capture pattern at specified index
      */
-    xl::string_view operator[](int index) const {
+    xl::string_view operator[](size_t index) const {
         if (index > results) {
 //            throw RegexException(fmt::format("index out of range: {} vs {}", index, results));
            // std::cerr << fmt::format("index might be out of range: {} vs {}", index, results) << std::endl;
@@ -245,7 +250,7 @@ public:
      */
     std::vector<xl::string_view> get_all_matches() const {
         std::vector<xl::string_view> results;
-        for (int i = 0; i < this->results; i++) {
+        for (size_t i = 0; i < this->results; i++) {
             results.push_back(this->operator[](i));
         }
         return results;
@@ -383,7 +388,7 @@ public:
                                          buffer.data(),
                                          buffer_length); // Length of subStrVec
 
-        return RegexResultPcre(this->compiled_regex, data, results, std::move(buffer), buffer_length, *this);
+        return RegexResultPcre(this->compiled_regex, data, results < 0 ? 0 : results, std::move(buffer), *this);
     }
 
 
@@ -430,9 +435,11 @@ public:
                         found_escape = true;
                     }
                 } else {
+                    
+                    // Looking for \0, \1, ..., \9
                     if (found_escape) {
                         if (c >= '0' && c <= '9') {
-                            int index = c - '0';
+                            size_t index = c - '0';
 //                        std::cerr << fmt::format("index {} matches.results {}", index, matches.results) << std::endl;
                             if (index >= matches.results) {
                                 throw RegexException(
@@ -470,7 +477,12 @@ public:
 
 inline RegexResultPcre RegexResultPcre::next() const
 {
-    return this->regex->match(this->suffix());
+    auto suffix = this->suffix();
+    if (suffix[0] == '\0') {
+        return {};
+    } else {
+        return this->regex->match(this->suffix());
+    }
 
 }
 
