@@ -154,11 +154,18 @@ std::string Template::fill(Provider_Interface const & provider, Substitution && 
 
         if (this->compiled_substitutions.size() > i) {
             Substitution current_substitution(this->compiled_substitutions[i]);
+            
+            // input_data may be the top-level substitution, so don't set it as a 
+            //   parent because it's not usable because it doesn't have a `current_provider`
+            if (input_data.current_provider != nullptr) {
+                current_substitution.parent_substitution = &input_data;
+            }
+            current_substitution.current_provider = &provider;
             XL_TEMPLATE_LOG("grabbed data for compiled_subsitution {} - it has name {} and inline template: {}",
-                            i, current_substitution.name, (void*)current_substitution.inline_template.get());
+                            i, xl::join(current_substitution.name_entries), (void*)current_substitution.inline_template.get());
             current_substitution.templates = input_data.templates;
             current_substitution.current_template = this;
-            XL_TEMPLATE_LOG("substitution instantiation data.name: '{}'", current_substitution.name);
+            XL_TEMPLATE_LOG("substitution instantiation data.name: '{}'", xl::join(current_substitution.name_entries));
 
             // substituting another template in
             if (current_substitution.template_name != "") {
@@ -185,7 +192,7 @@ std::string Template::fill(Provider_Interface const & provider, Substitution && 
                     XL_TEMPLATE_LOG("Handled comment");
                 } else {
 
-                    XL_TEMPLATE_LOG("created Substitution data for '{}' on the stack at {}", current_substitution.name, (void *) &current_substitution);
+                    XL_TEMPLATE_LOG("created Substitution data for '{}' on the stack at {}", xl::join(current_substitution.name_entries), (void *) &current_substitution);
 
                     XL_TEMPLATE_LOG("about to call provider() named '{}' at {} and inline_template: {}",
                                     provider.get_name(), (void *) &provider, (void *) current_substitution.inline_template.get());
@@ -228,7 +235,6 @@ void Template::compile() const {
     // Development and testing of this regex can be done at regex101.com
     static xl::RegexPcre r(R"(
 
-
 (?(DEFINE)(?<NotEmptyAssertion>(?=(?:.|\n))))
 (?(DEFINE)(?<OpenDelimiterHead>\{))
 (?(DEFINE)(?<CloseDelimiterHead>\}))
@@ -242,6 +248,9 @@ void Template::compile() const {
 (?(DEFINE)(?<UntilEndOfLine>[^\n]*\n))
 
 
+(?(DEFINE)(?<PretendMatch>([^{}]+|{(?!{)|}(?!})|{{(?&PretendMatch)}}|)))
+
+
 
 (?&NotEmptyAssertion)
 (?<Literal>(?&UntilDoubleBrace))
@@ -251,7 +260,7 @@ void Template::compile() const {
     (?<OpenDelimiterHere>\{\{)
     \s*
     (?:
-        (?<Comment>\#.*?)|
+        (?<Comment>\#(?&PretendMatch)*)|
         (?<IgnoreEmptyBeforeMarker><<?)?
         \s*
 
@@ -319,7 +328,7 @@ void Template::compile() const {
             throw TemplateException("Unmatched Open");
         }
         if (matches.length("UnmatchedClose")) {
-            throw TemplateException("Unmatched Close");
+            throw TemplateException("Unmatched Close (missing opening }})");
         }
 
 
@@ -404,7 +413,23 @@ void Template::compile() const {
         }
 
         if (!matches.has("TemplateInsertionMarker")) {
-            data.name = matches["SubstitutionName"];
+            auto substitution_name = matches["SubstitutionName"];
+            
+            if (!substitution_name.empty()) {
+
+                // split it on . and add each to name_entries
+                size_t position = 0;
+                size_t new_position = position;
+                while ((new_position = substitution_name.find('.', position)) != std::string_view::npos) {
+                    data.name_entries.emplace_back(substitution_name.data(), position, new_position - position);
+                    position = new_position + 1;
+                }
+                data.name_entries.emplace_back(substitution_name.data(), position,
+                                               substitution_name.length() - position);
+                std::reverse(data.name_entries.begin(), data.name_entries.end());
+            }
+            
+            std::cerr << fmt::format("parsed name into: {}", xl::join(data.name_entries)) << std::endl;
         }
 
         if (matches.has("JoinStringMarker")) {

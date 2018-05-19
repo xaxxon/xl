@@ -314,7 +314,7 @@ This is more normal template
 )");
 
 
-    vector<std::map<std::string, std::string>> vector_provider{
+    std::vector<std::map<std::string, std::string>> vector_provider{
         {std::pair("SUPERLATIVE"s, "an awesome"s), std::pair("EXCLAMATION"s, "!"s)},
         {{std::pair("SUPERLATIVE", "a cool"), std::pair("EXCLAMATION", "!!")}},
         {{std::pair("SUPERLATIVE", "a super"), std::pair("EXCLAMATION", "!!!")}}};
@@ -526,29 +526,6 @@ TEST(template, ProviderContainers) {
 TEST(template, ProviderContainersReUse) {
     {
         
-        // with two pairs, it calls 
-        // ProviderPtr make_provider(Ts&&... ts) {
-        // then:
-        // **WITH BOTH PAIRS**
-//        std::__1::unique_ptr<
-//            xl::templates::Provider_Interface, std::__1::default_delete<xl::templates::Provider_Interface> 
-//        > 
-//        xl::templates::DefaultProviders<Impl1>::make_provider<
-//            std::__1::pair<char const*, std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > > >, 
-//            std::__1::pair<char const*, std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > > >, 
-//                0>
-//            (std::__1::pair<char const*, std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > > >&&, 
-//             std::__1::pair<char const*, std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > > > >&&)
-        // with one pair:
-        // ProviderPtr make_provider(Ts&&... ts) {
-        //   then
-        // static ProviderPtr make_provider(T && t) {
-
-        // difference is that the with > 1 pair, it creates a map with the second type being a ProviderPtr, a unique_ptr.
-        // when passed into fill, source is a unique_ptr to a provider which is a map of unique pointers
-        // on subsequent call to fill with the unique_ptr from the selected key's value, it calls make_provider and moves
-        //   out of that unique_ptr right into another unique_ptr - losing the values associated with the key
-        
             auto result = Template("{{container|!{{}}}} {{container|!{{}}}}").fill<Impl1>(make_provider<Impl1>(
             std::pair("container2", std::vector<std::string>{"one", "two", "three"}),
             std::pair("container", std::vector<std::string>{"one", "two", "three"})
@@ -576,8 +553,8 @@ TEST(template, PointerProviderForUncopyable) {
     auto p = DefaultProviders<void>::Provider<Uncopyable*>(&u);
 
     Substitution data;
-    data.name = "A";
-    p(data);
+    data.name_entries = {"A"};
+    p(data); 
 }
 
 
@@ -679,7 +656,8 @@ public:
     ProviderPtr get_provider() const {
         return make_provider(
             std::pair("has_provider", std::ref(v)),
-            std::pair("has_provider_copy", v)
+            std::pair("has_provider_copy", v),
+            std::pair("five", "five")
 
         );
     }
@@ -747,9 +725,75 @@ TEST(template, Comments) {
         ));
         EXPECT_EQ(result, "EARLY BEFORE  AFTER LATE");
     }
+    {
+        auto result = Template("{{#classes|!{{}}}}").fill("BOGUS");
+        EXPECT_EQ(result, "");
+    }
+    
+    
 }
 
 
+class SimpleProviderProvider {
+    HasProvider has_provider;
+    
+public:
+    SimpleProviderProvider(string s) :
+        has_provider(s+s)
+    {}
+    
+    ProviderPtr get_provider() const {
+        return make_provider(
+            std::pair("has_provider", std::ref(has_provider))
+        );
+    }
+};
 
+TEST(template, PeriodSeparatedNames) {
+    {
+        Template t("{{simple_provider.has_provider}}");
+        EXPECT_THROW(t.fill(std::pair("simple_provider", SimpleProviderProvider("simple_provider"))), TemplateException);
+    }
+    {
+        Template t("{{simple_provider}}");
+        EXPECT_THROW(t.fill(std::pair("simple_provider", SimpleProviderProvider("simple_provider"))), TemplateException);
+    }
+    {
+        Template t("{{}}");
+        EXPECT_THROW(t.fill(std::pair("simple_provider", SimpleProviderProvider("simple_provider"))), TemplateException);
+    }
+    {
+        auto result = Template("{{simple_provider.has_provider.string}}").
+            fill(std::pair("simple_provider", SimpleProviderProvider("simple_provider")));
+        EXPECT_EQ(result, "simple_providersimple_provider");
+    }
+}
 
+TEST(template, PeriodSeparatedNamesWithContainers) {
+    {
+        auto result = Template("{{has_provider2|!{{has_provider|!{{string}}}}}}").fill(std::pair("has_provider2", HasProvider2("hp2")));
+        EXPECT_EQ(result, "hp2hp2\nhp2hp2");
+    }
+    {
+        auto result = Template("{{has_provider2.has_provider|!{{string}}}}").fill(std::pair("has_provider2", HasProvider2("hp2")));
+        EXPECT_EQ(result, "hp2hp2\nhp2hp2");
+    }
+    {
+        auto result = Template("{{has_provider2.has_provider.string}}").fill(std::pair("has_provider2", HasProvider2("hp2")));
+        EXPECT_EQ(result, "hp2hp2\nhp2hp2");
+    }
+    
+}
 
+TEST(template, FallBackToParentProviderForMissingNames) {
+    { 
+        auto result = Template("{{has_provider2|!{{has_provider|!{{string}}{{five}}}}}}").fill(
+            std::pair("has_provider2", HasProvider2("hp2")));
+        EXPECT_EQ(result, "hp2hp2five\nhp2hp2five");
+    }
+    {
+        auto result = Template("{{has_provider2.has_provider|!{{string}}{{five}}}}").fill(
+            std::pair("has_provider2", HasProvider2("hp2")));
+        EXPECT_EQ(result, "hp2hp2five\nhp2hp2five");
+    }
+}

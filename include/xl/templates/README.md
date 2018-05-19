@@ -308,3 +308,30 @@ The example above creates an inline template of `} }} }}}`
 
 
 
+### Addressing Nested Providers with X.Y.Z notation
+
+If a provider provides another provider, it can be addressed from the current template
+by putting a `.` between the names.   Note that a `.` may never be a valid part of a 
+single name.  
+
+    {{has_a_provider_in_it|!{{name_of_provider|!{{some_value}} {{some_other_value}}}}}}
+
+can be written as:
+
+    {{{{has_a_provider_in_it.name_of_provider.some_value}} {{has_a_provider_in_it.name_of_provider.some_other_value}}}}
+    
+or
+
+    {{has_a_provider_in_it|!{{name_of_provider.some_value}} {{name_of_provider.some_other_value}}}}}}
+    
+This works with containers as well, but you lose the ability to select a non-default
+join string between them.  It will always be `\n`
+
+    {{vector_of_providers|!{{some_value}}}}
+    
+can be written as:
+
+    {{vector_of_providers.some_value}}
+    
+
+

@@ -7,7 +7,7 @@
 namespace xl::templates {
 
 class Template;
-
+class Provider_Interface;
 
 using TemplateMap = std::map<std::string, Template>;
 
@@ -19,7 +19,7 @@ using TemplateMap = std::map<std::string, Template>;
 struct Substitution {
 
     /// name to look up in the provider for a replacement value
-    std::string name = "";
+    std::vector<std::string> name_entries = {};
 
     /// string to put between multiple replcaements of the same template via a container provider
     std::string join_string = "\n";
@@ -52,6 +52,9 @@ struct Substitution {
 
     /// stores the current template being processed - useful for debugging information if something goes wrong in provider
     Template const * current_template = nullptr;
+    
+    Substitution * parent_substitution = nullptr;
+    Provider_Interface const * current_provider = nullptr;
 
 
     Substitution(TemplateMap const * templates) : templates(templates)
