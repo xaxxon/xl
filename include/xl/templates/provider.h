@@ -15,6 +15,23 @@
 
 
 namespace xl::templates {
+//
+//struct ProviderStackGuard {
+//    SubstitutionState & substitution;
+//    Provider_Interface const * provider;
+//    ProviderStackGuard(SubstitutionState & substitution, Provider_Interface const * provider) :
+//        substitution(substitution),
+//        
+//        provider(provider)
+//    {
+//        assert(this->provider != nullptr);
+//        this->substitution.provider_stack.push_front(provider);
+//        std::cerr << fmt::format("size check: {}", this->substitution.provider_stack.size()) << std::endl;
+//    }
+//    ~ProviderStackGuard() {
+//        //substitution.provider_stack.pop_front(); // maybe not necessary?
+//    }
+//};
 
 
 template <typename ProviderContainer>
@@ -130,6 +147,9 @@ struct DefaultProviders {
 
 
     static_assert(std::is_convertible_v<remove_reference_wrapper_t<std::reference_wrapper<const char *const>>, std::string>);
+    
+    
+    
     /**
      * String provider
      * @tparam T
@@ -152,7 +172,7 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("Destroyed string provider for string '{}'", this->string);
         }
 
-        std::string operator()(Substitution &) const override {
+        std::string operator()(SubstitutionState &) const override {
             return this->string;
         }
 
@@ -164,7 +184,7 @@ struct DefaultProviders {
             return true;
         }
 
-        ProviderPtr get_named_provider(Substitution & data) override {
+        ProviderPtr get_named_provider(SubstitutionState & data) override {
             data.name_entries.pop_back();
             return std::make_unique<Provider>(*this);
         }
@@ -217,7 +237,8 @@ struct DefaultProviders {
         }
 
 
-        std::string operator()(Substitution & data) const override {
+        std::string operator()(SubstitutionState & data) const override {
+            data.fill_state.provider_stack.push_front(this);
             auto callback_result = this->callback();
             auto provider = Provider<CallbackResultT>(std::move(callback_result));
             auto provider_result = provider(data);
@@ -246,7 +267,7 @@ struct DefaultProviders {
 
 
 
-    template <class T>
+    template <typename T>
     static ProviderPtr make_provider(T && t) {
         if constexpr(std::is_same_v<std::decay_t<T>, ProviderPtr>) {
             return std::move(t);
@@ -294,7 +315,7 @@ struct DefaultProviders {
         using XL_TEMPLATES_PASSTHROUGH_TYPE = T;
 
         Provider(T t_holder) : 
-            t_holder(t_holder) 
+            t_holder(std::forward<T>(t_holder)) 
         {
             NoRefT & t = this->t_holder;
             XL_TEMPLATE_LOG("Created can_get_provider Provider with lvalue {}", (void*)&t);
@@ -306,12 +327,14 @@ struct DefaultProviders {
         }
 
 
-        std::string operator()(Substitution & data) const override {
-            data.current_provider = this;
+        std::string operator()(SubstitutionState & data) const override {
+            data.fill_state.provider_stack.push_front(this);
+
             NoRefT const & t = this->t_holder;
 
             ProviderPtr provider = get_underlying_provider();
-            data.current_provider = provider.get();
+            assert(provider.get() != this);
+
             XL_TEMPLATE_LOG("got underlying provider name: {}", provider->get_name());
             XL_TEMPLATE_LOG("t: {}", (void*)&t);
             
@@ -373,7 +396,9 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("unique_ptr provider destructor called");
         }
 
-        std::string operator()(Substitution & data) const override {
+        std::string operator()(SubstitutionState & data) const override {
+            data.fill_state.provider_stack.push_front(this);
+            
             return make_provider(*static_cast<UniquePtrT &>(t))->operator()(data);
         }
 
@@ -423,7 +448,9 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("Destroyed pointer Provider for {}", (void*)this->t);
         }
 
-        std::string operator()(Substitution & data) const override {
+        std::string operator()(SubstitutionState & data) const override {
+            data.fill_state.provider_stack.push_front(this);
+
             return Provider<make_reference_wrapper_t<NoPtrT>>(*t)(data);
         }
 
@@ -483,36 +510,37 @@ struct DefaultProviders {
         }
 
 
-        std::string operator()(Substitution & data) const override {
+        std::string operator()(SubstitutionState & data) const override {
+            data.fill_state.provider_stack.push_front(this);
 
             std::cerr << fmt::format("types {} {}", xl::demangle<T>(), xl::demangle<ContainerT const & >()) << std::endl;
             ContainerT const & t = this->t_holder;
 
 
-            XL_TEMPLATE_LOG("container provider looking at substution data for: {}, {}", xl::join(data.name_entries), (bool)data.inline_template);
+            XL_TEMPLATE_LOG("container provider looking at substution data for: {}, {}", xl::join(data.substitution->name_entries), (bool)data.substitution->inline_template);
             std::stringstream result;
 
 
 
-            XL_TEMPLATE_LOG("inline template exists? {}", (bool)data.inline_template);
+            XL_TEMPLATE_LOG("inline template exists? {}", (bool)data.substitution->inline_template);
             Template const * tmpl = [&]() -> Template const * {
                 if (!data.name_entries.empty()) {
                     return nullptr;
-                } else if (data.inline_template) {
-                    return data.inline_template.get();
+                } else if (data.substitution->inline_template) {
+                    return data.substitution->inline_template.get();
                 } else {
-                    if (data.templates == nullptr) {
+                    if (data.fill_state.templates == nullptr) {
                         throw TemplateException("ContainerProvider received nullptr template map so it can't possibly find a template by name");
                     }
-                    auto template_iterator = data.templates->find(data.parameters);
-                    if (template_iterator == data.templates->end()) {
-                        if (data.templates->empty()) {
+                    auto template_iterator = data.fill_state.templates->find(data.substitution->parameters);
+                    if (template_iterator == data.fill_state.templates->end()) {
+                        if (data.fill_state.templates->empty()) {
                             throw TemplateException(
                                 "ContainerProvider received empty template map so it can't possibly find a template for its members" +
                                 xl::join(data.name_entries));
                         }
                         throw TemplateException(
-                            fmt::format("ContainerProvider couldn't find template named: '{}' from template {}", data.parameters, data.current_template->c_str()));
+                            fmt::format("ContainerProvider couldn't find template named: '{}' from template {}", data.substitution->parameters, data.current_template->c_str()));
                     }
                     return &template_iterator->second;
                 }
@@ -520,7 +548,7 @@ struct DefaultProviders {
 
             // whether the current replacement should have the join string before it
             //   off initially unless leading join string is specified
-            bool needs_join_string = data.leading_join_string;
+            bool needs_join_string = data.substitution->leading_join_string;
 
             // Iterate through the container
             XL_TEMPLATE_LOG("provider iterator iterating through container of size {}", t.size());
@@ -533,19 +561,20 @@ struct DefaultProviders {
                         remove_reference_wrapper_t<decltype(element)> // use element not container because non-const std::set has const element
                     >>>(std::ref(element));
                 
+                data.fill_state.provider_stack.push_front(&p);
 
                 if (needs_join_string) {
-                    result << data.join_string;
-                    XL_TEMPLATE_LOG("inserting join string '{}' on subsequent pass", data.join_string);
+                    result << data.substitution->join_string;
+                    XL_TEMPLATE_LOG("inserting join string '{}' on subsequent pass", data.substitution->join_string);
                 } else {
-                    XL_TEMPLATE_LOG("skipping join string '{}' on first pass", data.join_string);
+                    XL_TEMPLATE_LOG("skipping join string '{}' on first pass", data.substitution->join_string);
                 }
 
 
                 needs_join_string = true;
 
                 if (!data.name_entries.empty()) {
-                    Substitution data_copy(data);
+                    SubstitutionState data_copy(data);
                     result << p(data_copy);
                     continue;
                 }
@@ -553,12 +582,12 @@ struct DefaultProviders {
 
                 // each element of the container gets its own copy of data, as each should be treated identically
                 //   not based on whatever is done by a previous element
-                Substitution new_substitution(data);
-                new_substitution.parent_substitution = &data;
-                auto fill_result = tmpl->fill<ProviderContainer>(p, std::move(new_substitution));
+                SubstitutionState new_substitution(data);
+                
+                auto fill_result = tmpl->fill<ProviderContainer>(new_substitution.fill_state);
 
-                XL_TEMPLATE_LOG("replacement is {}\n - Ignore_empty_replacements is {}", fill_result, data.ignore_empty_replacements);
-                if (fill_result == "" && data.ignore_empty_replacements) {
+                XL_TEMPLATE_LOG("replacement is {}\n - Ignore_empty_replacements is {}", fill_result, data.substitution->ignore_empty_replacements);
+                if (fill_result == "" && data.substitution->ignore_empty_replacements) {
                     needs_join_string = false;
                 }
                 result << fill_result;
@@ -627,7 +656,10 @@ struct DefaultProviders {
         }
 
 
-        std::string operator()(Substitution & data) const override {
+        std::string operator()(SubstitutionState & data) const override {
+            data.fill_state.provider_stack.push_front(this);
+            std::cerr << fmt::format("data provider stack size: {}", data.fill_state.provider_stack.size()) << std::endl;
+
             MapT const & map = this->map_holder;
             if (data.name_entries.empty()) {
                 throw TemplateException("Ran out of names before finding replacement string");
@@ -641,17 +673,18 @@ struct DefaultProviders {
             XL_TEMPLATE_LOG("Looked up map name {} in operator()", name);
             std::string result;
             if (provider_iterator != map.end()) {
-
                 if constexpr(
                     std::is_base_of_v<Provider_Interface, MapValueT> ||
                     std::is_same_v<ProviderPtr, MapValueT>) {
+
+                    data.fill_state.provider_stack.push_front(provider_iterator->second.get());
 
 
                     XL_TEMPLATE_LOG("value is a provider interface or ProviderPtr");
                     if (!data.name_entries.empty()) {
                         result = provider_iterator->second->operator()(data);
-                    } else if (data.inline_template) {
-                        result = data.inline_template->fill(provider_iterator->second, std::move(data));
+                    } else if (data.substitution->inline_template) {
+                        result = data.substitution->inline_template->fill(data.fill_state);
                     } else {
                         result = provider_iterator->second->operator()(data);
                     }
@@ -661,30 +694,50 @@ struct DefaultProviders {
                     auto provider = Provider<make_reference_wrapper_t<MapValueT const>>(
                         std::ref(provider_iterator->second));
 
+                    data.fill_state.provider_stack.push_front(&provider);
+
+
                     if (!data.name_entries.empty()) {
                         result = provider(data);
-                    } else if (data.inline_template) {
-                        auto inline_template = data.inline_template;
+                    } else if (data.substitution->inline_template) {
+                        auto inline_template = data.substitution->inline_template;
 //                        data.inline_template.reset();
 //                        std::cerr << fmt::format("created provider from map value: {}", provider.get_name()) << std::endl;
-                        result = inline_template->fill(provider, std::move(data));
+                        result = inline_template->fill(data.fill_state);
                     } else {
                         result = provider(data);
                     }
 
                 }
-            } else if (data.parent_substitution != nullptr) {
-                data.name_entries.push_back(name);
-
-                // this means the code forgot to set it and it needs to be fixed
-                assert(data.parent_substitution->current_provider != nullptr);
-
-                result = data.parent_substitution->current_provider->operator()(data);
-            
             } else {
-               
-                
-                
+
+                if (!data.searching_provider_stack && !data.fill_state.provider_stack.empty()) {
+                    data.name_entries = data.substitution->name_entries;
+
+                    std::cerr << fmt::format("couldn't find name {} in primary provider: {}", xl::join(data.name_entries), this->get_name()) << std::endl;
+
+                    std::cerr << fmt::format("right before looking for matching name in {} upstream providers:", data.fill_state.provider_stack.size()) << std::endl;
+                    for (auto * provider : data.fill_state.provider_stack) {
+                        std::cerr << fmt::format("upstream: {} {}", (void*)provider, provider->get_name()) << std::endl;
+                    }
+                    for (auto * provider : data.fill_state.provider_stack) {
+                        if (provider == this) {
+                            continue;
+                        }
+                        
+                        // start over from scratch
+                        auto copy = SubstitutionState(data.fill_state, 
+                                                      data.substitution);
+                        copy.searching_provider_stack = true;
+                        copy.fill_state.provider_stack.clear();
+                        try {
+                            return provider->operator()(copy);
+                        } catch (TemplateException const &) {
+                            continue;
+                        }
+                    }
+                }
+
                 XL_TEMPLATE_LOG("in map:");
                 for(auto const & [k,v] : map) {
                     (void)v;
@@ -695,6 +748,7 @@ struct DefaultProviders {
                     template_text = data.current_template->c_str();
                 }
                 throw TemplateException("provider {} does not provide name: '{}' - in template: '{}'", this->get_name(), name, template_text);
+
             }
             return result;
         }
@@ -717,7 +771,7 @@ struct DefaultProviders {
         }
 
 
-        ProviderPtr get_named_provider(Substitution & data) override {
+        ProviderPtr get_named_provider(SubstitutionState & data) override {
 
             if (data.name_entries.empty()) {
                 throw TemplateException("Map Provider::get_named_provider called but no name specified");

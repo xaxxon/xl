@@ -21,7 +21,7 @@ public:
     
     virtual ~Provider_Interface() = default;
     
-    virtual std::string operator()(Substitution & data) const = 0;
+    virtual std::string operator()(SubstitutionState & data) const = 0;
 
     /**
      * A string useful for a human to figure out what Provider this is
@@ -36,7 +36,7 @@ public:
     virtual bool provides_named_lookup() {return false;}
 
 
-    virtual ProviderPtr get_named_provider(Substitution &) {
+    virtual ProviderPtr get_named_provider(SubstitutionState &) {
         throw TemplateException("Provider does not support get_named_provider call");
     };
 

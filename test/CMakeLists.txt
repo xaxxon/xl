@@ -19,7 +19,7 @@ file(GLOB TEST_SRC
 
 # Set address sanitizer as global flag so googletest is built with it
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -O3")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -ftemplate-backtrace-limit=0")
 
 
 include_directories(../include/xl)

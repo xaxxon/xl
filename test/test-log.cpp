@@ -455,31 +455,31 @@ TEST(log, LogStatusFileFromFileSomeStatusesTrueSomeFalse) {
 
 
 TEST(log, templates) {
-    using LogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
-    LogT log;
-    int log_count = 0;
-    std::string last_message;
-    log.add_callback([&](LogT::LogMessage const & message) {
-        log_count++;
-        last_message = message.string;
-    });
+//    using LogT = xl::log::Log<xl::log::DefaultLevels, xl::log::DefaultSubjects>;
+//    LogT log;
+//    int log_count = 0;
+//    std::string last_message;
+//    log.add_callback([&](LogT::LogMessage const & message) {
+//        log_count++;
+//        last_message = message.string;
+//    });
 
-    log.info(Template("{{cheap}}").fill(make_provider(
-        std::pair("cheap", "CHEAP"),
-        std::pair("expensive", []{EXPECT_TRUE(false); return "";})
-    )));
-    EXPECT_EQ(log_count, 1);
-    EXPECT_EQ(last_message, "CHEAP");
+//    log.info(Template("{{cheap}}").fill(make_provider(
+//        std::pair("cheap", "CHEAP"),
+//        std::pair("expensive", []{EXPECT_TRUE(false); return "";})
+//    )));
+//    EXPECT_EQ(log_count, 1);
+//    EXPECT_EQ(last_message, "CHEAP");
+//
+//    log.set_status(LogT::Levels::Info, false);
+//
+//    log.info(LogT::Subjects::Default, Template("{{cheap}} {{expensive}}"), make_provider(
+//        std::pair("cheap", "CHEAP"),
+//        std::pair("expensive", []{EXPECT_TRUE(false); return "";})
+//    ));
 
-    log.set_status(LogT::Levels::Info, false);
-
-    log.info(LogT::Subjects::Default, Template("{{cheap}} {{expensive}}"), make_provider(
-        std::pair("cheap", "CHEAP"),
-        std::pair("expensive", []{EXPECT_TRUE(false); return "";})
-    ));
-
-    // shouldn't have changed
-    EXPECT_EQ(log_count, 1);
+//    // shouldn't have changed
+//    EXPECT_EQ(log_count, 1);
 }
 
 

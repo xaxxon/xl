@@ -17,11 +17,11 @@ using namespace std;
 
 
 TEST(template, EmptyTemplate) {
-    EXPECT_EQ(Template("").fill(), "");
+    EXPECT_EQ(Template("").fill(""), "");
 }
 TEST(template, NoSubstitutionTemplate) {
     auto template_string = "there are no substitutions here";
-    EXPECT_EQ(Template(template_string).fill(), template_string);
+    EXPECT_EQ(Template(template_string).fill(""), template_string);
 }
 TEST(template, SimpleSubstitutionTemplate) {
     EXPECT_EQ(Template("replace: {{TEST}}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
@@ -63,17 +63,17 @@ TEST(template, MultipleSubstitutionsDifferentNameTemplate) {
 }
 
 
-TEST(template, CallbackSubstitutionTemplate) {
-    auto m = make_provider(std::pair{"TEST", std::function<std::string()>([](){return std::string("REPLACEMENT-CALLBACK");})});
-    EXPECT_EQ(Template("replace: {{TEST}}").fill(m),
-              "replace: REPLACEMENT-CALLBACK");
-
-    {
-        auto result = Template("{{set|!{{}}}}").fill(
-           make_provider(std::pair("set", [](){return std::set<string>{"a", "b", "c"};})));
-        EXPECT_EQ(result, "a\nb\nc");
-    }
-}
+//TEST(template, CallbackSubstitutionTemplate) {
+//    auto m = make_provider(std::pair{"TEST", std::function<std::string()>([](){return std::string("REPLACEMENT-CALLBACK");})});
+//    EXPECT_EQ(Template("replace: {{TEST}}").fill(m),
+//              "replace: REPLACEMENT-CALLBACK");
+//
+//    {
+//        auto result = Template("{{set|!{{}}}}").fill(
+//           make_provider(std::pair("set", [](){return std::set<string>{"a", "b", "c"};})));
+//        EXPECT_EQ(result, "a\nb\nc");
+//    }
+//}
 
 
 TEST(template, SingleLineIgnoreEmpty) {
@@ -161,10 +161,12 @@ struct A {
 
 std::unique_ptr<Provider_Interface> get_provider(A const & a) {
     std::cerr << fmt::format("making provider for A.i: {}", a.i) << std::endl;
-    return make_provider(std::pair{"I", [a]{
-            std::cerr << fmt::format("in callback, A.i = {}", a.i) << std::endl;
-            return fmt::format("{}", a.i);}
-        }, std::pair{"J", "6"});
+    return make_provider(
+//        std::pair{"I", [a]{
+//            std::cerr << fmt::format("in callback, A.i = {}", a.i) << std::endl;
+//            return fmt::format("{}", a.i);}
+//        }, 
+                         std::pair{"J", "6"});
 }
 
 static_assert(DefaultProviders<void>::can_get_provider_for_type_v<A>);
@@ -186,12 +188,14 @@ struct B {
 
     std::unique_ptr<Provider_Interface> get_provider() const {
 //        std::cerr << fmt::format("B::get_provider called with this: {}", (void*)this) << std::endl;
-        return make_provider(std::pair{"NAME", this->name},
+        return make_provider(std::pair{"NAME", this->name}
+//        ,
                              //std::pair("GET_VEC_A", std::bind(&B::get_vec_a, this)));
-                             std::pair("GET_VEC_A", [&]()->std::vector<A>{
-//                                 std::cerr << fmt::format("B::lambda callback this: {}", (void*)this) << std::endl;
-//                                 std::cerr << fmt::format("{}", this->vec_a[0].i) << std::endl;
-                                 return std::vector<A>{1, 2, 3, 4, 5};}));
+//                             std::pair("GET_VEC_A", [&]()->std::vector<A>{
+////                                 std::cerr << fmt::format("B::lambda callback this: {}", (void*)this) << std::endl;
+////                                 std::cerr << fmt::format("{}", this->vec_a[0].i) << std::endl;
+//                                 return std::vector<A>{1, 2, 3, 4, 5};})
+        );
     }
 };
 static_assert(DefaultProviders<void>::can_get_provider_for_type_v<B>);
@@ -205,33 +209,33 @@ TEST(template, UserDefinedTypeArray) {
     TemplateMap templates{std::pair{"A1", Template("{i: {{I}} j: {{J}}}")},
                           std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
 
-    auto fill_result = Template("B: '{{NAME}}' A1: {{GET_VEC_A%, |A1}} A2: {{GET_VEC_A%, |A2}}").fill(std::ref(b), &templates);
+    auto fill_result = Template("B: '{{NAME}}' A1: {{GET_VEC_A%, |A1}} A2: {{GET_VEC_A%, |A2}}").fill(std::ref(b), std::move(templates));
     EXPECT_EQ(fill_result, "B: 'B name' A1: {i: 1 j: 6}, {i: 2 j: 6}, {i: 3 j: 6}, {i: 4 j: 6}, {i: 5 j: 6} A2: {i2: 1 j2: 6}, {i2: 2 j2: 6}, {i2: 3 j2: 6}, {i2: 4 j2: 6}, {i2: 5 j2: 6}");
 }
 
 
+//
+//vector<A> vector_object_callback() {
+//    return {10, 11, 12};
+//}
+//TEST(template, VectorCallbackTemplate) {
+//    TemplateMap templates{std::pair{"A1", Template("{i: {{I}} j: {{J}}}")},
+//                          std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
+//
+//    EXPECT_EQ(Template("replace: {{TEST1%, |A1}}").fill(make_provider(std::pair{"TEST1", make_provider(vector_object_callback)}), std::move(templates)),
+//              "replace: {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
+//}
 
-vector<A> vector_object_callback() {
-    return {10, 11, 12};
-}
-TEST(template, VectorCallbackTemplate) {
-    TemplateMap templates{std::pair{"A1", Template("{i: {{I}} j: {{J}}}")},
-                          std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
-
-    EXPECT_EQ(Template("replace: {{TEST1%, |A1}}").fill(make_provider(std::pair{"TEST1", make_provider(vector_object_callback)}), &templates),
-              "replace: {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
-}
-
-
-
-TEST(template, LeadingJoinString) {
-    TemplateMap templates{std::pair{"A1", Template("{i: {{I}} j: {{J}}}")},
-                          std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
-
-    auto provider = make_provider(std::pair{"TEST1", make_provider(vector_object_callback)});
-    EXPECT_EQ(Template("replace: {{TEST1%%, |A1}}").fill(provider, &templates),
-              "replace: , {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
-}
+//
+//
+//TEST(template, LeadingJoinString) {
+//    TemplateMap templates{std::pair{"A1", Template("{i: {{I}} j: {{J}}}")},
+//                          std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
+//
+//    auto provider = make_provider(std::pair{"TEST1", make_provider(vector_object_callback)});
+//    EXPECT_EQ(Template("replace: {{TEST1%%, |A1}}").fill(provider, std::move(templates)),
+//              "replace: , {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
+//}
 
 
 
@@ -360,11 +364,11 @@ TEST(template, LoadDirectoryOfTemplates) {
 TEST(template, TemplateSubstitutionTemplate) {
     auto templates = load_templates("templates");
 
-    auto result = Template("{{!a}} {{!b}}").fill("", &templates);
+    auto result = Template("{{!a}} {{!b}}").fill("", std::move(templates));
 
     EXPECT_EQ(result, "a.template contents b.template contents");
 
-    EXPECT_THROW(Template("{{!a}} {{!c}}").fill("", &templates), TemplateException);
+    EXPECT_THROW(Template("{{!a}} {{!c}}").fill("", std::move(templates)), TemplateException);
 }
 
 
@@ -377,8 +381,14 @@ public:
         return make_provider(std::pair("string", this->s));
 
     }
+    
+    HasProvider(HasProvider const &);
+    HasProvider(HasProvider &&);
 };
 
+HasProvider::HasProvider(HasProvider const &) = default;
+
+HasProvider::HasProvider(HasProvider&&) = default;
 
 /**
  * Class for making sure that uncopyable objects can be used as can_get_provider Providers
@@ -412,6 +422,9 @@ public:
     std::unique_ptr<Provider_Interface> get_provider() const {
         return make_provider(std::pair("v", std::ref(v)));
     }
+    
+    UncopyableHolder(UncopyableHolder const &) = delete;
+    UncopyableHolder(UncopyableHolder &&) = default;
 };
 
 
@@ -443,7 +456,7 @@ TEST(template, ExpandVectorInline) {
 
     // v - vector of Uncopyable objects
     // uncopyable - name of external template to fill with each element in v
-    auto result = Template("{{v|uncopyable}}").fill(UncopyableHolder(), &templates);
+    auto result = Template("{{v|uncopyable}}").fill(UncopyableHolder(), std::move(templates));
     EXPECT_EQ(result, "string1\nstring2\nstring1\nstring2");
 }
 
@@ -548,14 +561,6 @@ TEST(template, ContainerOfPointers) {
 }
 
 
-TEST(template, PointerProviderForUncopyable) {
-    Uncopyable u;
-    auto p = DefaultProviders<void>::Provider<Uncopyable*>(&u);
-
-    Substitution data;
-    data.name_entries = {"A"};
-    p(data); 
-}
 
 
 //TEST(template, EmptyContainerContingentContent) {
@@ -784,7 +789,6 @@ TEST(template, PeriodSeparatedNamesWithContainers) {
     }
     
 }
-
 TEST(template, FallBackToParentProviderForMissingNames) {
     { 
         auto result = Template("{{has_provider2|!{{has_provider|!{{string}}{{five}}}}}}").fill(
@@ -795,5 +799,11 @@ TEST(template, FallBackToParentProviderForMissingNames) {
         auto result = Template("{{has_provider2.has_provider|!{{string}}{{five}}}}").fill(
             std::pair("has_provider2", HasProvider2("hp2")));
         EXPECT_EQ(result, "hp2hp2five\nhp2hp2five");
+    }
+
+    {
+        auto result = Template("{{has_provider2.has_provider|!{{has_provider2.five}}}}").fill(
+            std::pair("has_provider2", HasProvider2("hp2")));
+        EXPECT_EQ(result, "five\nfive");
     }
 }
