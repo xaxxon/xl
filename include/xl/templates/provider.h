@@ -148,7 +148,7 @@ struct DefaultProviders {
 
     static_assert(std::is_convertible_v<remove_reference_wrapper_t<std::reference_wrapper<const char *const>>, std::string>);
     
-    
+
     
     /**
      * String provider
@@ -523,9 +523,11 @@ struct DefaultProviders {
 
 
             XL_TEMPLATE_LOG("inline template exists? {}", (bool)data.substitution->inline_template);
-            Template const * tmpl = [&]() -> Template const * {
+            Template const * const tmpl = [&]() -> Template const * const {
+                
+                // if there are more entries to be looked up, then pass the current template through
                 if (!data.name_entries.empty()) {
-                    return nullptr;
+                    return data.current_template;
                 } else if (data.substitution->inline_template) {
                     return data.substitution->inline_template.get();
                 } else {
@@ -545,6 +547,7 @@ struct DefaultProviders {
                     return &template_iterator->second;
                 }
             }();
+            assert(tmpl != nullptr);
 
             // whether the current replacement should have the join string before it
             //   off initially unless leading join string is specified
@@ -561,7 +564,6 @@ struct DefaultProviders {
                         remove_reference_wrapper_t<decltype(element)> // use element not container because non-const std::set has const element
                     >>>(std::ref(element));
                 
-                data.fill_state.provider_stack.push_front(&p);
 
                 if (needs_join_string) {
                     result << data.substitution->join_string;
@@ -575,7 +577,10 @@ struct DefaultProviders {
 
                 if (!data.name_entries.empty()) {
                     SubstitutionState data_copy(data);
-                    result << p(data_copy);
+                    data_copy.fill_state.provider_stack.push_front(&p);
+                    result << tmpl->fill(data_copy.fill_state);
+//                    result << p(data_copy);
+                    std::cerr << fmt::format("result currently {}", result.str()) << std::endl;
                     continue;
                 }
 
@@ -583,10 +588,12 @@ struct DefaultProviders {
                 // each element of the container gets its own copy of data, as each should be treated identically
                 //   not based on whatever is done by a previous element
                 SubstitutionState new_substitution(data);
-                
+                new_substitution.fill_state.provider_stack.push_front(&p);
+
+
                 auto fill_result = tmpl->fill<ProviderContainer>(new_substitution.fill_state);
 
-                XL_TEMPLATE_LOG("replacement is {}\n - Ignore_empty_replacements is {}", fill_result, data.substitution->ignore_empty_replacements);
+                XL_TEMPLATE_LOG("replacement for {} is {}\n - Ignore_empty_replacements is {}", data.current_template->c_str(), fill_result, data.substitution->ignore_empty_replacements);
                 if (fill_result == "" && data.substitution->ignore_empty_replacements) {
                     needs_join_string = false;
                 }
@@ -726,7 +733,8 @@ struct DefaultProviders {
                         }
                         
                         // start over from scratch
-                        auto copy = SubstitutionState(data.fill_state, 
+                        auto copy = SubstitutionState(*data.current_template,
+                                                      data.fill_state, 
                                                       data.substitution);
                         copy.searching_provider_stack = true;
                         copy.fill_state.provider_stack.clear();

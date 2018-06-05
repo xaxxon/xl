@@ -774,6 +774,7 @@ TEST(template, PeriodSeparatedNames) {
     }
 }
 
+
 TEST(template, PeriodSeparatedNamesWithContainers) {
     {
         auto result = Template("{{has_provider2|!{{has_provider|!{{string}}}}}}").fill(std::pair("has_provider2", HasProvider2("hp2")));
@@ -789,18 +790,19 @@ TEST(template, PeriodSeparatedNamesWithContainers) {
     }
     
 }
+
+
 TEST(template, FallBackToParentProviderForMissingNames) {
     { 
         auto result = Template("{{has_provider2|!{{has_provider|!{{string}}{{five}}}}}}").fill(
             std::pair("has_provider2", HasProvider2("hp2")));
-        EXPECT_EQ(result, "hp2hp2five\nhp2hp2five");
+        EXPECT_EQ(result, "");
     }
     {
         auto result = Template("{{has_provider2.has_provider|!{{string}}{{five}}}}").fill(
             std::pair("has_provider2", HasProvider2("hp2")));
-        EXPECT_EQ(result, "hp2hp2five\nhp2hp2five");
+        EXPECT_EQ(result, "");
     }
-
     {
         auto result = Template("{{has_provider2.has_provider|!{{has_provider2.five}}}}").fill(
             std::pair("has_provider2", HasProvider2("hp2")));

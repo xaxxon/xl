@@ -24,14 +24,16 @@
 #endif
 
 
+
  
 namespace xl::templates {
-
+struct FillState;
 
 
 
 struct Substitution;
 class Provider_Interface;
+
 
 
 class Template {
@@ -41,13 +43,21 @@ private:
     // static portions of the template as separated by substitutions
     mutable std::vector<std::string> compiled_static_strings;
 
-    // substitutions in the template
-    std::vector<Substitution> compiled_substitutions;
 
     // sum of the length of all the fixed portions of the template
     mutable size_t minimum_result_length = 0;
 
+
+    // substitutions in the template
+    std::vector<Substitution> compiled_substitutions;
+
+
 public:
+
+    // create a template with a pre-built substitution instead of compiling
+    //   the template from a string
+    Template(Substitution); 
+    
     explicit Template(std::string tmpl = "") : _tmpl(std::move(tmpl)) {}
     Template(Template const &) = default;
 
@@ -55,7 +65,7 @@ public:
 
 
     template<typename ProviderContainer = void, class T = std::string, typename = std::enable_if_t<!std::is_same_v<FillState, std::decay_t<T>>>>
-    std::string fill(T && source = "", TemplateMap = {}) const;
+    std::string fill(T && source = "", std::map<std::string, Template> = {}) const;
 
     template<typename ProviderContainer = void>
     std::string fill(FillState const &) const;
@@ -67,7 +77,6 @@ public:
     inline bool is_compiled() const;
 };
 
-using TemplateMap = std::map<std::string, Template>;
 
 } // end namespace xl
 
@@ -81,12 +90,8 @@ namespace xl::templates {
 
 class provider_data;
 
-template<class T>
-struct p;
-
-
 template<typename ProviderContainer, class T, typename>
-std::string Template::fill(T && source, TemplateMap template_map) const {
+std::string Template::fill(T && source, std::map<std::string, Template> template_map) const {
 
     XL_TEMPLATE_LOG("Filling template: '{}'", this->c_str());
 
@@ -162,7 +167,7 @@ std::string Template::fill(FillState const & fill_state) const {
         XL_TEMPLATE_LOG("fill: just added static section {}: '{}'", i, this->compiled_static_strings[i]);
 
         if (this->compiled_substitutions.size() > i) {
-            SubstitutionState current_substitution(fill_state, &this->compiled_substitutions[i]);
+            SubstitutionState current_substitution(*this, fill_state, &this->compiled_substitutions[i]);
             
            
             XL_TEMPLATE_LOG("grabbed data for compiled_subsitution {} - it has name {} and inline template: {}",
@@ -200,7 +205,7 @@ std::string Template::fill(FillState const & fill_state) const {
                 XL_TEMPLATE_LOG("about to call provider() named '{}' at {} and inline_template: {}",
                                 provider.get_name(), (void *) &provider, (void *) current_substitution.substitution->inline_template.get());
                 auto substitution_result = provider(current_substitution);
-                XL_TEMPLATE_LOG("replacement is: {}", substitution_result);
+                XL_TEMPLATE_LOG("replacement for {} is: {}", this->c_str(), substitution_result);
                 XL_TEMPLATE_LOG("provider() named {} returned: '{}'", provider.get_name(), substitution_result);
                 if (!current_substitution.substitution->contingent_leading_content.empty() && !substitution_result.empty()) {
                     XL_TEMPLATE_LOG("adding contingent data: {}", current_substitution.substitution->contingent_leading_content);
@@ -215,7 +220,6 @@ std::string Template::fill(FillState const & fill_state) const {
                                   current_substitution.substitution->contingent_trailing_content.end());
                 }
             }
-        
         }
     }
     return result;
@@ -461,6 +465,7 @@ void Template::compile() const {
         if (matches.has("TemplateInsertionMarker")) {
             data.template_name = matches["SubstitutionName"];
         }
+        
 
         compiled_substitutions.emplace_back(std::move(data));
     }

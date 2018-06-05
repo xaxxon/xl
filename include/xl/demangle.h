@@ -11,6 +11,10 @@
 #endif
 #endif
 
+
+// The windows function to demangle names appears to be: 
+//   https://msdn.microsoft.com/en-us/library/windows/desktop/ms681400(v=vs.85).aspx
+
 namespace xl {
 
 /**
