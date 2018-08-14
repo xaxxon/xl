@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include "provider_data.h"
+#include "substitution.h"
 #include "exceptions.h"
 
 
@@ -11,6 +11,7 @@ class Provider_Interaface;
 
 using ProviderPtr = std::unique_ptr<Provider_Interface>;
 
+struct SubstitutionState;
 
 /**
  * A provider either directly provides content to fill a template or it contains a set of providers to fill a
@@ -33,19 +34,23 @@ public:
      * Whether this provider can
      * @return
      */
-    virtual bool provides_named_lookup() {return false;}
+    virtual bool provides_named_lookup() const {return false;}
 
 
-    virtual ProviderPtr get_named_provider(SubstitutionState &) {
+    virtual ProviderPtr get_named_provider(Substitution &) {
         throw TemplateException("Provider does not support get_named_provider call");
     };
 
-    virtual bool is_fillable_provider() {
+    virtual bool is_fillable_provider() const {
         return false;
     }
 
     virtual ProviderPtr get_fillable_provider() {
         throw TemplateException("Called get_fillable_provider on Provider which doesn't override it");
+    }
+    
+    virtual bool needs_raw_template() const {
+        return false;
     }
 
 

@@ -11,6 +11,8 @@ class Template;
 
 using ProviderStack = std::deque<Provider_Interface const *>;
 
+
+// state data needed to begin a call to Template::fill
 struct FillState {
     // providers used to get to the current position
     ProviderStack provider_stack;
@@ -23,6 +25,8 @@ struct FillState {
         provider_stack(std::move(provider_stack)),
         templates(templates)
     {}
+    
+    
 };
 
 } // end namespace xl::templates

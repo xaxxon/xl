@@ -27,9 +27,10 @@ inline std::string demangle_typeid_name(const std::string & mangled_name) {
     //    printf("Starting name demangling\n");
     std::string result;
     int status;
-    auto demangled_name_needs_to_be_freed = abi::__cxa_demangle(mangled_name.c_str(), nullptr, 0, &status);
+    size_t length;
+    auto demangled_name_needs_to_be_freed = abi::__cxa_demangle(mangled_name.c_str(), nullptr, &length, &status);
     if (demangled_name_needs_to_be_freed == nullptr) {
-        return mangled_name;    
+        return mangled_name;
     }
     
     result = demangled_name_needs_to_be_freed;
@@ -44,9 +45,10 @@ inline std::string demangle_typeid_name(const std::string & mangled_name) {
         //-3: One of the arguments is invalid.
         result = mangled_name;
     }
-    if (demangled_name_needs_to_be_freed) {
-        free(demangled_name_needs_to_be_freed);
-    }
+    
+    // ok if demangle failed because it will be null
+    free(demangled_name_needs_to_be_freed);
+    
     return result;
 
 #else

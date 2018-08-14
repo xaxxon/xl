@@ -335,3 +335,18 @@ can be written as:
     
 
 
+## Template Design Info
+
+A Template object is the entire template string as presented to the API
+
+A Substitution is the bit within a {{...}} and can contain Template objects
+which contain subsequent Substitution objects.   A complex name Substitution
+may also be broken down into implicit Template objects
+
+{{a.  b.  c|{{foo}} }}
+
+{{a|{{b.  c|{{foo}} }} }}
+
+{{a|{{b|{{c|{{foo}} }} }} }}
+
+

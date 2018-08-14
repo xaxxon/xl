@@ -1,6 +1,6 @@
 
 #ifdef XL_LOG_WITH_TEMPLATES
-#include "../templates.h"
+#include "templates.h"
 #endif
 
 // requires a traditional include guard because of circular dependencies with xl::templates
