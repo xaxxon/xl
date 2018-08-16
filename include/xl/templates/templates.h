@@ -108,6 +108,24 @@ public:
     CompiledTemplate(Template const * const source_template, Substitution) :
         source_template(source_template)
     {}
+    
+    
+    std::string details_string() {
+        std::stringstream details_string;
+        
+        details_string << fmt::format("static strings: {}, substitutions: {}", this->static_strings.size(), this->substitutions.size());
+        
+        for (decltype(static_strings.size()) i = 0; i < static_strings.size(); i++) {
+            
+            details_string << this->static_strings[i] << "\n";
+            
+            if (this->substitutions.size() > i) {
+                details_string << this->substitutions[i].raw_text << "\n";
+            }
+        }
+        
+        return details_string.str();
+    }
 
 };
 
@@ -141,9 +159,7 @@ std::string Template::fill(FillState const & fill_state) const {
 template<typename ProviderContainer, class T, typename>
 std::string Template::fill(T && source, std::map<std::string, Template> template_map) const {
     
-    if (!this->is_compiled()) {
-        this->compile();
-    }
+    this->compile();
 
     XL_TEMPLATE_LOG("Filling template: '{}'", this->c_str());
 
@@ -163,7 +179,7 @@ std::string Template::fill(T && source, std::map<std::string, Template> template
         // need to store the unique_ptr to maintain object lifetime then assign to normal pointer
         //   so there is a common way to get the object below for assignment to reference type
         provider_interface_unique_pointer = DefaultProviders<ProviderContainer>::template make_provider(std::forward<T>(source));
-        XL_TEMPLATE_LOG("**** got unique ptr at {}", (void *) provider_interface_unique_pointer.get());
+//        XL_TEMPLATE_LOG("**** got unique ptr at {}", (void *) provider_interface_unique_pointer.get());
         provider_interface_pointer = provider_interface_unique_pointer.get();
 
         /**
@@ -172,10 +188,10 @@ std::string Template::fill(T && source, std::map<std::string, Template> template
         assert(provider_interface_pointer != nullptr);
 
 
-        XL_TEMPLATE_LOG("**** set provider interface pointer to {}", (void *) provider_interface_pointer);
+//        XL_TEMPLATE_LOG("**** set provider interface pointer to {}", (void *) provider_interface_pointer);
     }
 
-    XL_TEMPLATE_LOG("outside: provider interface pointer to {}", (void *) provider_interface_pointer);
+//    XL_TEMPLATE_LOG("outside: provider interface pointer to {}", (void *) provider_interface_pointer);
 
     
     ProviderPtr fillable_provider = {};
@@ -185,9 +201,9 @@ std::string Template::fill(T && source, std::map<std::string, Template> template
     }
 
     ProviderStack provider_stack{provider_interface_pointer};
-    std::cerr << fmt::format("ps size: {}", provider_stack.size()) << std::endl;
+//    std::cerr << fmt::format("ps size: {}", provider_stack.size()) << std::endl;
     FillState fill_state(std::move(provider_stack), &template_map);
-    std::cerr << fmt::format("fill state provider stack size: {}", fill_state.provider_stack.size()) << std::endl;
+//    std::cerr << fmt::format("fill state provider stack size: {}", fill_state.provider_stack.size()) << std::endl;
     return fill<ProviderContainer>(fill_state);
 }
 
@@ -197,9 +213,15 @@ std::string Template::fill(SubstitutionState & substitution_state) const {
     
     // if the top provider exists and wants the entire template as-is, provide it directly
     if (!substitution_state.fill_state.provider_stack.empty() && substitution_state.fill_state.provider_stack.front()->needs_raw_template()) {
-        return substitution_state.fill_state.provider_stack.front()->operator()(substitution_state);
+        this->compile();
+        substitution_state.current_template = this->compiled_template.get();
+        auto result = substitution_state.fill_state.provider_stack.front()->operator()(substitution_state);
+//        std::cerr << fmt::format("substitution state fill if true returning: {}\n", result);
+        return result;
     } else {
-        return this->fill(substitution_state.fill_state);
+        auto result = this->fill(substitution_state.fill_state);
+//        std::cerr << fmt::format("substitution state fill if false returning: {}\n", result);
+        return result;
     }
 }
 
@@ -211,7 +233,7 @@ std::string CompiledTemplate::fill(FillState const & fill_state) const {
     Provider_Interface const & provider = *fill_state.provider_stack.front();
 
     std::string result{""};
-    XL_TEMPLATE_LOG("just created variable 'result': '{}'", result);
+//    XL_TEMPLATE_LOG("just created variable 'result': '{}'", result);
     result.reserve(this->minimum_result_length);
     
 
@@ -227,7 +249,7 @@ std::string CompiledTemplate::fill(FillState const & fill_state) const {
             XL_TEMPLATE_LOG("grabbed data for compiled_subsitution {} - it has name {} and inline template: {}",
                             i, current_substitution.substitution->get_name(), (void*)current_substitution.substitution->final_data->inline_template.get());
             current_substitution.current_template = this;
-            XL_TEMPLATE_LOG("substitution instantiation data.name: '{}'", current_substitution.substitution->get_name());
+//            XL_TEMPLATE_LOG("substitution instantiation data.name: '{}'", current_substitution.substitution->get_name());
 
             // substituting another template in with {{!template_name}}
             if (current_substitution.substitution->final_data->template_name != "") {
@@ -254,19 +276,19 @@ std::string CompiledTemplate::fill(FillState const & fill_state) const {
                     XL_TEMPLATE_LOG("Handled comment");
                 } else {
 
-                    XL_TEMPLATE_LOG("created Substitution data for '{}' on the stack at {}",
-                                    current_substitution.substitution->get_name(), (void *) &current_substitution);
+//                    XL_TEMPLATE_LOG("created Substitution data for '{}' on the stack at {}",
+//                                    current_substitution.substitution->get_name(), (void *) &current_substitution);
 
-                    XL_TEMPLATE_LOG("about to call provider() named '{}' at {} and inline_template: {}",
-                                    provider.get_name(), (void *) &provider,
-                                    (void *) current_substitution.substitution->final_data->inline_template.get());
+//                    XL_TEMPLATE_LOG("about to call provider() named '{}' at {} and inline_template: {}",
+//                                    provider.get_name(), (void *) &provider,
+//                                    (void *) current_substitution.substitution->final_data->inline_template.get());
                     auto substitution_result = provider(current_substitution);
-                    XL_TEMPLATE_LOG("replacement for {} is: {}", this->source_template->c_str(), substitution_result);
+//                    XL_TEMPLATE_LOG("replacement for {} is: {}", this->source_template->c_str(), substitution_result);
                     XL_TEMPLATE_LOG("provider() named {} returned: '{}'", provider.get_name(), substitution_result);
                     if (!current_substitution.substitution->initial_data->contingent_leading_content.empty() &&
                         !substitution_result.empty()) {
-                        XL_TEMPLATE_LOG("adding contingent data: {}",
-                                        current_substitution.substitution->initial_data->contingent_leading_content);
+//                        XL_TEMPLATE_LOG("adding contingent data: {}",
+//                                        current_substitution.substitution->initial_data->contingent_leading_content);
 
                         result.insert(result.end(),
                                       current_substitution.substitution->initial_data->contingent_leading_content.begin(),
@@ -275,8 +297,8 @@ std::string CompiledTemplate::fill(FillState const & fill_state) const {
                     result.insert(result.end(), substitution_result.begin(), substitution_result.end());
                     if (!current_substitution.substitution->initial_data->contingent_trailing_content.empty() &&
                         !substitution_result.empty()) {
-                        XL_TEMPLATE_LOG("inserting trailing content: {}",
-                                        current_substitution.substitution->initial_data->contingent_trailing_content);
+//                        XL_TEMPLATE_LOG("inserting trailing content: {}",
+//                                        current_substitution.substitution->initial_data->contingent_trailing_content);
                         result.insert(result.end(),
                                       current_substitution.substitution->initial_data->contingent_trailing_content.begin(),
                                       current_substitution.substitution->initial_data->contingent_trailing_content.end());
@@ -285,6 +307,7 @@ std::string CompiledTemplate::fill(FillState const & fill_state) const {
             }
         }
     }
+//    std::cerr << fmt::format("fillstate fill returning: {}\n", result);
     return result;
 }
 
@@ -296,8 +319,12 @@ bool Template::is_compiled() const {
 
 
 void Template::compile() const {
+    
+    if (this->compiled_template) {
+        return;
+    }
 
-    XL_TEMPLATE_LOG("Compiling: {}", this->_tmpl);
+    XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "Compiling: {}", this->_tmpl);
 
     this->compiled_template = std::make_shared<CompiledTemplate>(this);
 
@@ -471,81 +498,100 @@ void Template::compile() const {
 
 
         Substitution data(*this);
+        data.raw_text = matches[0];
+        std::cerr << fmt::format("setting raw text to: {}\n", matches["Substitution"]);
 
         // if the substition is a comment, nothing else matters
         if (matches.has("Comment")) {
+            XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "substitution is a comment");
             data.comment = true;
-            continue;
-        } 
+        }  else {
 
-        if (!matches.has("TemplateInsertionMarker")) {
-            auto substitution_name = matches["SubstitutionName"];
-            XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "substitution name: {}", substitution_name);
-            if (!substitution_name.empty()) {
+            if (!matches.has("TemplateInsertionMarker")) {
+                auto substitution_name = matches["SubstitutionName"];
+                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "substitution name: {}", substitution_name);
+                if (!substitution_name.empty()) {
 
-                // split it on . and add each to name_entries
-                size_t position = 0;
-                size_t new_position = position;
-                while ((new_position = substitution_name.find('.', position)) != std::string_view::npos) {
+                    // split it on . and add each to name_entries
+                    size_t position = 0;
+                    size_t new_position = position;
+                    while ((new_position = substitution_name.find('.', position)) != std::string_view::npos) {
 
 
-                    // create a new template for the partial name and a new inline template for it
-                    
+                        // create a new template for the partial name and a new inline template for it
+
 //                    {{a.b|!{{foo}} }} 
 //                      becomes:
 //                    {{a|!{{b|!{{foo}} }} }}
-                    
-                    // the problem is that it changes the outer-most template which is what's being compiled.   
-                    // it's hard to just switch it out at this point.
-                    
-                    
-                    data.name_entries.emplace_back(substitution_name.data(), position, new_position - position);
 
-                    XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "substitution sub-name: {}", data.name_entries.back());
+                        // the problem is that it changes the outer-most template which is what's being compiled.   
+                        // it's hard to just switch it out at this point.
 
-                    position = new_position + 1;
+
+                        data.name_entries.emplace_back(substitution_name.data(), position, new_position - position);
+
+                        XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "substitution sub-name: {}",
+                                        data.name_entries.back());
+
+                        position = new_position + 1;
+                    }
+                    data.name_entries.emplace_back(substitution_name.data(), position,
+                                                   substitution_name.length() - position);
+                    std::reverse(data.name_entries.begin(), data.name_entries.end());
                 }
-                data.name_entries.emplace_back(substitution_name.data(), position,
-                                               substitution_name.length() - position);
-                std::reverse(data.name_entries.begin(), data.name_entries.end());
+                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "parsed name into {}",
+                                xl::join(data.name_entries));
+            } else {
+                data.final_data->template_name = matches["SubstitutionName"];
             }
-            XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "parsed name into {}", xl::join(data.name_entries));
-        } else {
-            data.final_data->template_name = matches["SubstitutionName"];
+
+            if (matches.has("JoinStringMarker")) {
+                data.shared_data->join_string = matches["JoinString"];
+                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "Join string for '{}' set to: '{}'\n",
+                                this->c_str(), data.shared_data->join_string);
+            } else {
+                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile,
+                                "join string not found in '{}', using default: '{}'\n", this->c_str(),
+                                data.shared_data->join_string);
+            }
+
+            if (matches.has("LeadingJoinStringMarker")) {
+                data.shared_data->leading_join_string = true;
+            }
+
+            data.initial_data->contingent_leading_content = contingent_leading_content;
+
+            data.shared_data->ignore_empty_replacements = ignore_empty_replacements_before;
+
+            if (matches.has("InlineTemplateMarker")) {
+                log.info(TemplateSubjects::Subjects::Compile,
+                         std::string("Template::compile - creating inline template from '") +
+                         std::string(matches["SubstitutionData"]) + "'");
+                auto inline_template_text = matches["SubstitutionData"];
+                log.info(TemplateSubjects::Subjects::Compile,
+                         "inline template text: " + std::string(inline_template_text));
+                data.final_data->inline_template = std::make_shared<Template>(inline_template_text);
+            } else {
+                data.parameters = matches["SubstitutionData"];
+            }
         }
-
-        if (matches.has("JoinStringMarker")) {
-            data.shared_data->join_string = matches["JoinString"];
-            std::cerr << fmt::format("Join string for '{}' set to: '{}'\n", this->c_str(), data.shared_data->join_string);
-        } else {
-            std::cerr << fmt::format("join string not found in '{}', using default: '{}'\n", this->c_str(), data.shared_data->join_string);
-        }
-
-        if (matches.has("LeadingJoinStringMarker")) {
-            data.shared_data->leading_join_string = true;
-        }
-        
-        data.initial_data->contingent_leading_content = contingent_leading_content;
-
-        data.shared_data->ignore_empty_replacements = ignore_empty_replacements_before;
-
-        if (matches.has("InlineTemplateMarker")) {
-            log.info(TemplateSubjects::Subjects::Compile, std::string("Template::compile - creating inline template from '") + std::string(matches["SubstitutionData"]) + "'");
-            auto inline_template_text = matches["SubstitutionData"];
-            log.info(TemplateSubjects::Subjects::Compile, "inline template text: " + std::string(inline_template_text));
-            data.final_data->inline_template = std::make_shared<Template>(inline_template_text);
-        } else {
-            data.parameters = matches["SubstitutionData"];
-        }
-
         
 
         substitutions.emplace_back(std::move(data));
     }
-//    std::cerr << fmt::format("remaining template '{}', sizes: {}", remaining_template, remaining_template.size()) << std::endl;
+    
+    assert(this->compiled_template->static_strings.size() == this->compiled_template->substitutions.size() ||
+           this->compiled_template->static_strings.size() == this->compiled_template->substitutions.size() + 1);
+    
+
+    std::cerr << fmt::format("compiled template:\n{}\n", this->compiled_template->details_string());
+
     assert(remaining_template.empty());
     
 }
+
+
+
 
 
 // Requires Template definition

@@ -60,6 +60,7 @@ struct SubstitutionState {
                 fmt::format("ContainerProvider couldn't find template named: '{}' from template {}", this->substitution->parameters, this->current_template->source_template->c_str()));
         }
 
+        XL_TEMPLATE_LOG("Returning named template: {}", template_iterator->second.c_str());
         return &template_iterator->second;
    
         

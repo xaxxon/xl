@@ -5,6 +5,7 @@
 #include <deque>
 #include <optional>
 
+
 namespace xl::templates {
 
 class Template;
@@ -48,6 +49,8 @@ struct Substitution {
         bool leading_join_string = false; // same across all splits
     };
     
+    std::string raw_text;
+    
     std::shared_ptr<Shared> shared_data = std::make_shared<Shared>();
     std::unique_ptr<InitialSplit> initial_data = std::make_unique<InitialSplit>();
     std::unique_ptr<FinalSplit> final_data = std::make_unique<FinalSplit>();
@@ -72,8 +75,7 @@ struct Substitution {
                 static std::string bogus = "BOGUS";
 
                 if (required) {
-                    assert(this->name_entries.size() == 1);
-                    return bogus;
+                    throw FormattedException("Required name not available in substitution");
                 } else {
                     return bogus;
                 }

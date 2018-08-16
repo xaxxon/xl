@@ -187,7 +187,7 @@ struct A {
     int i = 444;
 
     A(int i) : i(i) {
-        std::cerr << fmt::format("Created `A` with i = {}", this->i) << std::endl;
+//        std::cerr << fmt::format("Created `A` with i = {}", this->i) << std::endl;
     }
 };
 
@@ -439,6 +439,7 @@ public:
     HasProvider(std::string s) : s(s) {}
     std::unique_ptr<Provider_Interface> get_provider() const {
         return make_provider(std::pair("string", this->s));
+//        return make_provider(std::pair("string", std::ref(this->s)));
 
     }
     
@@ -509,10 +510,13 @@ TEST(template, ExpandInline) {
 
 
 TEST(template, ExpandVectorInline) {
+    
     UncopyableHolder uch;
     std::map<std::string, Template> templates;
-
-    templates.emplace("uncopyable", Template("{{strings|!{{uncopyable strings}}}}"));
+    
+    //                                                     vector<HasProvider> in Uncopyable
+    //                                                     |                     string in HasProvider
+    templates.emplace("uncopyable", Template("{{uncopyable strings|!{{string}}}}"));
 
     // v - vector of Uncopyable objects
     // uncopyable - name of external template to fill with each element in v  
