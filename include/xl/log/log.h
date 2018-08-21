@@ -1,7 +1,4 @@
 
-#ifdef XL_LOG_WITH_TEMPLATES
-#include "templates.h"
-#endif
 
 // requires a traditional include guard because of circular dependencies with xl::templates
 #ifndef XL_LOG_LOG_H
@@ -21,6 +18,10 @@
 #include "../date.h"
 
 #include "log_status_file.h"
+
+namespace xl::templates {
+class Template;
+}
 
 namespace xl::log {
 
@@ -475,33 +476,74 @@ public:
 #endif
 
 
+
+
 #ifdef XL_LOG_WITH_TEMPLATES
+
+
     /**
      * For strings which are useful to log but expensive enough to be desirable to not build the string
      * when the log level/subject is disabled, using a xl::Template will allow for specifying callbacks
      * or user-defined provider objects which are only used if the string will be sent to a callback
      */
     template<typename... Ts>
-    void log(Levels level, Subjects subject, xl::templates::Template const & tmpl, Ts&&... args) {
-        if (this->is_live(level, subject)) { // don't build the string if it wont be used
-            this->log(level, subject, tmpl.fill(std::forward<Ts>(args)...));
-        }
-    };
+    void log(Levels level, Subjects subject, xl::templates::Template const & tmpl, Ts&&... args);
+    
     template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Info >= 0, int> = 0>
-    void info(Subjects subject, xl::templates::Template const & tmpl, Ts && ... args) {
-        this->log(Levels::Info, subject, tmpl, std::forward<Ts>(args)...);
-    }
+    void info(Subjects subject, xl::templates::Template const & tmpl, Ts && ... args);
+    
     template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Warn >= 0, int> = 0>
-    void warn(Subjects subject, xl::templates::Template const & tmpl, Ts && ... args) {
-        this->log(Levels::Warn, subject, tmpl, std::forward<Ts>(args)...);
-    }
+    void warn(Subjects subject, xl::templates::Template const & tmpl, Ts && ... args);
+    
     template<class... Ts, class T = Levels, std::enable_if_t<(int)T::Error >= 0, int> = 0>
-    void error(Subjects subject, xl::templates::Template const & tmpl, Ts && ... args) {
-        this->log(Levels::Error, subject, tmpl, std::forward<Ts>(args)...);
-    }
+    void error(Subjects subject, xl::templates::Template const & tmpl, Ts && ... args);
 #endif
 
 };
+
+
+
+
+#ifdef XL_LOG_WITH_TEMPLATES
+
+}
+
+#include "templates.h"
+namespace xl::log {
+
+
+/**
+ * For strings which are useful to log but expensive enough to be desirable to not build the string
+ * when the log level/subject is disabled, using a xl::Template will allow for specifying callbacks
+ * or user-defined provider objects which are only used if the string will be sent to a callback
+ */
+template<class LevelsT, class SubjectsT, class Clock>
+template<typename... Ts>
+void Log<LevelsT, SubjectsT, Clock>::log(Levels level, Subjects subject, xl::templates::Template const & tmpl, Ts&&... args) {
+    if (this->is_live(level, subject)) { // don't build the string if it wont be used
+        this->log(level, subject, tmpl.fill(std::forward<Ts>(args)...));
+    }
+};
+
+template<class LevelsT, class SubjectsT, class Clock>
+template<class... Ts, class T, std::enable_if_t<(int)T::Info >= 0, int>>
+void Log<LevelsT, SubjectsT, Clock>::info(Subjects subject, xl::templates::Template const & tmpl, Ts && ... args) {
+    this->log(Levels::Info, subject, tmpl, std::forward<Ts>(args)...);
+}
+
+template<class LevelsT, class SubjectsT, class Clock>
+template<class... Ts, class T, std::enable_if_t<(int)T::Warn >= 0, int>>
+void Log<LevelsT, SubjectsT, Clock>::warn(Subjects subject, xl::templates::Template const & tmpl, Ts && ... args) {
+    this->log(Levels::Warn, subject, tmpl, std::forward<Ts>(args)...);
+}
+
+template<class LevelsT, class SubjectsT, class Clock>
+template<class... Ts, class T, std::enable_if_t<(int)T::Error >= 0, int>>
+void Log<LevelsT, SubjectsT, Clock>::error(Subjects subject, xl::templates::Template const & tmpl, Ts && ... args) {
+    this->log(Levels::Error, subject, tmpl, std::forward<Ts>(args)...);
+}
+#endif
+
 
 
 

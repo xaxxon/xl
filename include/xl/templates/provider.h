@@ -13,6 +13,7 @@
 #include "substitution.h"
 #include "provider_interface.h"
 #include "substitution_state.h"
+#include "compiled_template.h"
 
 namespace xl::templates {
 //
@@ -167,8 +168,6 @@ struct DefaultProviders {
             string(std::move(string)) 
         {
 //            XL_TEMPLATE_LOG("Created string provider with: '{}'", this->string);
-            volatile int i;
-            i = 0;
         }
 
         virtual ~Provider() {
@@ -520,13 +519,13 @@ struct DefaultProviders {
             ContainerT const & t = this->t_holder;
 
 
-//            XL_TEMPLATE_LOG("container provider looking at substitution data for: {}, {}", data.substitution->get_name(), (bool)data.substitution->final_data->inline_template);
+//            XL_TEMPLATE_LOG("container provider looking at substitution data for: {}, {}", data.substitution->get_name(), (bool)data.substitution->final_data.inline_template);
             std::stringstream result;
 
             assert(data.current_template != nullptr);
             
             // get the template to fill with each element of the container
-            Template const * const tmpl = data.get_template();
+            CompiledTemplate const * const tmpl = data.get_template();
             assert(tmpl != nullptr);
 
             // whether the current replacement should have the join string before it
@@ -670,8 +669,8 @@ struct DefaultProviders {
                     result = next_template->fill(data);
 //                    std::cerr << fmt::format("1map provider for {} result: {}\n", name, result);
 
-//                    if (data.substitution->final_data->inline_template) {
-//                        result = data.substitution->final_data->inline_template->fill(data);
+//                    if (data.substitution->final_data.inline_template) {
+//                        result = data.substitution->final_data.inline_template->fill(data);
 //                    } else {
 //                        result = provider_iterator->second->operator()(data);
 //                    }
@@ -687,8 +686,8 @@ struct DefaultProviders {
                     result = next_template->fill(data);
 //                    XL_TEMPLATE_LOG("2map provider for {} result: {}\n", name, result);
 
-//                    if (data.substitution->final_data->inline_template) {
-//                        auto inline_template = data.substitution->final_data->inline_template;
+//                    if (data.substitution->final_data.inline_template) {
+//                        auto inline_template = data.substitution->final_data.inline_template;
 ////                        data.inline_template.reset();
 ////                        std::cerr << fmt::format("created provider from map value: {}", provider.get_name()) << std::endl;
 //                        result = inline_template->fill(data);
