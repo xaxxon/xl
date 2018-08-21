@@ -110,7 +110,7 @@ std::string Template::fill(T && source, std::map<std::string, Template> template
 template<typename ProviderContainer, class T, typename>
 std::string CompiledTemplate::fill(T && source, std::map<std::string, Template> template_map) const {
 
-    XL_TEMPLATE_LOG("Filling template: '{}'", this->source_template->c_str());
+    XL_TEMPLATE_LOG(LogT::Subjects::Template, "Filling template: '{}'", this->source_template->c_str());
 
     // used for storing the provider if necessary
     std::unique_ptr<Provider_Interface> provider_interface_unique_pointer;

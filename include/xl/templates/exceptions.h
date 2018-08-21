@@ -5,10 +5,10 @@ namespace xl::templates {
 
 
 struct TemplateSubjects {
-    inline static std::string subject_names[] = {"default", "compile", "exception"};
+    inline static std::string subject_names[] = {"default", "template", "compile", "exception", "provider"};
 
     enum class Subjects {
-        Default = 0, Compile, Exception, LOG_LAST_SUBJECT
+        Default = 0, Template, Compile, Exception, Provider, LOG_LAST_SUBJECT
     };
 };
 

@@ -104,7 +104,7 @@ std::string CompiledTemplate::fill(FillState const & fill_state) const {
     for(size_t i = 0; i < this->static_strings.size(); i++) {
 
         result.insert(result.end(), this->static_strings[i].begin(), this->static_strings[i].end());
-        XL_TEMPLATE_LOG("fill: just added static section {}: '{}'", i, this->static_strings[i]);
+        XL_TEMPLATE_LOG(LogT::Subjects::Template, "fill: just added static section {}: '{}'", i, this->static_strings[i]);
 
         if (this->substitutions.size() > i) {
             SubstitutionState current_substitution(*this, fill_state, &this->substitutions[i]);

@@ -322,7 +322,7 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
            this->compiled_template->static_strings.size() == this->compiled_template->substitutions.size() + 1);
 
 
-    std::cerr << fmt::format("compiled template:\n{}\n", this->compiled_template->details_string());
+    XL_TEMPLATE_LOG("compiled template:\n{}\n", this->compiled_template->details_string());
 
     assert(remaining_template.empty());
 

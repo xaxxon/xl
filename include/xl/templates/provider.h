@@ -335,7 +335,7 @@ struct DefaultProviders {
             NoRefT const & t = this->t_holder;
 
             ProviderPtr provider = get_underlying_provider();
-            XL_TEMPLATE_LOG("got underlying provider: {} => {}", this->get_name(), provider->get_name());
+            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "got underlying provider: {} => {}", this->get_name(), provider->get_name());
 
 
             assert(provider.get() != this);
@@ -398,7 +398,7 @@ struct DefaultProviders {
 
         std::string operator()(SubstitutionState & data) const override {
             data.fill_state.provider_stack.push_front(this);
-            XL_TEMPLATE_LOG("unique_ptr provider called");
+            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "unique_ptr provider called");
 
             return make_provider(*static_cast<UniquePtrT &>(t))->operator()(data);
         }
@@ -449,7 +449,7 @@ struct DefaultProviders {
 
         std::string operator()(SubstitutionState & data) const override {
             data.fill_state.provider_stack.push_front(this);
-            XL_TEMPLATE_LOG("Pointer provider {}", this->get_name());
+            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "Pointer provider {}", this->get_name());
 
             return Provider<make_reference_wrapper_t<NoPtrT>>(*t)(data);
         }
@@ -499,7 +499,7 @@ struct DefaultProviders {
             t_holder(std::move(t_holder)) 
         {
             ContainerT & t = this->t_holder;
-//            XL_TEMPLATE_LOG("Created container Provider {} for lvalue at {}", xl::demangle<T>(),
+//            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "Created container Provider {} for lvalue at {}", xl::demangle<T>(),
 //                (void*)&t);
         }
 
@@ -507,7 +507,7 @@ struct DefaultProviders {
 
         ~Provider() {
             ContainerT & t = t_holder;
-//            XL_TEMPLATE_LOG("Destroyed container provider for container at {}", (void*)&t);
+//            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "Destroyed container provider for container at {}", (void*)&t);
         }
 
 
@@ -519,7 +519,7 @@ struct DefaultProviders {
             ContainerT const & t = this->t_holder;
 
 
-//            XL_TEMPLATE_LOG("container provider looking at substitution data for: {}, {}", data.substitution->get_name(), (bool)data.substitution->final_data.inline_template);
+//            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "container provider looking at substitution data for: {}, {}", data.substitution->get_name(), (bool)data.substitution->final_data.inline_template);
             std::stringstream result;
 
             assert(data.current_template != nullptr);
@@ -547,9 +547,9 @@ struct DefaultProviders {
 
                 if (needs_join_string) {
                     result << data.substitution->shared_data->join_string;
-//                    XL_TEMPLATE_LOG("inserting join string '{}' on subsequent pass", data.substitution->shared_data->join_string);
+//                    XL_TEMPLATE_LOG(LogT::Subjects::Provider, "inserting join string '{}' on subsequent pass", data.substitution->shared_data->join_string);
                 } else {
-//                    XL_TEMPLATE_LOG("skipping join string '{}' on first pass", data.substitution->shared_data->join_string);
+//                    XL_TEMPLATE_LOG(LogT::Subjects::Provider, "skipping join string '{}' on first pass", data.substitution->shared_data->join_string);
                 }
 
 
@@ -564,12 +564,12 @@ struct DefaultProviders {
 
                 auto fill_result = tmpl->fill<ProviderContainer>(new_substitution);
 
-//                XL_TEMPLATE_LOG("replacement for {} is {}\n - Ignore_empty_replacements is {}", data.current_template->source_template->c_str(), fill_result, data.substitution->shared_data->ignore_empty_replacements);
+//                XL_TEMPLATE_LOG(LogT::Subjects::Provider, "replacement for {} is {}\n - Ignore_empty_replacements is {}", data.current_template->source_template->c_str(), fill_result, data.substitution->shared_data->ignore_empty_replacements);
                 if (fill_result == "" && data.substitution->shared_data->ignore_empty_replacements) {
                     needs_join_string = false;
                 }
                 result << fill_result;
-                std::cerr << fmt::format("In container provider, after {} elements, result currently {}", i, result.str()) << std::endl;
+                XL_TEMPLATE_LOG(LogT::Subjects::Provider, "In container provider, after {} elements, result currently {}", i, result.str());
 
 
             }
@@ -613,10 +613,10 @@ struct DefaultProviders {
             MapT & map = this->map_holder;
             (map.emplace(std::move(pairs.first), make_provider(std::move(pairs.second))),...);
 
-//            XL_TEMPLATE_LOG("done adding pairs to map at: {}", (void*)this);
-//            XL_TEMPLATE_LOG("map size: {}", map.size());
+//            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "done adding pairs to map at: {}", (void*)this);
+//            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "map size: {}", map.size());
 //            for(auto const & [a,b] : map) {
-//                XL_TEMPLATE_LOG("{}: {}", a, (void*)b.get());
+//                XL_TEMPLATE_LOG(LogT::Subjects::Provider, "{}: {}", a, (void*)b.get());
 //            }
         }
 
@@ -625,12 +625,12 @@ struct DefaultProviders {
             map_holder(std::move(map_holder))
         {
             MapT & map = this->map_holder;
-//            XL_TEMPLATE_LOG("added entire map into map provider");
+//            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "added entire map into map provider");
 //
-//            XL_TEMPLATE_LOG("done moving map into map");
-//            XL_TEMPLATE_LOG("map size: {}", map.size());
+//            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "done moving map into map");
+//            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "map size: {}", map.size());
 //            for(auto const & [a,b] : map) {
-//                XL_TEMPLATE_LOG("{}: {}", a, (void*)&b);
+//                XL_TEMPLATE_LOG(LogT::Subjects::Provider, "{}: {}", a, (void*)&b);
 //            }
         }
 
@@ -654,7 +654,7 @@ struct DefaultProviders {
             std::string name = std::move(data.substitution->get_name(true)); // keep a copy that isn't cleared
 
 
-            XL_TEMPLATE_LOG("Map Provider looking up name {}", name);
+            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "Map Provider looking up name {}", name);
             std::string result;
             if (provider_iterator != map.end()) {
                 if constexpr(
@@ -664,7 +664,7 @@ struct DefaultProviders {
                     data.fill_state.provider_stack.push_front(provider_iterator->second.get());
 
 
-//                    XL_TEMPLATE_LOG("value is a provider interface or ProviderPtr");
+//                    XL_TEMPLATE_LOG(LogT::Subjects::Provider, "value is a provider interface or ProviderPtr");
                     auto next_template = data.get_template();
                     assert(next_template != nullptr);
                     result = next_template->fill(data);
@@ -676,7 +676,7 @@ struct DefaultProviders {
 //                        result = provider_iterator->second->operator()(data);
 //                    }
                 } else {
-//                    XL_TEMPLATE_LOG("value needs to be converted to provider");
+//                    XL_TEMPLATE_LOG(LogT::Subjects::Provider, "value needs to be converted to provider");
 
                     auto provider = Provider<make_reference_wrapper_t<MapValueT const>>(
                         std::ref(provider_iterator->second));
@@ -685,7 +685,7 @@ struct DefaultProviders {
                     
                     auto next_template = data.get_template();
                     result = next_template->fill(data);
-//                    XL_TEMPLATE_LOG("2map provider for {} result: {}\n", name, result);
+//                    XL_TEMPLATE_LOG(LogT::Subjects::Provider, "2map provider for {} result: {}\n", name, result);
 
 //                    if (data.substitution->final_data.inline_template) {
 //                        auto inline_template = data.substitution->final_data.inline_template;
@@ -701,7 +701,7 @@ struct DefaultProviders {
 
                 if (!data.searching_provider_stack && !data.fill_state.provider_stack.empty()) {
 
-                    XL_TEMPLATE_LOG("couldn't find name {} in primary provider: {}", data.substitution->get_name(), this->get_name());
+                    XL_TEMPLATE_LOG(LogT::Subjects::Provider, "couldn't find name {} in primary provider: {}", data.substitution->get_name(), this->get_name());
 
 //                    std::cerr << fmt::format("right before looking for matching name in {} upstream providers:", data.fill_state.provider_stack.size()) << std::endl;
 //                    for (auto * provider : data.fill_state.provider_stack) {
