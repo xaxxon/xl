@@ -1,6 +1,6 @@
 #pragma once
 #include "../exceptions.h" // to pick up FormattedException
-#include "log.h"
+#include "../log.h"
 namespace xl::templates {
 
 
