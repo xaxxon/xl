@@ -666,6 +666,7 @@ struct DefaultProviders {
 
 //                    XL_TEMPLATE_LOG("value is a provider interface or ProviderPtr");
                     auto next_template = data.get_template();
+                    assert(next_template != nullptr);
                     result = next_template->fill(data);
 //                    std::cerr << fmt::format("1map provider for {} result: {}\n", name, result);
 
