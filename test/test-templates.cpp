@@ -612,6 +612,22 @@ TEST(template, ProviderContainersReUse) {
    
 }
 
+TEST(template, NumberProvider) {
+    EXPECT_EQ(Template("{{number}}").fill(make_provider(std::pair("number", 5))), "5");
+    EXPECT_EQ(Template("{{number}}").fill(make_provider(std::pair("number", 5.5))), "5.5");
+}
+
+
+TEST(template, NullPointer)
+{
+    int * pi = nullptr;
+    EXPECT_THROW(Template("{{null_pointer}}").fill(make_provider(std::pair("a", (int*)nullptr))), TemplateException);
+}
+
+TEST(template, EmptyUniquePointer)
+{
+    EXPECT_THROW(Template("{{empty_unique_pointer}}").fill(make_provider(std::pair("empty_unique_pointer", std::unique_ptr<int>()))), TemplateException);
+}
 
 
 // test the T* Provider

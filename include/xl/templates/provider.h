@@ -59,10 +59,11 @@ struct DefaultProviders {
     template <class T>
     static constexpr bool has_get_provider_in_provider_container_v = has_get_provider_in_provider_container<T>::value;
 
-
+    template<typename T>
+    class p;
 
     // it's a provider type if it can be turned into a provider
-    template <class, class = void>
+    template <class T, class = void>
     class is_provider_type : public std::false_type {
     };
 
@@ -73,7 +74,9 @@ struct DefaultProviders {
                 >
             > // is same
         > // enable_if
-    > : public std::true_type {};
+    > : public std::true_type {
+
+    };
 
     template <class T>
     static constexpr bool is_provider_type_v = is_provider_type<T>::value;
@@ -376,6 +379,9 @@ struct DefaultProviders {
     };
 
 
+    template<typename T>
+    class TypePrinter;
+    
     /**
      * Unique_ptr Provider
      * @tparam T
@@ -397,6 +403,12 @@ struct DefaultProviders {
         }
 
         std::string operator()(SubstitutionState & data) const override {
+
+            UniquePtrT & unique_ptr = t;
+            if (!unique_ptr) {
+                throw TemplateException("unique_ptr provider '{}' has null pointer", this->get_name());
+            }
+
             data.fill_state.provider_stack.push_front(this);
             XL_TEMPLATE_LOG(LogT::Subjects::Provider, "unique_ptr provider called");
 
@@ -418,8 +430,24 @@ struct DefaultProviders {
 
     };
 
-//
 
+    // number provider
+    template<typename T>
+    class Provider<T, std::enable_if_t<std::is_arithmetic_v<remove_refs_and_wrapper_t<T>>>> : public Provider_Interface {
+        T t;
+    public:
+        Provider(T t) : t(t) {}
+        std::string operator()(SubstitutionState &) const override {
+            std::stringstream string_stream;
+            string_stream << t;
+            return string_stream.str();
+        }
+        std::string get_name() const override {
+            return fmt::format("Number provider for {}: {}", xl::demangle<T>(), t);
+        }
+    };
+    
+    static_assert(is_provider_type_v<int>);
 
     /**
      * Pointer Provider -- except char (const) *
@@ -448,6 +476,11 @@ struct DefaultProviders {
         }
 
         std::string operator()(SubstitutionState & data) const override {
+            
+            if (t == nullptr) {
+                throw TemplateException("Pointer provider '{}' has null pointer", this->get_name());
+            }
+            
             data.fill_state.provider_stack.push_front(this);
             XL_TEMPLATE_LOG(LogT::Subjects::Provider, "Pointer provider {}", this->get_name());
 

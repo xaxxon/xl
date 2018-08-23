@@ -24,9 +24,6 @@ XL_PRIVATE_UNLESS_TESTING:
     // sum of the length of all the fixed portions of the template
     mutable size_t minimum_result_length = 0;
     
-    inline static std::shared_ptr<CompiledTemplate> empty_compiled_template = 
-        Template::empty_template->compile();
-
 
 public:
 
@@ -42,6 +39,9 @@ public:
 
     template<typename ProviderContainer, class T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, FillState>>>
     std::string fill(T && source, std::map<std::string, Template> template_map) const;
+
+    inline static std::shared_ptr<CompiledTemplate> empty_compiled_template = 
+        Template::empty_template->compile();
 
 
 
