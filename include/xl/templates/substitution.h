@@ -29,6 +29,11 @@ struct Substitution {
 
         /// content trailing the substitution which may or may not be shown
         std::string contingent_trailing_content = ""; 
+        
+        // how many providers to back up by to start searching for this substitution name
+        unsigned short rewind_provider_count = 0;
+        
+        mutable bool rewound = false;
     };
     
     struct FinalSplit {

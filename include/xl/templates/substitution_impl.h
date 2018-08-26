@@ -104,7 +104,7 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
         (?<TemplateInsertionMarker>!)?
 
         # Replacement name
-        (?:(?<SubstitutionName>(?:\\\}|\\\{|[^|%>](?!{{)|>(?!}}))*?)\s*(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||\%|>|$))
+        (?:\.?(?<ProviderStackRewind>\.*)(?<SubstitutionName>(?:\\\}|\\\{|[^|%>](?!{{)|>(?!}}))*?)\s*(?=(?&OpenDelimiter)|(?&CloseDelimiter)|\||\%|>|$))
 
         # Join string, starting with %, if specified
         (?:(?<JoinStringMarker>%)(?<LeadingJoinStringMarker>%?)(?<JoinString>(?:\\\||>(?!}})|[^|>])*))?
@@ -240,6 +240,8 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
             XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "substitution is a comment");
             data.comment = true;
         }  else {
+            
+            data.initial_data.rewind_provider_count = matches["ProviderStackRewind"].length();
 
             if (!matches.has("TemplateInsertionMarker")) {
                 auto substitution_name = matches["SubstitutionName"];

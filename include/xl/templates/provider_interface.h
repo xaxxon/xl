@@ -53,7 +53,11 @@ public:
         return false;
     }
 
-
+    // whether passing this provider should count as a rewind step
+    virtual bool is_rewind_point() const {
+        return false;
+    }
+    
     // is this provider something that is fillable and does not consume a template (basically just container provider)
     virtual bool is_template_passthrough() const {
         return false;

@@ -15,6 +15,8 @@
 #include "substitution_state.h"
 #include "compiled_template.h"
 
+#include "../deferred.h"
+
 namespace xl::templates {
 //
 //struct ProviderStackGuard {
@@ -37,11 +39,14 @@ namespace xl::templates {
 
 template <typename ProviderContainer>
 struct DefaultProviders {
+    
+    
 
     template <class T, class = void>
-    class Provider {
+    class Provider : public Provider_Interface {
         using NoRefT = std::remove_reference_t<T>;
         static_assert(!std::is_pointer_v<T>, "make sure the type of the dereferenced pointer has a get_provider method for it");
+        static_assert(std::is_same_v<void, T*>, "This class should never be instantiated");
         Provider(T t);
     };
     
@@ -58,9 +63,6 @@ struct DefaultProviders {
 
     template <class T>
     static constexpr bool has_get_provider_in_provider_container_v = has_get_provider_in_provider_container<T>::value;
-
-    template<typename T>
-    class p;
 
     // it's a provider type if it can be turned into a provider
     template <class T, class = void>
@@ -155,7 +157,57 @@ struct DefaultProviders {
 
     static_assert(std::is_convertible_v<remove_reference_wrapper_t<std::reference_wrapper<const char *const>>, std::string>);
     
+    
+    // provider interface provider
+    template <typename T>
+    class Provider<T, std::enable_if_t<std::is_same_v<remove_refs_and_wrapper_t<T>, Provider_Interface>>> : public Provider_Interface {
+        T t;
+        Provider_Interface & get() const {
+            return t;
+        }
 
+    public:
+        Provider(T t) : t(t) {}
+
+        std::string operator()(SubstitutionState & data) const override {
+            return t(data);
+        }
+        
+        
+
+        std::string get_name() const override {
+            return this->get().get_name();
+        }
+
+        bool provides_named_lookup() const override {
+            return this->get().provides_named_lookup();
+        }
+
+        ProviderPtr get_named_provider(Substitution & substitution) override {
+            return this->get().get_named_provider(substitution);
+        }
+
+        bool is_fillable_provider() const override {
+            return this->get().is_fillable_provider();
+        }
+
+        ProviderPtr get_fillable_provider() override {
+            return this->get().get_fillable_provider();
+        }
+
+        bool needs_raw_template() const override {
+            return false;
+        }
+
+        bool is_rewind_point() const override {
+            return false;
+        }
+
+        bool is_template_passthrough() const override {
+            return this->get().is_template_passthrough();
+        }
+    };
+    
     
     /**
      * String provider
@@ -379,9 +431,6 @@ struct DefaultProviders {
     };
 
 
-    template<typename T>
-    class TypePrinter;
-    
     /**
      * Unique_ptr Provider
      * @tparam T
@@ -411,8 +460,15 @@ struct DefaultProviders {
 
             data.fill_state.provider_stack.push_front(this);
             XL_TEMPLATE_LOG(LogT::Subjects::Provider, "unique_ptr provider called");
-
-            return make_provider(*static_cast<UniquePtrT &>(t))->operator()(data);
+            
+            // if the stored type is already a Provider_Interface, then just call it directly
+            if constexpr(std::is_same_v<PointeeT, Provider_Interface>) {
+                return (t.get())->operator()(data);
+            } 
+            // otherwise create the provider for the pointee and call that 
+            else {
+                return make_provider(*static_cast<UniquePtrT &>(t))->operator()(data);
+            }
         }
 
         auto get_underlying_provider() {
@@ -427,9 +483,9 @@ struct DefaultProviders {
             UniquePtrT & unique_ptr = t;
             return std::make_unique<Provider<make_reference_wrapper_t<PointeeT>>>(*unique_ptr);
         }
-
     };
-
+    
+    
 
     // number provider
     template<typename T>
@@ -523,6 +579,7 @@ struct DefaultProviders {
 
         // can be the container type or std::reference_wrapper of the container type
         NoRefT t_holder;
+        mutable Provider_Interface * current_value = nullptr; // during iteration, current value stored here
 
     public:
 
@@ -546,8 +603,18 @@ struct DefaultProviders {
 
         // container provider   
         std::string operator()(SubstitutionState & data) const override {
-            data.fill_state.provider_stack.push_front(this);
+            
+            
+            if (data.substitution->initial_data.rewound && this->current_value != nullptr) {
+                return this->current_value->operator()(data);
+            }
+            
+            // shouldn't have a current value and be back here without being in a rewind
+            assert(this->current_value == nullptr);
+            
+            Defer(this->current_value = nullptr;);
 
+            
 //            std::cerr << fmt::format("types {} {}", xl::demangle<T>(), xl::demangle<ContainerT const & >()) << std::endl;
             ContainerT const & t = this->t_holder;
 
@@ -576,7 +643,9 @@ struct DefaultProviders {
                         remove_refs_and_wrapper_t<ValueT>,
                         remove_reference_wrapper_t<decltype(element)> // use element not container because non-const std::set has const element
                     >>>(std::ref(element));
-                
+
+                this->current_value = &p;
+
 
                 if (needs_join_string) {
                     result << data.substitution->shared_data->join_string;
@@ -608,6 +677,11 @@ struct DefaultProviders {
             }
             return result.str();
         }
+
+        bool is_rewind_point() const override {
+            return true;
+        }
+
 
         std::string get_name() const override {
             return fmt::format("Provider: container of {}", demangle<T>());
@@ -680,16 +754,25 @@ struct DefaultProviders {
 //                this->get_name(), 
 //                data.fill_state.provider_stack.size()) << std::endl;
 
+            
+
             MapT const & map = this->map_holder;
 
-            auto provider_iterator = map.find(data.substitution->get_name(true));
-
             std::string name = std::move(data.substitution->get_name(true)); // keep a copy that isn't cleared
+            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "{} Map Provider looking up name {}", this->get_name(), name);
 
 
-            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "Map Provider looking up name {}", name);
+            auto provider_iterator = map.find(name);
+            
+//            std::cerr << fmt::format("found name? {}\n", provider_iterator != map.end());
+
+
+
             std::string result;
-            if (provider_iterator != map.end()) {
+            if ((
+                data.substitution->initial_data.rewind_provider_count == 0 || data.substitution->initial_data.rewound)&& 
+                provider_iterator != map.end()) {
+                
                 if constexpr(
                     std::is_base_of_v<Provider_Interface, MapValueT> ||
                     std::is_same_v<ProviderPtr, MapValueT>) {
@@ -731,17 +814,40 @@ struct DefaultProviders {
 
                 }
             } else {
+                
+                unsigned int rewind_count = 0;
 
                 if (!data.searching_provider_stack && !data.fill_state.provider_stack.empty()) {
 
                     XL_TEMPLATE_LOG(LogT::Subjects::Provider, "couldn't find name {} in primary provider: {}", data.substitution->get_name(), this->get_name());
 
 //                    std::cerr << fmt::format("right before looking for matching name in {} upstream providers:", data.fill_state.provider_stack.size()) << std::endl;
-//                    for (auto * provider : data.fill_state.provider_stack) {
-//                        std::cerr << fmt::format("upstream: {} {}", (void*)provider, provider->get_name()) << std::endl;
-//                    }
                     for (auto * provider : data.fill_state.provider_stack) {
+                        std::cerr << fmt::format("upstream: {} {}", (void*)provider, provider->get_name()) << std::endl;
+                    }
+                    for (auto * provider : data.fill_state.provider_stack) {
+                        
+                        std::cerr << fmt::format("going through provider stack, current provider:{}\n",
+                            provider->get_name());
+                        std::cerr << data.fill_state.provider_stack;
+
                         if (provider == this) {
+                            continue;
+                        }
+                        
+                        // only rewind on "core" providers
+                        if (provider->is_rewind_point()) {
+                            rewind_count++;
+                        }
+                        
+                        std::cerr << fmt::format("is rewind point: {} new rewind count: {}/{}\n",
+                            provider->is_rewind_point(),
+                            rewind_count,
+                            data.substitution->initial_data.rewind_provider_count
+                        ) << std::endl;
+                        
+                        // if rewind count is set, rewind at least that many levels
+                        if (rewind_count < data.substitution->initial_data.rewind_provider_count) {
                             continue;
                         }
                         
@@ -751,9 +857,13 @@ struct DefaultProviders {
                                                       data.substitution);
                         copy.searching_provider_stack = true;
                         copy.fill_state.provider_stack.clear();
+                        
                         try {
+                            Defer(data.substitution->initial_data.rewound = false;);
+                            data.substitution->initial_data.rewound = true;
                             return provider->operator()(copy);
-                        } catch (TemplateException const &) {
+                        } catch (TemplateException const & e) {
+                            std::cerr << fmt::format("tried rewound provider, got exception: {}\n", e.what());
                             continue;
                         }
                     }
@@ -805,6 +915,10 @@ struct DefaultProviders {
 
 
         bool is_fillable_provider() const override {
+            return true;
+        }
+        
+        bool is_rewind_point() const override {
             return true;
         }
     };

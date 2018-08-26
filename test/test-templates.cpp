@@ -19,6 +19,7 @@ using namespace std::string_literals;
 
 TEST(template, VectorOfStrings) {
     EXPECT_EQ(Template("{{v}}").fill(make_provider(std::pair{"v", std::vector<std::string>{"a", "b", "c"}})), "a\nb\nc");
+    EXPECT_EQ(Template("{{v|!{{}}}}").fill(make_provider(std::pair{"v", std::vector<std::string>{"a", "b", "c"}})), "a\nb\nc");
 }
 
 TEST(template, VectorOfMapOfStrings) {
@@ -855,23 +856,124 @@ TEST(template, PeriodSeparatedNames) {
 }
 
 
-//TEST(template, PeriodSeparatedNamesWithContainers) {
-//    {
-//        auto result = Template("{{has_provider2|!{{has_provider|!{{string}}}}}}").fill(std::pair("has_provider2", HasProvider2("hp2")));
-//        EXPECT_EQ(result, "hp2hp2\nhp2hp2");
-//    }
-//    {
-//        auto result = Template("{{has_provider2.has_provider|!{{string}}}}").fill(std::pair("has_provider2", HasProvider2("hp2")));
-//        EXPECT_EQ(result, "hp2hp2\nhp2hp2");
-//    }
-//    {
-//        auto result = Template("{{has_provider2.has_provider.string}}").fill(std::pair("has_provider2", HasProvider2("hp2")));
-//        EXPECT_EQ(result, "hp2hp2\nhp2hp2");
-//    }
-//    
-//}
+TEST(template, PeriodSeparatedNamesWithContainers) {
+    {
+        auto result = Template("{{has_provider2|!{{has_provider|!{{string}}}}}}").fill(std::pair("has_provider2", HasProvider2("hp2")));
+        EXPECT_EQ(result, "hp2hp2\nhp2hp2");
+    }
+    {
+        auto result = Template("{{has_provider2.has_provider|!{{string}}}}").fill(std::pair("has_provider2", HasProvider2("hp2")));
+        EXPECT_EQ(result, "hp2hp2\nhp2hp2");
+    }
+    {
+        auto result = Template("{{has_provider2.has_provider.string}}").fill(std::pair("has_provider2", HasProvider2("hp2")));
+        EXPECT_EQ(result, "hp2hp2\nhp2hp2");
+    }
+}
 
-//
+TEST(template, RewindDots) {
+    {
+        // baseline no rewind 
+        auto result = Template("{{a|!{{b}}}}").fill(
+            make_provider(
+                std::pair("a", make_provider(std::pair("b", "bad"))),
+                std::pair("b", "good")
+            )
+        );
+
+        EXPECT_EQ(result, "bad");
+    }
+    {
+        // one dot doesn't do anything
+        auto result = Template("{{a|!{{.b}}}}").fill(
+            make_provider(
+                std::pair("a", make_provider(std::pair("b", "bad"))),
+                std::pair("b", "good")
+            )
+        );
+
+        EXPECT_EQ(result, "bad");
+    }
+    {
+        // should rewind back to provider with keys: "a" and "b"
+        auto result = Template("{{a|!{{..b}}}}").fill(
+            make_provider(
+                std::pair("a", make_provider(std::pair("b", "bad"))),
+                std::pair("b", "good")
+            )
+        );
+
+        EXPECT_EQ(result, "good");
+    }
+    {
+        // should rewind "once" - but through non-"core" has-provider provider
+        auto result = Template("{{a|!{{..b}}}}").fill(
+            make_provider(
+                std::pair("a", make_provider(std::pair("b", HasProvider("bad")))),
+                std::pair("b", "good")
+            )
+        );
+
+        EXPECT_EQ(result, "good");
+    }
+    
+}
+
+TEST(template, RewindToContainerElement) {
+    {
+        // baseline no rewind 
+        std::vector<ProviderPtr> v;
+        v.push_back(make_provider(
+            std::pair("a", make_provider(std::pair("b", "bad1"))),
+            std::pair("b", "good1")
+        ));
+        v.push_back(make_provider(
+            std::pair("a", make_provider(std::pair("b", "bad2"))),
+            std::pair("b", "good2")
+        ));
+        auto result = Template("{{v%|!{{a|!{{b}}}}}}").fill(
+            std::ref(v)
+        );
+
+        EXPECT_EQ(result, "bad1bad2");
+    }
+    {
+        // baseline no rewind 
+        std::vector<ProviderPtr> v;
+        v.push_back(make_provider(
+            std::pair("a", make_provider(std::pair("b", "bad1"))),
+            std::pair("b", "good1")
+        ));
+        v.push_back(make_provider(
+            std::pair("a", make_provider(std::pair("b", "bad2"))),
+            std::pair("b", "good2")
+        ));
+        auto result = Template("{{v%|!{{a|!{{..a.b}}}}}}").fill(
+            std::ref(v)
+        );
+
+        EXPECT_EQ(result, "bad1bad2");
+    }
+    {
+        // baseline no rewind 
+        std::vector<ProviderPtr> v;
+        v.push_back(make_provider(
+            std::pair("a", make_provider(std::pair("b", "bad1"))),
+            std::pair("b", "good1")
+        ));
+        v.push_back(make_provider(
+            std::pair("a", make_provider(std::pair("b", "bad2"))),
+            std::pair("b", "good2")
+        ));
+        auto result = Template("{{v%|!{{a|!{{..b}}}}}}").fill(
+            std::ref(v)
+        );
+
+        EXPECT_EQ(result, "good1good2");
+    }
+}
+
+    
 //TEST(template, FallBackToParentProviderForMissingNames) {
 //    { 
 //        auto result = Template("{{has_provider2|!{{has_provider|!{{string}}{{five}}}}}}").fill(

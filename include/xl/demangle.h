@@ -11,6 +11,12 @@
 #endif
 #endif
 
+// Useful for when not RTTI available
+#if __has_include(<boost/type_index.hpp>)
+#define HAVE_BOOST_TYPE_INDEX
+#include <boost/type_index.hpp>
+#endif
+
 
 // The windows function to demangle names appears to be: 
 //   https://msdn.microsoft.com/en-us/library/windows/desktop/ms681400(v=vs.85).aspx
@@ -50,6 +56,7 @@ inline std::string demangle_typeid_name(const std::string & mangled_name) {
     free(demangled_name_needs_to_be_freed);
     
     return result;
+    
 
 #else
     return mangled_name;
@@ -59,30 +66,37 @@ inline std::string demangle_typeid_name(const std::string & mangled_name) {
 
 template<class T>
 std::string & demangle() {
-#if defined XL_FORCE_NO_DEMANGLE_NAMES
-    static std::string result("NO NAME MANGLING AVAILABLE");
-    return result;
-#else
-    static std::string cached_name;
     std::atomic<bool> cache_set = false;
+    static std::string cached_name;
 
     if (cache_set) {
         return cached_name;
-    } else {
-        static std::mutex mutex;
-
-        std::lock_guard<std::mutex> lock_guard(mutex);
-        if (!cache_set) {
-            auto demangled_name = demangle_typeid_name(typeid(T).name());
-            std::string constness = std::is_const<T>::value ? "const " : "";
-            std::string volatility = std::is_volatile<T>::value ? "volatile " : "";
-            cached_name = constness + volatility + demangled_name;
-            cache_set = true;
-        }
     }
 
-    return cached_name;
+#if defined HAVE_BOOST_TYPE_INDEX
+
+    cached_name = boost::typeindex::type_id<T>().pretty_name();
+    cache_set = true;
+    
+#elif defined XL_FORCE_NO_DEMANGLE_NAMES
+    cached_name = "NO NAME MANGLING AVAILABLE";
+
+#else
+
+    static std::mutex mutex;
+
+    std::lock_guard<std::mutex> lock_guard(mutex);
+    if (!cache_set) {
+        auto demangled_name = demangle_typeid_name(typeid(T).name());
+        std::string constness = std::is_const<T>::value ? "const " : "";
+        std::string volatility = std::is_volatile<T>::value ? "volatile " : "";
+        cached_name = constness + volatility + demangled_name;
+        cache_set = true;
+    }
+
 #endif
+    return cached_name;
+
 }
 
 } // end namespace xl

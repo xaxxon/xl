@@ -1,13 +1,16 @@
 #pragma once
 
+namespace xl {
+
 // https://quuxplusone.github.io/blog/2018/08/11/the-auto-macro/
 //   renamed "Auto" => "Defer"
 
 template<class L>
 class AtScopeExit {
-    L& m_lambda;
+    L & m_lambda;
 public:
-    AtScopeExit(L& action) : m_lambda(action) {}
+    AtScopeExit(L & action) : m_lambda(action) {}
+
     ~AtScopeExit() { m_lambda(); }
 };
 
@@ -24,3 +27,5 @@ public:
 
 #define Defer(...) \
     Defer_INTERNAL2(__COUNTER__, __VA_ARGS__)
+
+}

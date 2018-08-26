@@ -10,7 +10,13 @@ class Provider_Interface;
 class Template;
 
 using ProviderStack = std::deque<Provider_Interface const *>;
-
+inline std::ostream & operator<<(std::ostream & os, ProviderStack const & provider_stack) {
+    os << "Provider stack:\n";
+    for (auto const & provider : provider_stack) {
+        os << "\t" << provider->get_name() << "\n";
+    }
+    return os;
+}
 
 // state data needed to begin a call to Template::fill
 struct FillState {
