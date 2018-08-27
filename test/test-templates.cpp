@@ -645,15 +645,15 @@ TEST(template, ContainerOfPointers) {
 
 
 TEST(template, EmptyContainerContingentContent) {
-//    {
-//
-//        std::vector<std::string> v;
-//
-//        // newline after trailing contingent substitution shouldn't be contingent
-//        auto result = Template("BEFORE\nX{{<VECTOR|!!\n{{DUMMY}}>}}Y\nAFTER").fill(std::pair("VECTOR", std::ref(v)));
-//
-//        EXPECT_EQ(result, "BEFORE\nAFTER");
-//    }
+    {
+
+        std::vector<std::string> v;
+
+        // newline after trailing contingent substitution shouldn't be contingent
+        auto result = Template("BEFORE\nX{{<VECTOR|!!\n{{DUMMY}}>}}Y\nAFTER").fill(std::pair("VECTOR", std::ref(v)));
+
+        EXPECT_EQ(result, "BEFORE\nAFTER");
+    }
     {
 
         std::vector<std::string> v;
@@ -661,10 +661,10 @@ TEST(template, EmptyContainerContingentContent) {
         // newline after trailing contingent substitution shouldn't be contingent
         auto result = Template(R"(
 {{<<v|!!
-}}
+asdf}}
 
 {{<<v|!!
-}}
+asdf{{asdf}}}}
 
 {{<<v|!!
 >>}}
@@ -673,29 +673,27 @@ TEST(template, EmptyContainerContingentContent) {
 
         EXPECT_EQ(result, "");
     }
-//
-//
-//    {
-//        // second should be taken by {{empty>}} not {{<not_empty}}
-//        auto result = Template("ONE\n\nA {{<<empty>>}} B\n\nTWO").fill(make_provider(
-//            std::pair("empty", "")
-//        ));
-//        EXPECT_EQ(result, "ONE\nTWO");
-//    }
-//    {
-//        // second should be taken by {{empty>}} not {{<not_empty}}
-//        auto result = Template("ONE\n\nA {{<<empty>>}} B\n\nC {{<<empty>>}} D\n\nTWO").fill(make_provider(
-//            std::pair("empty", "")
-//        ));
-//        EXPECT_EQ(result, "ONE\nTWO");
-//    }
-//    {
-//        // second should be taken by {{empty>}} not {{<not_empty}}
-//        auto result = Template("ONE\nA {{<<empty>>}} B\n\nTWO").fill(make_provider(
-//            std::pair("empty", "")
-//        ));
-//        EXPECT_EQ(result, "ONE\nTWO");
-//    }
+    {
+        // second should be taken by {{empty>}} not {{<not_empty}}
+        auto result = Template("ONE\nA {{<empty>}} B\nTWO").fill(make_provider(
+            std::pair("empty", "")
+        ));
+        EXPECT_EQ(result, "ONE\nTWO");
+    } {
+        // second should be taken by {{empty>}} not {{<not_empty}}
+        auto result = Template("ONE\n\nA {{<<empty>>}} B\n\nTWO").fill(make_provider(
+            std::pair("empty", "")
+        ));
+        EXPECT_EQ(result, "");
+    }
+    {
+        // second should be taken by {{empty>}} not {{<not_empty}}
+        auto result = Template("ONE\n\nA {{<<empty>>}} B\n\nC {{<<empty>>}} D\n\nTWO").fill(make_provider(
+            std::pair("empty", "")
+        ));
+        EXPECT_EQ(result, "");
+    }
+    
 }
 
 

@@ -198,7 +198,7 @@ If 1=>1 and 2 is empty, this results in `A 1 B_`
 
 (note the trailing space, shown with an underscore for emphasis)
 
-#### Note: << and >> will also grab preceding and trailing empty lines respectively
+#### Note: << and >> will grab everything until it reaches a substitution (including comment substitutions)
 
     ONE
     
@@ -206,10 +206,7 @@ If 1=>1 and 2 is empty, this results in `A 1 B_`
     
     TWO
     
-results in:
-
-    ONE
-    TWO
+results in an empty string
 
 
 ### Inline Template
