@@ -675,6 +675,8 @@ struct DefaultProviders {
 
 
             }
+            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "Container provider result: '{}'", result.str());
+
             return result.str();
         }
 
@@ -869,11 +871,11 @@ struct DefaultProviders {
                     }
                 }
 
-                std::string template_text = "<unknown template name>";
-                if (data.current_template != nullptr) {
-                    template_text = data.current_template->source_template->c_str();
-                }
-                std::string exception_string = fmt::format("provider {} does not provide name: '{}' - in template: '{}'", this->get_name(), name, template_text);
+//                std::string template_text = "<unknown template name>";
+//                if (data.current_template != nullptr) {
+//                    template_text = data.current_template->source_template->c_str();
+//                }
+                std::string exception_string = fmt::format("provider {} does not provide name: '{}'", this->get_name(), name);
                 throw TemplateException(exception_string);
             }
             return result;

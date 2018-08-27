@@ -188,7 +188,7 @@ line.
 if `name` substitutes to an empty string, this whole line will be blank.
     
 #### Note: if two substitutions on the same line 'point' at each other, the one on
-the left has priority
+the left one (pointing right) has priority
 
     A {{<1>}} B {{<2>}} C
     
@@ -350,3 +350,12 @@ may also be broken down into implicit Template objects
 {{a|{{b|{{c|{{foo}} }} }} }}
 
 
+## FAQ
+
+### How do I associate some contingent literal text with the substitution on the left and other literal text with the substitution on the right?
+
+Put an empty comment `{{#}}` substitution at the dividing point:
+
+    {{not_empty>}} this shows {{#}} this doesn't show{{<empty}}
+    
+ 

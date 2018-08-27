@@ -69,7 +69,7 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
     //   and a following substitution (optional)
     // Development and testing of this regex can be done at regex101.com
     static xl::RegexPcre r(R"(
-
+    
 (?(DEFINE)(?<NotEmptyAssertion>(?=(?:.|\n))))
 (?(DEFINE)(?<OpenDelimiterHead>\{))
 (?(DEFINE)(?<CloseDelimiterHead>\}))
@@ -95,8 +95,10 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
     (?<OpenDelimiterHere>\{\{)
     \s*
     (?:
+        (?<GroupingSubstitution>@)(?R)|
         (?<Comment>\#(?&PretendMatch)*)|
         (?<IgnoreEmptyBeforeMarker><<?)?
+
         \s*
 
 
@@ -123,7 +125,6 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
     (?<CloseDelimiterHere>\}\})
 ) # end Substitution
 | (?<UnmatchedOpen>\{\{) | (?<UnmatchedClose>\}\}) | $)
-
 
 )",
                            xl::OPTIMIZE | xl::EXTENDED | xl::DOTALL);
@@ -182,7 +183,7 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
 
         // if the current literal string has contingent data for the previous substitution, grab it off now
         if (first_line_belongs_to_last_substitution) {
-//            std::cerr << fmt::format("trailing contingent ({}) on: '{}'", first_line_belongs_to_last_substitution, literal_string) << std::endl;
+            XL_TEMPLATE_LOG("trailing contingent ({}) on: '{}'\n", first_line_belongs_to_last_substitution, literal_string);
             static Regex first_line_regex(R"(^([^\n]*)(.*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
             static Regex first_line_and_empty_lines_regex(R"(^([^\n]*\n*)(.*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
 
@@ -190,13 +191,18 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
                            first_line_regex : first_line_and_empty_lines_regex;
             if (auto results = regex.match(literal_string)) {
 
-                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "got '{}' and '{}'", results[1], results[2]);
+                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "contingent trailing content '{}' and literal string '{}'", results[1], results[2]);
 
                 // get previous substitution
-                substitutions.back().initial_data.contingent_trailing_content = results[1];
-
-                literal_string = results[2];
-
+                if (matches.has("Substitution")) {
+                    substitutions.back().initial_data.contingent_trailing_content = results[1];
+                    literal_string = results[2];
+                }
+                // if there's no substitution, then the entire literal string goes to the previous substitution
+                else {
+                    substitutions.back().initial_data.contingent_trailing_content = literal_string;
+                    literal_string = "";
+                }
             } else {
                 assert(false);
             }
@@ -205,14 +211,14 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
         if (matches.has("IgnoreEmptyBeforeMarker")) {
             // trim off everything after the last newline on the static and put it in the template
             static Regex last_line_regex(R"(^(.*?)(\n?[^\n]*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
-            static Regex last_line_and_blank_lines_regex(R"(^(.+?\n?)?(\n*[^\n]*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
+            static Regex last_line_and_blank_lines_regex(R"(^(.+?\n?)??(\n*[^\n]*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
             auto & regex = matches.length("IgnoreEmptyBeforeMarker") == 1 ?
                            last_line_regex : last_line_and_blank_lines_regex;
 
 //            std::cerr << fmt::format("Running ignore empty before marker on '{}'", literal_string) << std::endl;
             auto results = regex.match(literal_string);
             if (results) {
-                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "got '{}' and '{}'", results[1], results[2]);
+                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "literal_string '{}' contingent_leading_content '{}'", results[1], results[2]);
                 literal_string = results[1];
                 contingent_leading_content = results[2];
             }
@@ -239,7 +245,11 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
         if (matches.has("Comment")) {
             XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "substitution is a comment");
             data.comment = true;
-        }  else {
+        } else if (matches.has("GroupingSubstitution")) {
+            
+            std::cerr << fmt::format("found grouping substitution\n");
+            Template().compile();
+        } else {
             
             data.initial_data.rewind_provider_count = matches["ProviderStackRewind"].length();
 

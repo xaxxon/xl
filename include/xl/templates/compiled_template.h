@@ -151,8 +151,8 @@ std::string CompiledTemplate::fill(FillState const & fill_state) const {
                     XL_TEMPLATE_LOG("provider() named {} returned: '{}'", provider.get_name(), substitution_result);
                     if (!current_substitution.substitution->initial_data.contingent_leading_content.empty() &&
                         !substitution_result.empty()) {
-//                        XL_TEMPLATE_LOG("adding contingent data: {}",
-//                                        current_substitution.substitution->initial_data.contingent_leading_content);
+                        XL_TEMPLATE_LOG("adding contingent leading content: {}",
+                                        current_substitution.substitution->initial_data.contingent_leading_content);
 
                         result.insert(result.end(),
                                       current_substitution.substitution->initial_data.contingent_leading_content.begin(),
@@ -161,8 +161,8 @@ std::string CompiledTemplate::fill(FillState const & fill_state) const {
                     result.insert(result.end(), substitution_result.begin(), substitution_result.end());
                     if (!current_substitution.substitution->initial_data.contingent_trailing_content.empty() &&
                         !substitution_result.empty()) {
-//                        XL_TEMPLATE_LOG("inserting trailing content: {}",
-//                                        current_substitution.substitution->initial_data.contingent_trailing_content);
+                        XL_TEMPLATE_LOG("inserting contingent trailing content: {}",
+                                        current_substitution.substitution->initial_data.contingent_trailing_content);
                         result.insert(result.end(),
                                       current_substitution.substitution->initial_data.contingent_trailing_content.begin(),
                                       current_substitution.substitution->initial_data.contingent_trailing_content.end());
@@ -171,7 +171,7 @@ std::string CompiledTemplate::fill(FillState const & fill_state) const {
             }
         }
     }
-//    std::cerr << fmt::format("fillstate fill returning: {}\n", result);
+    std::cerr << fmt::format("fillstate fill returning: {}\n", result);
     return result;
 }
 
