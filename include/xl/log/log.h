@@ -317,8 +317,8 @@ public:
 
 
     CallbackT & add_callback(std::ostream & ostream, std::string prefix = "") {
-        return this->add_callback([&ostream, prefix](LogMessage const & message) {
-            ostream << "[" << message.get_time_string() << "] " << prefix << message.string;
+        return this->add_callback([&ostream, prefix, this](LogMessage const & message) {
+            ostream << "[" << message.get_time_string() << "] " << this->get_name(message.subject) << " " << prefix << message.string << "\n";
         });
     }
 

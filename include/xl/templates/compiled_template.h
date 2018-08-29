@@ -171,7 +171,6 @@ std::string CompiledTemplate::fill(FillState const & fill_state) const {
             }
         }
     }
-    std::cerr << fmt::format("fillstate fill returning: {}\n", result);
     return result;
 }
 
