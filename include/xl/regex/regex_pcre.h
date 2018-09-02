@@ -1,6 +1,8 @@
-#pragma once
 
+#pragma once
 #if defined XL_USE_PCRE
+
+
 
 #include <sstream>
 #include <string_view>
@@ -9,7 +11,6 @@
 #include <pcre.h>
 #include <fmt/format.h>
 
-#include "regexer.h"
 #include "../zstring_view.h"
 
 namespace xl {

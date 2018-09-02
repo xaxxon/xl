@@ -1,4 +1,15 @@
-#pragma once
+
+#if defined XL_REGEX_REGEXER_H && defined XL_USE_PCRE && !defined XL_REGEX_REGEXER_INCLUDED_WITH_PCRE
+#error regex/regexer.h previously included without XL_USE_PCRE cannot be included again with XL_USE_PCRE
+#endif
+
+
+#ifndef XL_REGEX_REGEXER_H
+#define XL_REGEX_REGEXER_H
+
+#if defined XL_USE_PCRE
+#define XL_REGEX_REGEXER_INCLUDED_WITH_PCRE
+#endif
 
 #include <exception>
 #include <string>
@@ -57,9 +68,9 @@ struct RegexBase {
 };
 
 }
-
 #include "regex_std.h"
 #if defined XL_USE_PCRE
+#define XL_REGEX_REGEXER_INCLUDED_WITH_PCRE
 #include "regex_pcre.h"
 #endif
 
@@ -98,3 +109,6 @@ inline Regex operator"" _rei(char const * regex_string, unsigned long) {
 
 
 } // end namespace xl::regex
+
+
+#endif // guard

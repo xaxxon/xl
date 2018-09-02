@@ -3,6 +3,12 @@
 #include <map>
 #include <optional>
 
+// JSON parser needs PCRE for recursive regex
+#ifndef XL_USE_PCRE
+#define XL_USE_PCRE
+#endif
+
+
 #include "exceptions.h"
 #include "regexer.h"
 #include "library_extensions.h"

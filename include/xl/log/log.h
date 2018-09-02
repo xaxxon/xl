@@ -13,6 +13,9 @@
 #include "../library_extensions.h"
 
 #include "../exceptions.h"
+
+// must include json before regexer so PCRE is picked up
+#include "../json.h"
 #include "../regex/regexer.h"
 #include "../zstring_view.h"
 #include "../date.h"
@@ -449,6 +452,7 @@ public:
 
 
 #ifdef XL_USE_LIB_FMT
+
     template<class... Ts>
     void log(Levels level, Subjects subject, xl::zstring_view const & format_string, Ts && ... args) {
         if (this->is_live(level, subject)) { // don't build the string if it wont be used

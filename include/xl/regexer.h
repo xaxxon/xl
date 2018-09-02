@@ -1,3 +1,3 @@
-#pragma once
+// NO GUARD HERE
 
 #include "regex/regexer.h"

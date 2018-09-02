@@ -143,6 +143,9 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
     uint8_t first_line_belongs_to_last_substitution = 0;
 
     while (auto matches = r.match(remaining_template)) {
+        
+        // value regex was run against that is not changed during the body of this while loop
+        std::string const last_matched_template_string = remaining_template;
 
 //        for(auto [s,i] : each_i(matches.get_all_matches())) {
 //            if (s != "") {
@@ -162,7 +165,7 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
             throw TemplateException("Unmatched Open");
         }
         if (matches.length("UnmatchedClose")) {
-            throw TemplateException("Unmatched Close (missing opening }})");
+            throw TemplateException("Unmatched Close (missing opening '}}') in {}", last_matched_template_string);
         }
 
 

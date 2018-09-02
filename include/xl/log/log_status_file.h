@@ -8,8 +8,10 @@
 #include <variant>
 
 #include "../exceptions.h"
-#include "../regexer.h"
+
+// Make sure json include before regexer include so PCRE is used
 #include "../json.h"
+#include "../regexer.h"
 
 #include "log_enum_bases.h"
 
