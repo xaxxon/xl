@@ -71,7 +71,7 @@ struct DefaultProviders {
 
     template <class T>
     class is_provider_type<T, std::enable_if_t<std::is_same_v<
-        std::string,
+        std::optional<std::string>,
             std::result_of_t<Provider < remove_refs_and_wrapper_t<T>>(SubstitutionState &)
                 >
             > // is same
@@ -169,7 +169,7 @@ struct DefaultProviders {
     public:
         Provider(T t) : t(t) {}
 
-        std::string operator()(SubstitutionState & data) const override {
+        std::optional<std::string> operator()(SubstitutionState & data) const override {
             return t(data);
         }
         
@@ -229,13 +229,16 @@ struct DefaultProviders {
 //            XL_TEMPLATE_LOG("Destroyed string provider for string '{}'", this->string);
         }
 
-        std::string operator()(SubstitutionState & substitution_state) const override {
+        std::optional<std::string> operator()(SubstitutionState & substitution_state) const override {
             XL_TEMPLATE_LOG("grabbed data for compiled_subsitution 'X' - it has name '{}' and inline template: '{}'",
                             substitution_state.substitution->get_name(), (void*)substitution_state.substitution->final_data.inline_template.get());
 
             if (!substitution_state.substitution->name_entries.empty() || // there can't be any more names
                 substitution_state.substitution->final_data.inline_template != nullptr) {
-                throw TemplateException("String provider called with non-final substitution");
+                XL_TEMPLATE_LOG("name_entries: {}, inline template: {}", 
+                    xl::join(substitution_state.substitution->name_entries), 
+                    (void*)substitution_state.substitution->final_data.inline_template.get());
+                return {};
             } // else if (substitution_state.substitution.)
             return this->string;
         }
@@ -300,7 +303,7 @@ struct DefaultProviders {
         }
 
 
-        std::string operator()(SubstitutionState & data) const override {
+        std::optional<std::string> operator()(SubstitutionState & data) const override {
             data.fill_state.provider_stack.push_front(this);
             auto callback_result = this->callback();
             auto provider = Provider<CallbackResultT>(std::move(callback_result));
@@ -391,7 +394,7 @@ struct DefaultProviders {
 
 
         // get-provider provider
-        std::string operator()(SubstitutionState & substitution_state) const override {
+        std::optional<std::string> operator()(SubstitutionState & substitution_state) const override {
             substitution_state.fill_state.provider_stack.push_front(this);
 
             NoRefT const & t = this->t_holder;
@@ -458,7 +461,7 @@ struct DefaultProviders {
         ~Provider() {
         }
 
-        std::string operator()(SubstitutionState & data) const override {
+        std::optional<std::string> operator()(SubstitutionState & data) const override {
 
             UniquePtrT & unique_ptr = t;
             if (!unique_ptr) {
@@ -500,7 +503,7 @@ struct DefaultProviders {
         T t;
     public:
         Provider(T t) : t(t) {}
-        std::string operator()(SubstitutionState &) const override {
+        std::optional<std::string> operator()(SubstitutionState &) const override {
             std::stringstream string_stream;
             string_stream << t;
             return string_stream.str();
@@ -538,7 +541,7 @@ struct DefaultProviders {
         ~Provider() {
         }
 
-        std::string operator()(SubstitutionState & data) const override {
+        std::optional<std::string> operator()(SubstitutionState & data) const override {
             
             if (t == nullptr) {
                 throw TemplateException("Pointer provider '{}' has null pointer", this->get_name());
@@ -609,7 +612,7 @@ struct DefaultProviders {
 
 
         // container provider   
-        std::string operator()(SubstitutionState & data) const override {
+        std::optional<std::string> operator()(SubstitutionState & data) const override {
             
             
             if (data.substitution->initial_data.rewound && this->current_value != nullptr) {
@@ -757,7 +760,7 @@ struct DefaultProviders {
 
 
         // Map Provider
-        std::string operator()(SubstitutionState & data) const override {
+        std::optional<std::string> operator()(SubstitutionState & data) const override {
 //            data.fill_state.provider_stack.push_front(this);
 //            std::cerr << fmt::format("Entering provider {} with: {}", 
 //                this->get_name(), 
@@ -812,7 +815,7 @@ struct DefaultProviders {
                     
                     auto next_template = data.get_template();
                     
-                    std::cerr << fmt::format("template to fill's substitution name entries: {}\n", xl::join(next_template->substitutions[0].name_entries));
+//                    std::cerr << fmt::format("template to fill's substitution name entries: {}\n", xl::join(next_template->substitutions[0].name_entries));
                     
                     result = next_template->fill(data);
 //                    XL_TEMPLATE_LOG(LogT::Subjects::Provider, "2map provider for {} result: {}\n", name, result);

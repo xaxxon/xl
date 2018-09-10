@@ -170,8 +170,9 @@ std::string CompiledTemplate::fill(SubstitutionState & substitution_state) const
     if (!substitution_state.fill_state.provider_stack.empty() && substitution_state.fill_state.provider_stack.front()->needs_raw_template()) {
         substitution_state.current_template = this;
         auto result = substitution_state.fill_state.provider_stack.front()->operator()(substitution_state);
+        assert(result);
 //        std::cerr << fmt::format("substitution state fill if true returning: {}\n", result);
-        return result;
+        return *result;
     } else {
         auto result = this->fill(substitution_state.fill_state);
 //        std::cerr << fmt::format("substitution state fill if false returning: {}\n", result);

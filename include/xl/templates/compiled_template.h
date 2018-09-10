@@ -149,10 +149,16 @@ std::string CompiledTemplate::fill(FillState const & fill_state) const {
 //                                    provider.get_name(), (void *) &provider,
 //                                    (void *) current_substitution.substitution->final_data.inline_template.get());
                     auto substitution_result = provider(current_substitution);
+                    
+                    if (!substitution_result) {
+                        //TODO: WRITE ME
+                    }
 //                    XL_TEMPLATE_LOG("replacement for {} is: {}", this->source_template->c_str(), substitution_result);
-                    XL_TEMPLATE_LOG("provider() named {} returned: '{}'", provider.get_name(), substitution_result);
+                    XL_TEMPLATE_LOG("provider() named {} returned: '{}'", provider.get_name(), *substitution_result);
+                    
+                    
                     if (!current_substitution.substitution->initial_data.contingent_leading_content.empty() &&
-                        !substitution_result.empty()) {
+                        !substitution_result->empty()) {
                         XL_TEMPLATE_LOG("adding contingent leading content: {}",
                                         current_substitution.substitution->initial_data.contingent_leading_content);
 
@@ -160,9 +166,9 @@ std::string CompiledTemplate::fill(FillState const & fill_state) const {
                                       current_substitution.substitution->initial_data.contingent_leading_content.begin(),
                                       current_substitution.substitution->initial_data.contingent_leading_content.end());
                     }
-                    result.insert(result.end(), substitution_result.begin(), substitution_result.end());
+                    result.insert(result.end(), substitution_result->begin(), substitution_result->end());
                     if (!current_substitution.substitution->initial_data.contingent_trailing_content.empty() &&
-                        !substitution_result.empty()) {
+                        !substitution_result->empty()) {
                         XL_TEMPLATE_LOG("inserting contingent trailing content: {}",
                                         current_substitution.substitution->initial_data.contingent_trailing_content);
                         result.insert(result.end(),

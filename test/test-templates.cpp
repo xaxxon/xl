@@ -162,23 +162,23 @@ TEST(template, EmptyVectorReplacementIgnored) {
     }
     {
         std::vector<std::string> v{"a", "", "c"};
-        Template t("{{<name|!{{<dummyname}}}}");
+        Template t("{{<name|!{{<}}}}");
         auto result = t.fill(make_provider(std::pair("name", v)));
         EXPECT_EQ(result, "a\nc");
     }
     {
         std::vector<std::string> v{"", "", ""};
-        auto result = Template("{{<name|!{{<dummyname}}}}").fill(make_provider(std::pair("name", v)));
+        auto result = Template("{{<name|!{{<}}}}").fill(make_provider(std::pair("name", v)));
         EXPECT_EQ(result, "");
     }
     {
         std::vector<std::string> v{"", "", ""};
-        auto result = Template("before\n{{<name|!{{<dummyname}}}}\nafter").fill(make_provider(std::pair("name", v)));
+        auto result = Template("before\n{{<name|!{{<}}}}\nafter").fill(make_provider(std::pair("name", v)));
         EXPECT_EQ(result, "before\nafter");
     }
     {
         std::vector<std::string> v{"", "", ""};
-        auto result = Template("before\n{{<name|!!\n{{<dummyname}}}}\nafter").fill(make_provider(std::pair("name", v)));
+        auto result = Template("before\n{{<name|!!\n{{<}}}}\nafter").fill(make_provider(std::pair("name", v)));
         EXPECT_EQ(result, "before\nafter");
     }
 }
@@ -194,18 +194,20 @@ struct A {
 
 class StringCallbackTest{
 public:
-    std::string operator()(){return std::string();}
+    std::optional<std::string> operator()(){return std::string();}
 };
 
 
 
 static_assert(DefaultProviders<void>::is_provider_type_v<std::string>);
-static_assert(std::is_same_v<    std::string, std::result_of_t<StringCallbackTest()>>);
-static_assert(DefaultProviders<void>::is_provider_type_v<std::remove_reference_t<std::result_of_t<StringCallbackTest()>>>);
-static_assert(DefaultProviders<void>::is_provider_type_v<std::result_of_t<StringCallbackTest()>>);
+static_assert(std::is_same_v<std::optional<std::string>, std::result_of_t<StringCallbackTest()>>);
+
+// this is no longer true
+//static_assert(DefaultProviders<void>::is_provider_type_v<std::remove_reference_t<std::result_of_t<StringCallbackTest()>>>);
+//static_assert(DefaultProviders<void>::is_provider_type_v<std::result_of_t<StringCallbackTest()>>);
 
 auto l = [](){return StringCallbackTest();};
-static_assert(DefaultProviders<void>::is_provider_callback_type_v<StringCallbackTest>);
+//static_assert(DefaultProviders<void>::is_provider_callback_type_v<StringCallbackTest>);
 
 
 std::unique_ptr<Provider_Interface> get_provider(A const & a) {
