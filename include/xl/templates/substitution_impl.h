@@ -25,15 +25,24 @@ inline void Substitution::split() {
     if (this->name_entries.size() > 1) {
         auto new_template = std::make_unique<CompiledTemplate>(this->tmpl);
         
-        Substitution new_substitution{};
+        Substitution new_substitution;
+        new_substitution.raw_text = fmt::format("Split off of {}", this->raw_text);
         
         // this follows the new substitution object until the end of the split so only
         //   the last one has this data
         new_substitution.final_data = std::move(this->final_data);
         new_substitution.shared_data = this->shared_data;
+        
         new_substitution.name_entries = std::move(this->name_entries);
+
         this->name_entries.push_front(new_substitution.name_entries.front());
         new_substitution.name_entries.pop_front();
+
+        std::cerr << fmt::format("split substitution name_entries now: {}\n", xl::join(this->name_entries));
+        std::cerr << fmt::format("setting new_substitution.name_entries = {}\n", xl::join(new_substitution.name_entries));
+
+        new_substitution.parent_substitution = this;
+        
         
         new_substitution.split();
         
@@ -43,6 +52,7 @@ inline void Substitution::split() {
         new_template->add_substitution(std::move(new_substitution));
         
         this->final_data.inline_template = std::move(new_template);
+        std::cerr << fmt::format("FOO: {}\n", xl::join(this->final_data.inline_template->substitutions[0].name_entries));
 
     }
     

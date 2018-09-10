@@ -29,8 +29,6 @@ public:
 
     Template const * const source_template;
 
-
-
     template <typename ProviderContainer = void>
     std::string fill(SubstitutionState &) const;
     
@@ -46,16 +44,19 @@ public:
 
 
 
-        CompiledTemplate(Template const * const source_template) :
-        source_template(source_template) {}
+    CompiledTemplate(Template const * const source_template) :
+        source_template(source_template) 
+    {}
 
 
     // create a template with a pre-built substitution instead of compiling
     //   the template from a string
     CompiledTemplate(Template const * const source_template, Substitution) :
-        source_template(source_template) {}
+        source_template(source_template) 
+    {}
 
 
+    // helper function for getting a human-readable string representation
     std::string details_string() {
         std::stringstream details_string;
 
@@ -74,6 +75,7 @@ public:
         return details_string.str();
     }
 
+    // add a substitution directly - useful for splitting Substitution's
     void add_substitution(Substitution substitution) {
         if (this->static_strings.size() <= this->substitutions.size()) {
             this->static_strings.push_back("");

@@ -70,7 +70,11 @@ struct Substitution {
 
     /// whether this substitution is a comment
     bool comment = false; // cannot be split
-    
+
+
+    // is this substitution a spot to start a search during a 'rewind' or not?
+    // basically every substitution except ones created by a name1.name2 name construct
+    Substitution * parent_substitution = nullptr;
 
     std::string const & get_name(bool required = false) const;
     
@@ -79,7 +83,9 @@ struct Substitution {
 //    Substitution(TemplateMap const * templates) : templates(templates)
 //    {}
 
-    Substitution() {}
+    Substitution() {
+        std::cerr << fmt::format("creating empty substitution\n");
+    }
 
     Substitution(Template const & tmpl) :
         tmpl(&tmpl)

@@ -229,7 +229,14 @@ struct DefaultProviders {
 //            XL_TEMPLATE_LOG("Destroyed string provider for string '{}'", this->string);
         }
 
-        std::string operator()(SubstitutionState &) const override {
+        std::string operator()(SubstitutionState & substitution_state) const override {
+            XL_TEMPLATE_LOG("grabbed data for compiled_subsitution 'X' - it has name '{}' and inline template: '{}'",
+                            substitution_state.substitution->get_name(), (void*)substitution_state.substitution->final_data.inline_template.get());
+
+            if (!substitution_state.substitution->name_entries.empty() || // there can't be any more names
+                substitution_state.substitution->final_data.inline_template != nullptr) {
+                throw TemplateException("String provider called with non-final substitution");
+            } // else if (substitution_state.substitution.)
             return this->string;
         }
 
@@ -768,12 +775,14 @@ struct DefaultProviders {
             
 //            std::cerr << fmt::format("found name? {}\n", provider_iterator != map.end());
 
-
+//            data.fill_state.provider_stack.push_front(this);
 
             std::string result;
-            if ((
-                data.substitution->initial_data.rewind_provider_count == 0 || data.substitution->initial_data.rewound)&& 
-                provider_iterator != map.end()) {
+            
+            // if a provider was found AND
+            // there is no rewind possible OR a rewind is already in flight
+            if (provider_iterator != map.end() &&
+                (data.substitution->initial_data.rewind_provider_count == 0 || data.substitution->initial_data.rewound)) {
                 
                 if constexpr(
                     std::is_base_of_v<Provider_Interface, MapValueT> ||
@@ -802,6 +811,9 @@ struct DefaultProviders {
 
                     
                     auto next_template = data.get_template();
+                    
+                    std::cerr << fmt::format("template to fill's substitution name entries: {}\n", xl::join(next_template->substitutions[0].name_entries));
+                    
                     result = next_template->fill(data);
 //                    XL_TEMPLATE_LOG(LogT::Subjects::Provider, "2map provider for {} result: {}\n", name, result);
 
@@ -815,7 +827,9 @@ struct DefaultProviders {
 //                    }
 
                 }
-            } else {
+            } 
+            // Try rewind
+            else {
                 
                 unsigned int rewind_count = 0;
 
@@ -824,9 +838,16 @@ struct DefaultProviders {
                     XL_TEMPLATE_LOG(LogT::Subjects::Provider, "couldn't find name {} in primary provider: {}", data.substitution->get_name(), this->get_name());
 
 //                    std::cerr << fmt::format("right before looking for matching name in {} upstream providers:", data.fill_state.provider_stack.size()) << std::endl;
-                    for (auto * provider : data.fill_state.provider_stack) {
-                        std::cerr << fmt::format("upstream: {} {}", (void*)provider, provider->get_name()) << std::endl;
+//                    for (auto * provider : data.fill_state.provider_stack) {
+//                        std::cerr << fmt::format("upstream: {} {}", (void*)provider, provider->get_name()) << std::endl;
+//                    }
+
+                    // move substitution back if it's a split() substitution
+                    while (data.substitution->parent_substitution != nullptr) {
+                        data.substitution = data.substitution->parent_substitution; 
                     }
+                    
+
                     for (auto * provider : data.fill_state.provider_stack) {
                         
                         std::cerr << fmt::format("going through provider stack, current provider:{}\n",

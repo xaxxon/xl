@@ -1003,3 +1003,50 @@ TEST(template, FallBackToParentProviderForMissingNames) {
         EXPECT_EQ(result, "five\nfive");
     }
 }
+
+TEST(template, RequireFullMatchOfDotSeparatedPartsDuringRewindSearch) {
+    {
+
+        // should go "a" to "b" to "a", but then fail to find a "c", backtrack to "b"
+        //   and look for an "a.c" from there (not just "c"), fail to find it, go back
+        //   to "a", fail to find "a.c", then go all the way back and go forward to find
+        //   "a.c" successfully.
+        
+        // "a" has a "b" and a "c".
+        // b has an 'a' and a 'c' but a.c shouldn't match on b while rewinding
+        //   because b doesn't have an "a.c" but rewinding all the way has an a.c
+        auto result = Template("{{a|!{{b|!{{a.c}}}}}}").fill(
+            make_provider(
+                std::pair{
+                    "a",
+                    make_provider(
+                        std::pair{
+                            "b", make_provider(std::pair("a", "a-b-a-value-WRONG"))},
+                        std::pair{
+                            "c", "a-b-c-cval-WRONG"})
+                }, std::pair {
+                    "c", "a-c-value-RIGHT"
+                }
+            )
+        );
+        EXPECT_EQ(result, "a-c-value-RIGHT");
+    }
+    
+    // no correct substitution available, should throw
+    {
+
+        auto result = Template("{{a|!{{b|!{{a.c}}}}}}").fill(
+            make_provider(
+                std::pair{
+                    "a",
+                    make_provider(
+                        std::pair{
+                            "b", make_provider(std::pair("a", "a-b-a-value-WRONG"))},
+                        std::pair{
+                            "c", "a-c-cval-RIGHT"})
+                }
+            )
+        );
+        EXPECT_EQ(result, "a-b-c-cval-RIGHT");
+    }
+}
