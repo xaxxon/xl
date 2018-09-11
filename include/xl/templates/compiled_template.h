@@ -110,9 +110,9 @@ inline xl::expected<std::string, std::string> CompiledTemplate::rewind_results(S
 
         for (auto * provider : substitution_state.fill_state.provider_stack) {
 
-            std::cerr << fmt::format("going through provider stack, current provider:{}\n",
-                                     provider->get_name());
-            std::cerr << substitution_state.fill_state.provider_stack;
+//            std::cerr << fmt::format("going through provider stack, current provider:{}\n",
+//                                     provider->get_name());
+//            std::cerr << substitution_state.fill_state.provider_stack;
 
             // only rewind on "core" providers
             
@@ -124,11 +124,11 @@ inline xl::expected<std::string, std::string> CompiledTemplate::rewind_results(S
                 if (provider->is_rewind_point()) {
                     rewind_count++;
                 }
-                std::cerr << fmt::format("is rewind point: {} new rewind count: {}/{}\n",
-                                         provider->is_rewind_point(),
-                                         rewind_count,
-                                         substitution_state.substitution->initial_data.rewind_provider_count
-                ) << std::endl;
+//                std::cerr << fmt::format("is rewind point: {} new rewind count: {}/{}\n",
+//                                         provider->is_rewind_point(),
+//                                         rewind_count,
+//                                         substitution_state.substitution->initial_data.rewind_provider_count
+//                ) << std::endl;
                 continue;
             }
 
@@ -146,7 +146,7 @@ inline xl::expected<std::string, std::string> CompiledTemplate::rewind_results(S
             if (result) {
                 return result;
             }
-            std::cerr << fmt::format("tried rewound provider, got failure: {}\n", result.error());
+//            std::cerr << fmt::format("tried rewound provider, got failure: {}\n", result.error());
             continue;
         
         }

@@ -96,10 +96,10 @@ TEST(json, object) {
         auto result = Json("{\"\\\"a\": 4}").get_object();
         EXPECT_TRUE(result.has_value());
         EXPECT_EQ((*result).size(), 1);
-        std::cerr << fmt::format("size {}", result->size()) << std::endl;
-        for(auto const & [k, v] : *result) {
-            std::cerr << fmt::format("'{}', '{}'", k, v) << std::endl;
-        }
+//        std::cerr << fmt::format("size {}", result->size()) << std::endl;
+//        for(auto const & [k, v] : *result) {
+//            std::cerr << fmt::format("'{}', '{}'", k, v) << std::endl;
+//        }
         EXPECT_TRUE(result->find("\"a") != result->end());
     }
 

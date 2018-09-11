@@ -83,9 +83,7 @@ struct Substitution {
 //    Substitution(TemplateMap const * templates) : templates(templates)
 //    {}
 
-    Substitution() {
-        std::cerr << fmt::format("creating empty substitution\n");
-    }
+    Substitution() {}
 
     Substitution(Template const & tmpl) :
         tmpl(&tmpl)

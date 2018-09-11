@@ -38,8 +38,8 @@ inline void Substitution::split() {
         this->name_entries.push_front(new_substitution->name_entries.front());
         new_substitution->name_entries.pop_front();
 
-        std::cerr << fmt::format("split substitution name_entries now: {}\n", xl::join(this->name_entries));
-        std::cerr << fmt::format("setting new_substitution->name_entries = {}\n", xl::join(new_substitution->name_entries));
+//        std::cerr << fmt::format("split substitution name_entries now: {}\n", xl::join(this->name_entries));
+//        std::cerr << fmt::format("setting new_substitution->name_entries = {}\n", xl::join(new_substitution->name_entries));
 
         new_substitution->parent_substitution = this;
         
@@ -52,7 +52,6 @@ inline void Substitution::split() {
         new_template->add_substitution(std::move(new_substitution));
         
         this->final_data.inline_template = std::move(new_template);
-        std::cerr << fmt::format("FOO: {}\n", xl::join(this->final_data.inline_template->substitutions[0]->name_entries));
 
     }
     
@@ -271,7 +270,7 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
             data->comment = true;
         } else if (matches.has("GroupingSubstitution")) {
             
-            std::cerr << fmt::format("found grouping substitution (not implemented)\n");
+//            std::cerr << fmt::format("found grouping substitution (not implemented)\n");
         } else {
             
             data->initial_data.rewind_provider_count = matches["ProviderStackRewind"].length();

@@ -209,10 +209,8 @@ auto l = [](){return StringCallbackTest();};
 
 
 std::unique_ptr<Provider_Interface> get_provider(A const & a) {
-    std::cerr << fmt::format("making provider for A.i: {}", a.i) << std::endl;
     return make_provider(
         std::pair{"I", [a]()->std::string{
-            std::cerr << fmt::format("in callback, A.i = {}", a.i) << std::endl;
             return fmt::format("{}", a.i);}
         }, 
         std::pair{"J", "6"});
@@ -1013,7 +1011,7 @@ TEST(template, RequireFullMatchOfDotSeparatedPartsDuringRewindSearch) {
         // should go "a" to "b" to "a", but then fail to find a "c", backtrack to "b"
         //   and look for an "a.c" from there (not just "c"), fail to find it, go back
         //   to "a", fail to find "a.c", then go all the way back and go forward to find
-        //   "a.c" successfully.
+        //   "a.c" successfully.    
         
         // "a" has a "b" and a "c".
         // b has an 'a' and a 'c' but a.c shouldn't match on b while rewinding
@@ -1021,21 +1019,19 @@ TEST(template, RequireFullMatchOfDotSeparatedPartsDuringRewindSearch) {
         auto result = Template("{{a|!{{b|!{{a.c}}}}}}").fill(
             make_provider(
                 std::pair{
-                    "a",
-                    make_provider(
+                    "a", make_provider(
                         std::pair{
                             "b", make_provider(std::pair("a", "a-b-a-value-WRONG"))},
                         std::pair{
-                            "c", "a-b-c-cval-WRONG"})
+                            "c", "a-c-value-RIGHT"})
                 }, std::pair {
-                    "c", "a-c-value-RIGHT"
+                    "c", "c-value-WRONG"
                 }
             )
         );
         EXPECT_EQ(*result, "a-c-value-RIGHT");
-    }
-    
-    // no correct substitution available, should throw
+    }   
+
     {
 
         auto result = Template("{{a|!{{b|!{{a.c}}}}}}").fill(
@@ -1050,6 +1046,6 @@ TEST(template, RequireFullMatchOfDotSeparatedPartsDuringRewindSearch) {
                 }
             )
         );
-        EXPECT_EQ(*result, "a-b-c-cval-RIGHT");
+        EXPECT_EQ(*result, "a-c-cval-RIGHT");
     }
 }
