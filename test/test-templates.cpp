@@ -18,12 +18,12 @@ using namespace std::string_literals;
 
 
 TEST(template, VectorOfStrings) {
-    EXPECT_EQ(Template("{{v}}").fill(make_provider(std::pair{"v", std::vector<std::string>{"a", "b", "c"}})), "a\nb\nc");
-    EXPECT_EQ(Template("{{v|!{{}}}}").fill(make_provider(std::pair{"v", std::vector<std::string>{"a", "b", "c"}})), "a\nb\nc");
+    EXPECT_EQ(*Template("{{v}}").fill(make_provider(std::pair{"v", std::vector<std::string>{"a", "b", "c"}})), "a\nb\nc");
+    EXPECT_EQ(*Template("{{v|!{{}}}}").fill(make_provider(std::pair{"v", std::vector<std::string>{"a", "b", "c"}})), "a\nb\nc");
 }
 
 TEST(template, VectorOfMapOfStrings) {
-    EXPECT_EQ(Template("{{v|!{{a}} {{b}}}}").fill(make_provider(std::pair{
+    EXPECT_EQ(*Template("{{v|!{{a}} {{b}}}}").fill(make_provider(std::pair{
         "v", 
         std::vector<std::map<std::string, std::string>>{
             {std::pair{"a"s, "a1"s}, std::pair{"b"s, "b1"s}},
@@ -35,12 +35,12 @@ TEST(template, VectorOfMapOfStrings) {
 
 
 TEST(template, EmptyTemplate) {
-    EXPECT_EQ(Template("").fill(), "");
+    EXPECT_EQ(*Template("").fill(), "");
 }
 TEST(template, NoSubstitutionTemplate) {
     auto template_string = "there are no substitutions here";
     
-    EXPECT_EQ(Template(template_string).fill(), template_string);
+    EXPECT_EQ(*Template(template_string).fill(), template_string);
 }
 TEST(template, SimpleSubstitutionTemplate) {
     Template t1("replace: {{TEST}}");
@@ -49,15 +49,15 @@ TEST(template, SimpleSubstitutionTemplate) {
     EXPECT_EQ(t1.compiled_template->static_strings.size(), 1);
     EXPECT_EQ(t1.compiled_template->static_strings.front(), "replace: ");
     EXPECT_EQ(t1.compiled_template->substitutions.size(), 1);
-    EXPECT_EQ(t1.fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
-    EXPECT_EQ(t1.fill(make_provider(std::pair{"TEST", std::string("REPLACEMENT")})), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: {{ TEST}}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: {{TEST }}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: {{ TEST }}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: {{NAME WITH SPACE}}").fill(make_provider(std::pair{"NAME WITH SPACE", "REPLACEMENT"})), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: {{ NAME WITH SPACE}}").fill(make_provider(std::pair{"NAME WITH SPACE", "REPLACEMENT"})), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: {{NAME WITH SPACE }}").fill(make_provider(std::pair{"NAME WITH SPACE", "REPLACEMENT"})), "replace: REPLACEMENT");
-    EXPECT_EQ(Template("replace: {{ NAME WITH SPACE }}").fill(make_provider(std::pair{"NAME WITH SPACE", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(*t1.fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(*t1.fill(make_provider(std::pair{"TEST", std::string("REPLACEMENT")})), "replace: REPLACEMENT");
+    EXPECT_EQ(*Template("replace: {{ TEST}}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(*Template("replace: {{TEST }}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(*Template("replace: {{ TEST }}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(*Template("replace: {{NAME WITH SPACE}}").fill(make_provider(std::pair{"NAME WITH SPACE", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(*Template("replace: {{ NAME WITH SPACE}}").fill(make_provider(std::pair{"NAME WITH SPACE", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(*Template("replace: {{NAME WITH SPACE }}").fill(make_provider(std::pair{"NAME WITH SPACE", "REPLACEMENT"})), "replace: REPLACEMENT");
+    EXPECT_EQ(*Template("replace: {{ NAME WITH SPACE }}").fill(make_provider(std::pair{"NAME WITH SPACE", "REPLACEMENT"})), "replace: REPLACEMENT");
 }
 TEST(template, Callback) {
     auto l = [](){return std::string("foo");};
@@ -65,11 +65,11 @@ TEST(template, Callback) {
 //    static_assert(std::is_same_v<xl::remove_reference_wrapper_t<std::string>, std::string>);
 //    static_assert(DefaultProviders<void>::is_provider_type_v<std::string>);
 //    static_assert(DefaultProviders<void>::is_provider_callback_type_v<decltype(l)>);
-    EXPECT_EQ(Template("{{a}}").fill(make_provider(std::pair{"a", l})), "foo");
+    EXPECT_EQ(*Template("{{a}}").fill(make_provider(std::pair{"a", l})), "foo");
 }
 TEST(template, EscapedCurlyBraceTemplate) {
-    EXPECT_EQ(Template("replace: \\{{{TEST}}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: {REPLACEMENT");
-    EXPECT_EQ(Template("replace: {{TEST}}\\}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT}");
+    EXPECT_EQ(*Template("replace: \\{{{TEST}}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: {REPLACEMENT");
+    EXPECT_EQ(*Template("replace: {{TEST}}\\}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT}");
 }
 TEST(template, MissingNameInProviderSubstitutionTemplate) {
     EXPECT_FALSE(Template("replace: {{TEST}}").fill(make_provider(std::pair{"XXX", "REPLACEMENT"})));
@@ -83,21 +83,21 @@ TEST(template, InvalidTemplateSyntax_ClosedButNotOpened_Template) {
                  xl::templates::TemplateException);
 }
 TEST(template, SimpleSubstitutionTemplateWithSuffix) {
-    EXPECT_EQ(Template("replace: {{TEST}} and more").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT and more");
+    EXPECT_EQ(*Template("replace: {{TEST}} and more").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT and more");
 }
 TEST(template, MultipleSubstitutionsSameNameTemplate) {
-    EXPECT_EQ(Template("replace: {{TEST}} and: {{TEST}}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})),
+    EXPECT_EQ(*Template("replace: {{TEST}} and: {{TEST}}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})),
               "replace: REPLACEMENT and: REPLACEMENT");
 }
 TEST(template, MultipleSubstitutionsDifferentNameTemplate) {
-    EXPECT_EQ(Template("replace: {{TEST1}} and: {{TEST2}}").fill(make_provider(std::pair{"TEST1", "REPLACEMENT1"},std::pair{"TEST2", "REPLACEMENT2"})),
+    EXPECT_EQ(*Template("replace: {{TEST1}} and: {{TEST2}}").fill(make_provider(std::pair{"TEST1", "REPLACEMENT1"},std::pair{"TEST2", "REPLACEMENT2"})),
               "replace: REPLACEMENT1 and: REPLACEMENT2" );
 }
 
 
 //TEST(template, CallbackSubstitutionTemplate) {
 //    auto m = make_provider(std::pair{"TEST", std::function<std::string()>([](){return std::string("REPLACEMENT-CALLBACK");})});
-//    EXPECT_EQ(Template("replace: {{TEST}}").fill(m),
+//    EXPECT_EQ(*Template("replace: {{TEST}}").fill(m),
 //              "replace: REPLACEMENT-CALLBACK");
 //
 //    {
@@ -112,11 +112,11 @@ TEST(template, SingleLineIgnoreEmpty) {
     {
         // cannot look up "name" inside "name" so template fails
         auto result = Template("BEFORE {{name|!{{name}}}}").fill(make_provider(std::pair("name", "")));
-        EXPECT_FALSE(result);
+        EXPECT_EQ(*result, "BEFORE ");
     }
     {
         auto result = Template("BEFORE {{<name|!{{name}}}}").fill(make_provider(std::pair("name", "")));
-        EXPECT_FALSE(result);
+        EXPECT_EQ(*result, ""); // BEFORE is eaten by the <
     }
     {
         auto result = Template("BEFORE {{<name}} AFTER").fill(make_provider(std::pair("name", "")));
@@ -192,13 +192,13 @@ struct A {
 
 class StringCallbackTest{
 public:
-    std::optional<std::string> operator()(){return std::string();}
+    xl::expected<std::string, std::string> operator()(){return std::string();}
 };
 
 
 
 static_assert(DefaultProviders<void>::is_provider_type_v<std::string>);
-static_assert(std::is_same_v<std::optional<std::string>, std::result_of_t<StringCallbackTest()>>);
+static_assert(std::is_same_v<xl::expected<std::string, std::string>, std::result_of_t<StringCallbackTest()>>);
 
 // this is no longer true
 //static_assert(DefaultProviders<void>::is_provider_type_v<std::remove_reference_t<std::result_of_t<StringCallbackTest()>>>);
@@ -268,7 +268,7 @@ TEST(template, UserDefinedTypeArray) {
 
 //    auto fill_result = Template("A1: {{GET_VEC_A%, |A1}}").fill(std::ref(b), std::move(templates));
     auto fill_result = Template("B: '{{NAME}}' A1: {{GET_VEC_A%, |A1}} A2: {{GET_VEC_A%, |A2}}").fill(std::ref(b), std::move(templates));
-    EXPECT_EQ(fill_result, "B: 'B name' A1: {i: 1 j: 6}, {i: 2 j: 6}, {i: 3 j: 6}, {i: 4 j: 6}, {i: 5 j: 6} A2: {i2: 1 j2: 6}, {i2: 2 j2: 6}, {i2: 3 j2: 6}, {i2: 4 j2: 6}, {i2: 5 j2: 6}");
+    EXPECT_EQ(*fill_result, "B: 'B name' A1: {i: 1 j: 6}, {i: 2 j: 6}, {i: 3 j: 6}, {i: 4 j: 6}, {i: 5 j: 6} A2: {i2: 1 j2: 6}, {i2: 2 j2: 6}, {i2: 3 j2: 6}, {i2: 4 j2: 6}, {i2: 5 j2: 6}");
 }
 
 
@@ -280,7 +280,7 @@ TEST(template, UserDefinedTypeArray) {
 //    TemplateMap templates{std::pair{"A1", Template("{i: {{I}} j: {{J}}}")},
 //                          std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
 //
-//    EXPECT_EQ(Template("replace: {{TEST1%, |A1}}").fill(make_provider(std::pair{"TEST1", make_provider(vector_object_callback)}), std::move(templates)),
+//    EXPECT_EQ(*Template("replace: {{TEST1%, |A1}}").fill(make_provider(std::pair{"TEST1", make_provider(vector_object_callback)}), std::move(templates)),
 //              "replace: {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
 //}
 
@@ -291,7 +291,7 @@ TEST(template, UserDefinedTypeArray) {
 //                          std::pair{"A2", Template("{i2: {{I}} j2: {{J}}}")}};
 //
 //    auto provider = make_provider(std::pair{"TEST1", make_provider(vector_object_callback)});
-//    EXPECT_EQ(Template("replace: {{TEST1%%, |A1}}").fill(provider, std::move(templates)),
+//    EXPECT_EQ(*Template("replace: {{TEST1%%, |A1}}").fill(provider, std::move(templates)),
 //              "replace: , {i: 10 j: 6}, {i: 11 j: 6}, {i: 12 j: 6}");
 //}
 
@@ -409,14 +409,14 @@ TEST(template, LoadDirectoryOfTemplates) {
     EXPECT_NE(templates.find("a"), templates.end());
     EXPECT_NE(templates.find("b"), templates.end());
 
-    EXPECT_EQ(templates["a"].fill(),"a.template contents");
-    EXPECT_EQ(templates["b"].fill(),"b.template contents");
+    EXPECT_EQ(*templates["a"].fill(),"a.template contents");
+    EXPECT_EQ(*templates["b"].fill(),"b.template contents");
 
     templates = load_templates("templates/a.template");
     EXPECT_EQ(templates.size(), 1);
     EXPECT_NE(templates.find("a"), templates.end());
     EXPECT_EQ(templates.find("b"), templates.end());
-    EXPECT_EQ(templates["a"].fill(),"a.template contents");
+    EXPECT_EQ(*templates["a"].fill(),"a.template contents");
 
 
 }
@@ -529,7 +529,7 @@ TEST(template, ExpandVectorInline) {
 TEST(template, ExpandEmptyLine) {
     auto result = Template("{{empty_substitution|!!}}").fill("");
 
-    EXPECT_EQ(*result, "");
+    EXPECT_FALSE(result);
 }
 
 
@@ -614,15 +614,16 @@ TEST(template, ProviderContainersReUse) {
 }
 
 TEST(template, NumberProvider) {
-    EXPECT_EQ(Template("{{number}}").fill(make_provider(std::pair("number", 5))), "5");
-    EXPECT_EQ(Template("{{number}}").fill(make_provider(std::pair("number", 5.5))), "5.5");
+    EXPECT_EQ(*Template("{{number}}").fill(make_provider(std::pair("number", 5))), "5");
+    EXPECT_EQ(*Template("{{number}}").fill(make_provider(std::pair("number", 5.5))), "5.5");
 }
 
 
 TEST(template, NullPointer)
 {
     int * pi = nullptr;
-    EXPECT_FALSE(Template("{{null_pointer}}").fill(make_provider(std::pair("a", (int*)nullptr))));
+    auto result = Template("{{null_pointer}}").fill(make_provider(std::pair("a", (int*)nullptr)));
+    EXPECT_FALSE(result);
 }
 
 TEST(template, EmptyUniquePointer)

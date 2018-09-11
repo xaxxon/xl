@@ -18,7 +18,6 @@ struct SubstitutionState {
     
     not_null<CompiledTemplate const *> current_template;
 
-    bool searching_provider_stack = false;
 
     SubstitutionState(CompiledTemplate const & tmpl, FillState const & fill_state, Substitution const * substitution) :
         fill_state(fill_state),

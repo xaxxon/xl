@@ -405,18 +405,17 @@ inline CompiledTemplate const * SubstitutionState::get_template() {
 
 
 
-inline std::optional<std::string> Substitution::get_name() const {
+inline xl::expected<std::string, std::string> Substitution::get_name() const {
 
     if (this->name_entries.size() > 1) {
-        std::cerr << fmt::format("too many name entries: {}\n", xl::join(this->name_entries));
-        return {};
+        return xl::make_unexpected(fmt::format("too many name entries: {}\n", xl::join(this->name_entries)));
     }
 
     if (this->name_entries.size() == 0) {
         if (!this->final_data.template_name.empty()) {
             return this->final_data.template_name;
         } else {
-            return {};
+            return xl::make_unexpected("no name_entries available to get name from");
         }
     } else {
         return this->name_entries.front();

@@ -13,7 +13,7 @@
 
 #include "../regex/regexer.h"
 #include "../library_extensions.h"
-
+#include "../expected.h"
 
 // All logging is compile-time disabled unless XL_TEMPLATE_LOG_ENABLE is specified
 #if defined XL_TEMPLATE_LOG_ENABLE
@@ -52,15 +52,15 @@ public:
 
     
     template <typename ProviderContainer = void>
-    std::optional<std::string> fill(SubstitutionState &) const;
+    xl::expected<std::string, std::string> fill(SubstitutionState &) const;
 
     
     template <typename ProviderContainer = void>
-    std::optional<std::string> fill(FillState const &) const;
+    xl::expected<std::string, std::string> fill(FillState const &) const;
 
 
     template<typename ProviderContainer = void, class T = char const *, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, FillState>>>
-    std::optional<std::string> fill(T && source = "", std::map<std::string, Template> template_map = {}) const;
+    xl::expected<std::string, std::string> fill(T && source = "", std::map<std::string, Template> template_map = {}) const;
 
     
     
@@ -90,7 +90,7 @@ class provider_data;
 
 
 template <typename ProviderContainer>
-std::optional<std::string> Template::fill(FillState const & fill_state) const {
+xl::expected<std::string, std::string> Template::fill(FillState const & fill_state) const {
 
     if (!this->is_compiled()) {
         this->compile();
@@ -101,14 +101,14 @@ std::optional<std::string> Template::fill(FillState const & fill_state) const {
 
 
 template<typename ProviderContainer, class T, typename>
-std::optional<std::string> Template::fill(T && source, std::map<std::string, Template> template_map) const {
+xl::expected<std::string, std::string> Template::fill(T && source, std::map<std::string, Template> template_map) const {
 
     return this->compile()->fill<ProviderContainer>(std::forward<T>(source), std::move(template_map));
 }
 
 
 template<typename ProviderContainer, class T, typename>
-std::optional<std::string> CompiledTemplate::fill(T && source, std::map<std::string, Template> template_map) const {
+xl::expected<std::string, std::string> CompiledTemplate::fill(T && source, std::map<std::string, Template> template_map) const {
 
     XL_TEMPLATE_LOG(LogT::Subjects::Template, "Filling template: '{}'", this->source_template->c_str());
 
@@ -158,13 +158,13 @@ std::optional<std::string> CompiledTemplate::fill(T && source, std::map<std::str
 
 
 template<typename ProviderContainer>
-std::optional<std::string> Template::fill(SubstitutionState & substitution_state) const {
+xl::expected<std::string, std::string> Template::fill(SubstitutionState & substitution_state) const {
     return this->compile()->fill(substitution_state);
 }
     
 
 template<typename ProviderContainer>
-std::optional<std::string> CompiledTemplate::fill(SubstitutionState & substitution_state) const {
+xl::expected<std::string, std::string> CompiledTemplate::fill(SubstitutionState & substitution_state) const {
 
         // if the top provider exists and wants the entire template as-is, provide it directly
     if (!substitution_state.fill_state.provider_stack.empty() && substitution_state.fill_state.provider_stack.front()->needs_raw_template()) {

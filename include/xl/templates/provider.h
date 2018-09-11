@@ -71,7 +71,7 @@ struct DefaultProviders {
 
     template <class T>
     class is_provider_type<T, std::enable_if_t<std::is_same_v<
-        std::optional<std::string>,
+        xl::expected<std::string, std::string>,
             std::result_of_t<Provider < remove_refs_and_wrapper_t<T>>(SubstitutionState &)
                 >
             > // is same
@@ -169,7 +169,7 @@ struct DefaultProviders {
     public:
         Provider(T t) : t(t) {}
 
-        std::optional<std::string> operator()(SubstitutionState & data) const override {
+        xl::expected<std::string, std::string> operator()(SubstitutionState & data) const override {
             return t(data);
         }
         
@@ -229,7 +229,7 @@ struct DefaultProviders {
 //            XL_TEMPLATE_LOG("Destroyed string provider for string '{}'", this->string);
         }
 
-        std::optional<std::string> operator()(SubstitutionState & substitution_state) const override {
+        xl::expected<std::string, std::string> operator()(SubstitutionState & substitution_state) const override {
 //            XL_TEMPLATE_LOG("grabbed data for compiled_subsitution 'X' - it has name '{}' and inline template: '{}'",
 //                            substitution_state.substitution->get_name(), (void*)substitution_state.substitution->final_data.inline_template.get());
 
@@ -238,7 +238,7 @@ struct DefaultProviders {
                 XL_TEMPLATE_LOG("name_entries: {}, inline template: {}", 
                     xl::join(substitution_state.substitution->name_entries), 
                     (void*)substitution_state.substitution->final_data.inline_template.get());
-                return {};
+                return xl::make_unexpected("string provider called with non-terminal substitution");
             } // else if (substitution_state.substitution.)
             return this->string;
         }
@@ -303,7 +303,7 @@ struct DefaultProviders {
         }
 
 
-        std::optional<std::string> operator()(SubstitutionState & data) const override {
+        xl::expected<std::string, std::string> operator()(SubstitutionState & data) const override {
             data.fill_state.provider_stack.push_front(this);
             Defer(data.fill_state.provider_stack.pop_front());
             auto callback_result = this->callback();
@@ -395,7 +395,7 @@ struct DefaultProviders {
 
 
         // get-provider provider
-        std::optional<std::string> operator()(SubstitutionState & substitution_state) const override {
+        xl::expected<std::string, std::string> operator()(SubstitutionState & substitution_state) const override {
             substitution_state.fill_state.provider_stack.push_front(this);
             Defer(substitution_state.fill_state.provider_stack.pop_front());
 
@@ -463,7 +463,7 @@ struct DefaultProviders {
         ~Provider() {
         }
 
-        std::optional<std::string> operator()(SubstitutionState & data) const override {
+        xl::expected<std::string, std::string> operator()(SubstitutionState & data) const override {
 
             UniquePtrT & unique_ptr = t;
             if (!unique_ptr) {
@@ -506,7 +506,7 @@ struct DefaultProviders {
         T t;
     public:
         Provider(T t) : t(t) {}
-        std::optional<std::string> operator()(SubstitutionState &) const override {
+        xl::expected<std::string, std::string> operator()(SubstitutionState &) const override {
             std::stringstream string_stream;
             string_stream << t;
             return string_stream.str();
@@ -544,7 +544,7 @@ struct DefaultProviders {
         ~Provider() {
         }
 
-        std::optional<std::string> operator()(SubstitutionState & data) const override {
+        xl::expected<std::string, std::string> operator()(SubstitutionState & data) const override {
             
             if (t == nullptr) {
                 throw TemplateException("Pointer provider '{}' has null pointer", this->get_name());
@@ -616,7 +616,7 @@ struct DefaultProviders {
 
 
         // container provider   
-        std::optional<std::string> operator()(SubstitutionState & data) const override {
+        xl::expected<std::string, std::string> operator()(SubstitutionState & data) const override {
             
             
             if (data.substitution->initial_data.rewound && this->current_value != nullptr) {
@@ -682,7 +682,7 @@ struct DefaultProviders {
                 auto fill_result = tmpl->fill<ProviderContainer>(new_substitution);
                 
                 if (!fill_result) {
-                    return {};
+                    return fill_result;
                 }
 
 //                XL_TEMPLATE_LOG(LogT::Subjects::Provider, "replacement for {} is {}\n - Ignore_empty_replacements is {}", data.current_template->source_template->c_str(), fill_result, data.substitution->shared_data->ignore_empty_replacements);
@@ -769,7 +769,7 @@ struct DefaultProviders {
 
 
         // Map Provider
-        std::optional<std::string> operator()(SubstitutionState & data) const override {
+        xl::expected<std::string, std::string> operator()(SubstitutionState & data) const override {
 //            data.fill_state.provider_stack.push_front(this);
 //            std::cerr << fmt::format("Entering provider {} with: {}", 
 //                this->get_name(), 
@@ -781,7 +781,7 @@ struct DefaultProviders {
 
             auto name_optional = data.substitution->get_name(); // keep a copy that isn't cleared
             if (!name_optional) {
-                return {};
+                return name_optional;
             }
             
             std::string name = std::move(*name_optional); 
@@ -794,7 +794,7 @@ struct DefaultProviders {
 
 //            data.fill_state.provider_stack.push_front(this);
 
-            std::optional<std::string> result = {};
+            xl::expected<std::string, std::string> result;
             
             // if a provider was found AND
             // there is no rewind possible OR a rewind is already in flight
@@ -919,9 +919,9 @@ struct DefaultProviders {
 //                    template_text = data.current_template->source_template->c_str();
 //                }
             }
-            if (!result) {
-                std::string exception_string = fmt::format("provider {} does not provide name: '{}'", this->get_name(),
-                                                           name);
+            else {
+                result = xl::make_unexpected(fmt::format("provider {} does not provide name: '{}' or needs rewinding", this->get_name(),
+                                                           name));
             }
             return result;
         }

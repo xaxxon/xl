@@ -26,6 +26,9 @@ struct FillState {
     /// map of template names to templates
     std::map<std::string, Template> const * templates = nullptr;
 
+    bool searching_provider_stack = false;
+
+
     FillState(){}
     FillState(ProviderStack provider_stack, std::map<std::string, Template> const * templates) :
         provider_stack(std::move(provider_stack)),

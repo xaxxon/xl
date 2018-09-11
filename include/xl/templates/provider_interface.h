@@ -22,7 +22,7 @@ public:
     
     virtual ~Provider_Interface() = default;
     
-    virtual std::optional<std::string> operator()(SubstitutionState & data) const = 0;
+    virtual xl::expected<std::string, std::string> operator()(SubstitutionState & data) const = 0;
 
     /**
      * A string useful for a human to figure out what Provider this is
