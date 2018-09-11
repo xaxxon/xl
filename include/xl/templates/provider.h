@@ -827,7 +827,7 @@ struct DefaultProviders {
 
                     auto next_template = data.get_template();
 
-//                    std::cerr << fmt::format("template to fill's substitution name entries: {}\n", xl::join(next_template->substitutions[0].name_entries));
+//                    std::cerr << fmt::format("template to fill's substitution name entries: {}\n", xl::join(next_template->substitutions[0]->name_entries));
                     result = next_template->fill(data);
 
 //                    XL_TEMPLATE_LOG(LogT::Subjects::Provider, "2map provider for {} result: {}\n", name, result);

@@ -18,8 +18,8 @@ XL_PRIVATE_UNLESS_TESTING:
     // static portions of the template as separated by substitutions
     std::vector<std::string> static_strings;
 
-    // substitutions in the template
-    std::vector<Substitution> substitutions;
+    // substitutions in the template - a pointer so the Substitution object maintains address identity
+    std::vector<std::unique_ptr<Substitution>> substitutions;
 
 
     // sum of the length of all the fixed portions of the template
@@ -80,7 +80,7 @@ public:
     }
 
     // add a substitution directly - useful for splitting Substitution's
-    void add_substitution(Substitution substitution) {
+    void add_substitution(std::unique_ptr<Substitution> substitution) {
         if (this->static_strings.size() <= this->substitutions.size()) {
             this->static_strings.push_back("");
         }
@@ -173,7 +173,7 @@ std::optional<std::string> CompiledTemplate::fill(FillState const & fill_state) 
         XL_TEMPLATE_LOG(LogT::Subjects::Template, "fill: just added static section {}: '{}'", i, this->static_strings[i]);
 
         if (this->substitutions.size() > i) {
-            SubstitutionState current_substitution(*this, fill_state, &this->substitutions[i]);
+            SubstitutionState current_substitution(*this, fill_state, this->substitutions[i].get());
 
 
             XL_TEMPLATE_LOG("grabbed data for compiled_subsitution '{}' - it has name '{}' and inline template: '{}'",

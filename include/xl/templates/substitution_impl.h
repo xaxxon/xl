@@ -25,26 +25,26 @@ inline void Substitution::split() {
     if (this->name_entries.size() > 1) {
         auto new_template = std::make_unique<CompiledTemplate>(this->tmpl);
         
-        Substitution new_substitution;
-        new_substitution.raw_text = fmt::format("Split off of {}", this->raw_text);
+        auto new_substitution = std::make_unique<Substitution>();
+        new_substitution->raw_text = fmt::format("Split off of {}", this->raw_text);
         
         // this follows the new substitution object until the end of the split so only
         //   the last one has this data
-        new_substitution.final_data = std::move(this->final_data);
-        new_substitution.shared_data = this->shared_data;
+        new_substitution->final_data = std::move(this->final_data);
+        new_substitution->shared_data = this->shared_data;
         
-        new_substitution.name_entries = std::move(this->name_entries);
+        new_substitution->name_entries = std::move(this->name_entries);
 
-        this->name_entries.push_front(new_substitution.name_entries.front());
-        new_substitution.name_entries.pop_front();
+        this->name_entries.push_front(new_substitution->name_entries.front());
+        new_substitution->name_entries.pop_front();
 
         std::cerr << fmt::format("split substitution name_entries now: {}\n", xl::join(this->name_entries));
-        std::cerr << fmt::format("setting new_substitution.name_entries = {}\n", xl::join(new_substitution.name_entries));
+        std::cerr << fmt::format("setting new_substitution->name_entries = {}\n", xl::join(new_substitution->name_entries));
 
-        new_substitution.parent_substitution = this;
+        new_substitution->parent_substitution = this;
         
         
-        new_substitution.split();
+        new_substitution->split();
         
         
         
@@ -52,7 +52,7 @@ inline void Substitution::split() {
         new_template->add_substitution(std::move(new_substitution));
         
         this->final_data.inline_template = std::move(new_template);
-        std::cerr << fmt::format("FOO: {}\n", xl::join(this->final_data.inline_template->substitutions[0].name_entries));
+        std::cerr << fmt::format("FOO: {}\n", xl::join(this->final_data.inline_template->substitutions[0]->name_entries));
 
     }
     
@@ -73,7 +73,7 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
 
     this->compiled_template = std::make_shared<CompiledTemplate>(this);
 
-    auto & substitutions = const_cast< std::vector<Substitution> &>(this->compiled_template->substitutions);
+    auto & substitutions = const_cast< std::vector<std::unique_ptr<Substitution>> &>(this->compiled_template->substitutions);
 
     // regex used to parse sections of a template into 0 or more pairs of leading string literal (may be empty)
     //   and a following substitution (optional)
@@ -209,14 +209,14 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
                                     "contingent trailing content '{}' and literal string '{}'", results[1], results[2]);
     
                     
-                        substitutions.back().initial_data.contingent_trailing_content = results[1];
+                        substitutions.back()->initial_data.contingent_trailing_content = results[1];
                         literal_string = results[2];
                         // if there's no substitution, then the entire literal string goes to the previous substitution
                 } else {
                     assert(false);
                 }
             } else if (first_line_belongs_to_last_substitution == 2) {
-                substitutions.back().initial_data.contingent_trailing_content = std::move(literal_string);
+                substitutions.back()->initial_data.contingent_trailing_content = std::move(literal_string);
                 literal_string.clear();
             
             } else {
@@ -262,19 +262,19 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
         }
 
 
-        Substitution data(*this);
-        data.raw_text = matches[0];
+        auto data = std::make_unique<Substitution>(*this);
+        data->raw_text = matches[0];
 
         // if the substition is a comment, nothing else matters
         if (matches.has("Comment")) {
             XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "substitution is a comment");
-            data.comment = true;
+            data->comment = true;
         } else if (matches.has("GroupingSubstitution")) {
             
             std::cerr << fmt::format("found grouping substitution (not implemented)\n");
         } else {
             
-            data.initial_data.rewind_provider_count = matches["ProviderStackRewind"].length();
+            data->initial_data.rewind_provider_count = matches["ProviderStackRewind"].length();
 
             if (!matches.has("TemplateInsertionMarker")) {
                 auto substitution_name = matches["SubstitutionName"];
@@ -297,40 +297,40 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
                         // it's hard to just switch it out at this point.
 
 
-                        data.name_entries.emplace_front(substitution_name.data(), position, new_position - position);
+                        data->name_entries.emplace_front(substitution_name.data(), position, new_position - position);
 
                         XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "substitution sub-name: {}",
-                                        data.name_entries.front());
+                                        data->name_entries.front());
 
                         position = new_position + 1;
                     }
-                    data.name_entries.emplace_front(substitution_name.data(), position,
+                    data->name_entries.emplace_front(substitution_name.data(), position,
                                                     substitution_name.length() - position);
-                    std::reverse(data.name_entries.begin(), data.name_entries.end());
+                    std::reverse(data->name_entries.begin(), data->name_entries.end());
                 }
                 XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "parsed name into {}",
-                                xl::join(data.name_entries));
+                                xl::join(data->name_entries));
             } else {
-                data.final_data.template_name = matches["SubstitutionName"];
+                data->final_data.template_name = matches["SubstitutionName"];
             }
 
             if (matches.has("JoinStringMarker")) {
-                data.shared_data->join_string = matches["JoinString"];
+                data->shared_data->join_string = matches["JoinString"];
                 XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "Join string for '{}' set to: '{}'\n",
-                                this->c_str(), data.shared_data->join_string);
+                                this->c_str(), data->shared_data->join_string);
             } else {
                 XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile,
                                 "join string not found in '{}', using default: '{}'\n", this->c_str(),
-                                data.shared_data->join_string);
+                                data->shared_data->join_string);
             }
 
             if (matches.has("LeadingJoinStringMarker")) {
-                data.shared_data->leading_join_string = true;
+                data->shared_data->leading_join_string = true;
             }
 
-            data.initial_data.contingent_leading_content = contingent_leading_content;
+            data->initial_data.contingent_leading_content = contingent_leading_content;
 
-            data.shared_data->ignore_empty_replacements = ignore_empty_replacements_before;
+            data->shared_data->ignore_empty_replacements = ignore_empty_replacements_before;
 
             if (matches.has("InlineTemplateMarker")) {
                 log.info(TemplateSubjects::Subjects::Compile,
@@ -339,16 +339,16 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
                 auto inline_template_text = matches["SubstitutionData"];
                 log.info(TemplateSubjects::Subjects::Compile,
                          "inline template text: " + std::string(inline_template_text));
-//                data.final_data.inline_template = std::make_shared<Template>(inline_template_text);
-                data.final_data.inline_template = Template(inline_template_text).compile();
+//                data->final_data.inline_template = std::make_shared<Template>(inline_template_text);
+                data->final_data.inline_template = Template(inline_template_text).compile();
             } else {
-                data.parameters = matches["SubstitutionData"];
+                data->parameters = matches["SubstitutionData"];
             }
         }
 
         // if there are multiple names in the substitution, split it off into multiple
         //   template/substitution pairs
-        data.split();
+        data->split();
 
         substitutions.emplace_back(std::move(data));
     }
