@@ -739,7 +739,9 @@ TEST(template, ContingentContentPrecedence) {
 TEST(template, SetOfStrings) {
     std::set<std::string> s;
 
-    auto result = Template("BEFORE\nX{{<VECTOR|!!\n{{DUMMY}}>}}Y\nAFTER").fill(std::pair("VECTOR", ref(s)));
+    auto result = Template("BEFORE\nX{{<set|!!\n{{DUMMY}}>}}Y\nAFTER").fill(std::pair("set", ref(s)));
+    
+    EXPECT_EQ(*result, "BEFORE\nAFTER");
 }
 
 
@@ -1031,7 +1033,7 @@ TEST(template, RequireFullMatchOfDotSeparatedPartsDuringRewindSearch) {
                 }
             )
         );
-        EXPECT_EQ(result, "a-c-value-RIGHT");
+        EXPECT_EQ(*result, "a-c-value-RIGHT");
     }
     
     // no correct substitution available, should throw
@@ -1049,6 +1051,6 @@ TEST(template, RequireFullMatchOfDotSeparatedPartsDuringRewindSearch) {
                 }
             )
         );
-        EXPECT_EQ(result, "a-b-c-cval-RIGHT");
+        EXPECT_EQ(*result, "a-b-c-cval-RIGHT");
     }
 }

@@ -30,13 +30,13 @@ public:
     Template const * const source_template;
 
     template <typename ProviderContainer = void>
-    std::string fill(SubstitutionState &) const;
+    std::optional<std::string> fill(SubstitutionState &) const;
     
     template<typename ProviderContainer = void>
-    std::string fill(FillState const &) const;
+    std::optional<std::string> fill(FillState const &) const;
 
     template<typename ProviderContainer, class T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, FillState>>>
-    std::string fill(T && source, std::map<std::string, Template> template_map) const;
+    std::optional<std::string> fill(T && source, std::map<std::string, Template> template_map) const;
 
     inline static std::shared_ptr<CompiledTemplate> empty_compiled_template = 
         Template::empty_template->compile();
@@ -93,7 +93,7 @@ namespace xl::templates {
 
 
 template<typename ProviderContainer>
-std::string CompiledTemplate::fill(FillState const & fill_state) const {
+std::optional<std::string> CompiledTemplate::fill(FillState const & fill_state) const {
 
     assert(!fill_state.provider_stack.empty());
     Provider_Interface const & provider = *fill_state.provider_stack.front();
@@ -127,11 +127,14 @@ std::string CompiledTemplate::fill(FillState const & fill_state) const {
                     throw TemplateException("No template found named: {}", current_substitution.substitution->final_data.template_name);
                 }
                 auto inline_template_result = template_iterator->second.fill(fill_state);
-                if (!inline_template_result.empty()) {
+                if (!inline_template_result) {
+                    // TODO: Handle error
+                }
+                if (!inline_template_result->empty()) {
                     result.insert(result.end(), current_substitution.substitution->initial_data.contingent_leading_content.begin(), current_substitution.substitution->initial_data.contingent_leading_content.end());
                 }
-                result.insert(result.end(), begin(inline_template_result), end(inline_template_result));
-                if (!inline_template_result.empty()) {
+                result.insert(result.end(), begin(*inline_template_result), end(*inline_template_result));
+                if (!inline_template_result->empty()) {
                     result.insert(result.end(), current_substitution.substitution->initial_data.contingent_trailing_content.begin(), current_substitution.substitution->initial_data.contingent_trailing_content.end());
                 }
             }

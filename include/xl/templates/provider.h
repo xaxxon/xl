@@ -675,12 +675,16 @@ struct DefaultProviders {
 
 
                 auto fill_result = tmpl->fill<ProviderContainer>(new_substitution);
+                
+                if (!fill_result) {
+                    // TODO: handle error
+                }
 
 //                XL_TEMPLATE_LOG(LogT::Subjects::Provider, "replacement for {} is {}\n - Ignore_empty_replacements is {}", data.current_template->source_template->c_str(), fill_result, data.substitution->shared_data->ignore_empty_replacements);
-                if (fill_result == "" && data.substitution->shared_data->ignore_empty_replacements) {
+                if (*fill_result == "" && data.substitution->shared_data->ignore_empty_replacements) {
                     needs_join_string = false;
                 }
-                result << fill_result;
+                result << *fill_result;
                 XL_TEMPLATE_LOG(LogT::Subjects::Provider, "In container provider, after {} elements, result currently {}", i, result.str());
 
 
@@ -797,7 +801,11 @@ struct DefaultProviders {
 //                    XL_TEMPLATE_LOG(LogT::Subjects::Provider, "value is a provider interface or ProviderPtr");
                     auto next_template = data.get_template();
                     assert(next_template != nullptr);
-                    result = next_template->fill(data);
+                    auto fill_result = next_template->fill(data);
+                    if (!fill_result) {
+                        // TODO: handle error
+                    }
+                    result = *fill_result;
 //                    std::cerr << fmt::format("1map provider for {} result: {}\n", name, result);
 
 //                    if (data.substitution->final_data.inline_template) {
@@ -816,8 +824,11 @@ struct DefaultProviders {
                     auto next_template = data.get_template();
                     
 //                    std::cerr << fmt::format("template to fill's substitution name entries: {}\n", xl::join(next_template->substitutions[0].name_entries));
-                    
-                    result = next_template->fill(data);
+                    auto fill_result = next_template->fill(data);
+                    if (!fill_result) {
+                        // TODO: handle error
+                    }
+                    result = *fill_result;
 //                    XL_TEMPLATE_LOG(LogT::Subjects::Provider, "2map provider for {} result: {}\n", name, result);
 
 //                    if (data.substitution->final_data.inline_template) {
