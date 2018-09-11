@@ -305,6 +305,7 @@ struct DefaultProviders {
 
         std::optional<std::string> operator()(SubstitutionState & data) const override {
             data.fill_state.provider_stack.push_front(this);
+            Defer(data.fill_state.provider_stack.pop_front());
             auto callback_result = this->callback();
             auto provider = Provider<CallbackResultT>(std::move(callback_result));
             auto provider_result = provider(data);
@@ -396,6 +397,7 @@ struct DefaultProviders {
         // get-provider provider
         std::optional<std::string> operator()(SubstitutionState & substitution_state) const override {
             substitution_state.fill_state.provider_stack.push_front(this);
+            Defer(substitution_state.fill_state.provider_stack.pop_front());
 
             NoRefT const & t = this->t_holder;
 
@@ -469,6 +471,7 @@ struct DefaultProviders {
             }
 
             data.fill_state.provider_stack.push_front(this);
+            Defer(data.fill_state.provider_stack.pop_front());
             XL_TEMPLATE_LOG(LogT::Subjects::Provider, "unique_ptr provider called");
             
             // if the stored type is already a Provider_Interface, then just call it directly
@@ -548,6 +551,7 @@ struct DefaultProviders {
             }
             
             data.fill_state.provider_stack.push_front(this);
+            Defer(data.fill_state.provider_stack.pop_front());
             XL_TEMPLATE_LOG(LogT::Subjects::Provider, "Pointer provider {}", this->get_name());
 
             return Provider<make_reference_wrapper_t<NoPtrT>>(*t)(data);
@@ -672,12 +676,13 @@ struct DefaultProviders {
                 //   not based on whatever is done by a previous element
                 SubstitutionState new_substitution(data);
                 new_substitution.fill_state.provider_stack.push_front(&p);
+                Defer(new_substitution.fill_state.provider_stack.pop_front());
 
 
                 auto fill_result = tmpl->fill<ProviderContainer>(new_substitution);
                 
                 if (!fill_result) {
-                    // TODO: handle error
+                    return {};
                 }
 
 //                XL_TEMPLATE_LOG(LogT::Subjects::Provider, "replacement for {} is {}\n - Ignore_empty_replacements is {}", data.current_template->source_template->c_str(), fill_result, data.substitution->shared_data->ignore_empty_replacements);
@@ -784,28 +789,25 @@ struct DefaultProviders {
 
 //            data.fill_state.provider_stack.push_front(this);
 
-            std::string result;
+            std::optional<std::string> result = {};
             
             // if a provider was found AND
             // there is no rewind possible OR a rewind is already in flight
-            if (provider_iterator != map.end() &&
-                (data.substitution->initial_data.rewind_provider_count == 0 || data.substitution->initial_data.rewound)) {
-                
+            if (provider_iterator != map.end()) {
+
                 if constexpr(
                     std::is_base_of_v<Provider_Interface, MapValueT> ||
                     std::is_same_v<ProviderPtr, MapValueT>) {
 
                     data.fill_state.provider_stack.push_front(provider_iterator->second.get());
+                    Defer(data.fill_state.provider_stack.pop_front());
 
 
 //                    XL_TEMPLATE_LOG(LogT::Subjects::Provider, "value is a provider interface or ProviderPtr");
                     auto next_template = data.get_template();
                     assert(next_template != nullptr);
-                    auto fill_result = next_template->fill(data);
-                    if (!fill_result) {
-                        // TODO: handle error
-                    }
-                    result = *fill_result;
+                    result = next_template->fill(data);
+
 //                    std::cerr << fmt::format("1map provider for {} result: {}\n", name, result);
 
 //                    if (data.substitution->final_data.inline_template) {
@@ -819,16 +821,15 @@ struct DefaultProviders {
                     auto provider = Provider<make_reference_wrapper_t<MapValueT const>>(
                         std::ref(provider_iterator->second));
                     data.fill_state.provider_stack.push_front(&provider);
+                    Defer(assert(!data.fill_state.provider_stack.empty());
+                              data.fill_state.provider_stack.pop_front());
 
-                    
+
                     auto next_template = data.get_template();
-                    
+
 //                    std::cerr << fmt::format("template to fill's substitution name entries: {}\n", xl::join(next_template->substitutions[0].name_entries));
-                    auto fill_result = next_template->fill(data);
-                    if (!fill_result) {
-                        // TODO: handle error
-                    }
-                    result = *fill_result;
+                    result = next_template->fill(data);
+
 //                    XL_TEMPLATE_LOG(LogT::Subjects::Provider, "2map provider for {} result: {}\n", name, result);
 
 //                    if (data.substitution->final_data.inline_template) {
@@ -841,77 +842,79 @@ struct DefaultProviders {
 //                    }
 
                 }
-            } 
-            // Try rewind
-            else {
-                
-                unsigned int rewind_count = 0;
 
-                if (!data.searching_provider_stack && !data.fill_state.provider_stack.empty()) {
-
-                    XL_TEMPLATE_LOG(LogT::Subjects::Provider, "couldn't find name {} in primary provider: {}", data.substitution->get_name(), this->get_name());
-
-//                    std::cerr << fmt::format("right before looking for matching name in {} upstream providers:", data.fill_state.provider_stack.size()) << std::endl;
-//                    for (auto * provider : data.fill_state.provider_stack) {
-//                        std::cerr << fmt::format("upstream: {} {}", (void*)provider, provider->get_name()) << std::endl;
+//            // Try rewind
+//            else {
+//                
+//                unsigned int rewind_count = 0;
+//
+//                if (!data.searching_provider_stack && !data.fill_state.provider_stack.empty()) {
+//
+//                    XL_TEMPLATE_LOG(LogT::Subjects::Provider, "couldn't find name {} in primary provider: {}", data.substitution->get_name(), this->get_name());
+//
+////                    std::cerr << fmt::format("right before looking for matching name in {} upstream providers:", data.fill_state.provider_stack.size()) << std::endl;
+////                    for (auto * provider : data.fill_state.provider_stack) {
+////                        std::cerr << fmt::format("upstream: {} {}", (void*)provider, provider->get_name()) << std::endl;
+////                    }
+//
+//                    // move substitution back if it's a split() substitution
+//                    while (data.substitution->parent_substitution != nullptr) {
+//                        data.substitution = data.substitution->parent_substitution; 
 //                    }
-
-                    // move substitution back if it's a split() substitution
-                    while (data.substitution->parent_substitution != nullptr) {
-                        data.substitution = data.substitution->parent_substitution; 
-                    }
-                    
-
-                    for (auto * provider : data.fill_state.provider_stack) {
-                        
-                        std::cerr << fmt::format("going through provider stack, current provider:{}\n",
-                            provider->get_name());
-                        std::cerr << data.fill_state.provider_stack;
-
-                        if (provider == this) {
-                            continue;
-                        }
-                        
-                        // only rewind on "core" providers
-                        if (provider->is_rewind_point()) {
-                            rewind_count++;
-                        }
-                        
-                        std::cerr << fmt::format("is rewind point: {} new rewind count: {}/{}\n",
-                            provider->is_rewind_point(),
-                            rewind_count,
-                            data.substitution->initial_data.rewind_provider_count
-                        ) << std::endl;
-                        
-                        // if rewind count is set, rewind at least that many levels
-                        if (rewind_count < data.substitution->initial_data.rewind_provider_count) {
-                            continue;
-                        }
-                        
-                        // start over from scratch
-                        auto copy = SubstitutionState(*data.current_template,
-                                                      data.fill_state, 
-                                                      data.substitution);
-                        copy.searching_provider_stack = true;
-                        copy.fill_state.provider_stack.clear();
-                        
-                        try {
-                            Defer(data.substitution->initial_data.rewound = false;);
-                            data.substitution->initial_data.rewound = true;
-                            return provider->operator()(copy);
-                        } catch (TemplateException const & e) {
-                            std::cerr << fmt::format("tried rewound provider, got exception: {}\n", e.what());
-                            continue;
-                        }
-                    }
-                }
+//                    
+//
+//                    for (auto * provider : data.fill_state.provider_stack) {
+//                        
+//                        std::cerr << fmt::format("going through provider stack, current provider:{}\n",
+//                            provider->get_name());
+//                        std::cerr << data.fill_state.provider_stack;
+//
+//                        if (provider == this) {
+//                            continue;
+//                        }
+//                        
+//                        // only rewind on "core" providers
+//                        if (provider->is_rewind_point()) {
+//                            rewind_count++;
+//                        }
+//                        
+//                        std::cerr << fmt::format("is rewind point: {} new rewind count: {}/{}\n",
+//                            provider->is_rewind_point(),
+//                            rewind_count,
+//                            data.substitution->initial_data.rewind_provider_count
+//                        ) << std::endl;
+//                        
+//                        // if rewind count is set, rewind at least that many levels
+//                        if (rewind_count < data.substitution->initial_data.rewind_provider_count) {
+//                            continue;
+//                        }
+//                        
+//                        // start over from scratch
+//                        auto copy = SubstitutionState(*data.current_template,
+//                                                      data.fill_state, 
+//                                                      data.substitution);
+//                        copy.searching_provider_stack = true;
+//                        copy.fill_state.provider_stack.clear();
+//                        
+//                        try {
+//                            Defer(data.substitution->initial_data.rewound = false;);
+//                            data.substitution->initial_data.rewound = true;
+//                            return provider->operator()(copy);
+//                        } catch (TemplateException const & e) {
+//                            std::cerr << fmt::format("tried rewound provider, got exception: {}\n", e.what());
+//                            continue;
+//                        }
+//                    }
+//                }
 
 //                std::string template_text = "<unknown template name>";
 //                if (data.current_template != nullptr) {
 //                    template_text = data.current_template->source_template->c_str();
 //                }
-                std::string exception_string = fmt::format("provider {} does not provide name: '{}'", this->get_name(), name);
-                throw TemplateException(exception_string);
+            }
+            if (!result) {
+                std::string exception_string = fmt::format("provider {} does not provide name: '{}'", this->get_name(),
+                                                           name);
             }
             return result;
         }

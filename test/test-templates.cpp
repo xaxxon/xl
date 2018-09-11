@@ -72,8 +72,7 @@ TEST(template, EscapedCurlyBraceTemplate) {
     EXPECT_EQ(Template("replace: {{TEST}}\\}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT}");
 }
 TEST(template, MissingNameInProviderSubstitutionTemplate) {
-    EXPECT_THROW(Template("replace: {{TEST}}").fill(make_provider(std::pair{"XXX", "REPLACEMENT"})),
-                 xl::templates::TemplateException);
+    EXPECT_FALSE(Template("replace: {{TEST}}").fill(make_provider(std::pair{"XXX", "REPLACEMENT"})));
 }
 TEST(template, InvalidTemplateSyntax_OpenedButNotClosed_Template) {
     EXPECT_THROW(Template("replace: {{TEST").fill(),
@@ -111,42 +110,41 @@ TEST(template, MultipleSubstitutionsDifferentNameTemplate) {
 
 TEST(template, SingleLineIgnoreEmpty) {
     {
+        // cannot look up "name" inside "name" so template fails
         auto result = Template("BEFORE {{name|!{{name}}}}").fill(make_provider(std::pair("name", "")));
-        EXPECT_EQ(result, "BEFORE ");
+        EXPECT_FALSE(result);
     }
     {
         auto result = Template("BEFORE {{<name|!{{name}}}}").fill(make_provider(std::pair("name", "")));
-        EXPECT_EQ(result, "");
+        EXPECT_FALSE(result);
     }
     {
         auto result = Template("BEFORE {{<name}} AFTER").fill(make_provider(std::pair("name", "")));
-        EXPECT_EQ(result, " AFTER");
+        EXPECT_EQ(*result, " AFTER");
     }
     {
         auto result = Template("BEFORE {{name>}} AFTER").fill(make_provider(std::pair("name", "")));
-        EXPECT_EQ(result, "BEFORE ");
+        EXPECT_EQ(*result, "BEFORE ");
     }
     {
         auto result = Template("BEFORE {{<name>}} AFTER").fill(make_provider(std::pair("name", "")));
-        EXPECT_EQ(result, "");
+        EXPECT_EQ(*result, "");
     }
     {
         auto result = Template("BEFORE {{<name}} AFTER").fill(make_provider(std::pair("name", "X")));
-        EXPECT_EQ(result, "BEFORE X AFTER");
+        EXPECT_EQ(*result, "BEFORE X AFTER");
     }
     {
         auto result = Template("BEFORE {{name>}} AFTER").fill(make_provider(std::pair("name", "X")));
-        EXPECT_EQ(result, "BEFORE X AFTER");
+        EXPECT_EQ(*result, "BEFORE X AFTER");
     }
     {
         auto result = Template("BEFORE {{<name>}} AFTER").fill(make_provider(std::pair("name", "X")));
-        EXPECT_EQ(result, "BEFORE X AFTER");
+        EXPECT_EQ(*result, "BEFORE X AFTER");
     }
-
-
     {
         auto result = Template("BEFORE {{<name}}").fill(make_provider(std::pair("name", "content")));
-        EXPECT_EQ(result, "BEFORE content");
+        EXPECT_EQ(*result, "BEFORE content");
     }
 }
 
@@ -531,7 +529,7 @@ TEST(template, ExpandVectorInline) {
 TEST(template, ExpandEmptyLine) {
     auto result = Template("{{empty_substitution|!!}}").fill("");
 
-    EXPECT_EQ(result, "");
+    EXPECT_EQ(*result, "");
 }
 
 
@@ -624,7 +622,7 @@ TEST(template, NumberProvider) {
 TEST(template, NullPointer)
 {
     int * pi = nullptr;
-    EXPECT_THROW(Template("{{null_pointer}}").fill(make_provider(std::pair("a", (int*)nullptr))), TemplateException);
+    EXPECT_FALSE(Template("{{null_pointer}}").fill(make_provider(std::pair("a", (int*)nullptr))));
 }
 
 TEST(template, EmptyUniquePointer)

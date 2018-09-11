@@ -34,6 +34,7 @@ struct SubstitutionState {
      */
     
     CompiledTemplate const * get_template();
+    
 
 //    SubstitutionState(SubstititionState const &) = delete;
 };
