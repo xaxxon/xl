@@ -183,9 +183,9 @@ struct DefaultProviders {
             return this->get().provides_named_lookup();
         }
 
-        ProviderPtr get_named_provider(Substitution & substitution) override {
-            return this->get().get_named_provider(substitution);
-        }
+//        ProviderPtr get_named_provider(Substitution & substitution) override {
+//            return this->get().get_named_provider(substitution);
+//        }
 
         bool is_fillable_provider() const override {
             return this->get().is_fillable_provider();
@@ -230,8 +230,8 @@ struct DefaultProviders {
         }
 
         std::optional<std::string> operator()(SubstitutionState & substitution_state) const override {
-            XL_TEMPLATE_LOG("grabbed data for compiled_subsitution 'X' - it has name '{}' and inline template: '{}'",
-                            substitution_state.substitution->get_name(), (void*)substitution_state.substitution->final_data.inline_template.get());
+//            XL_TEMPLATE_LOG("grabbed data for compiled_subsitution 'X' - it has name '{}' and inline template: '{}'",
+//                            substitution_state.substitution->get_name(), (void*)substitution_state.substitution->final_data.inline_template.get());
 
             if (!substitution_state.substitution->name_entries.empty() || // there can't be any more names
                 substitution_state.substitution->final_data.inline_template != nullptr) {
@@ -251,9 +251,9 @@ struct DefaultProviders {
             return true;
         }
 
-        ProviderPtr get_named_provider(Substitution &) override {
-            return std::make_unique<Provider>(*this);
-        }
+//        ProviderPtr get_named_provider(Substitution &) override {
+//            return std::make_unique<Provider>(*this);
+//        }
 
         bool is_fillable_provider() const override {
             return true;
@@ -779,7 +779,12 @@ struct DefaultProviders {
 
             MapT const & map = this->map_holder;
 
-            std::string name = std::move(data.substitution->get_name(true)); // keep a copy that isn't cleared
+            auto name_optional = data.substitution->get_name(); // keep a copy that isn't cleared
+            if (!name_optional) {
+                return {};
+            }
+            
+            std::string name = std::move(*name_optional); 
             XL_TEMPLATE_LOG(LogT::Subjects::Provider, "{} Map Provider looking up name {}", this->get_name(), name);
 
 
@@ -793,7 +798,9 @@ struct DefaultProviders {
             
             // if a provider was found AND
             // there is no rewind possible OR a rewind is already in flight
-            if (provider_iterator != map.end()) {
+            if (provider_iterator != map.end() && 
+                (data.substitution->initial_data.rewind_provider_count == 0 || 
+                 data.substitution->initial_data.rewound)) {
 
                 if constexpr(
                     std::is_base_of_v<Provider_Interface, MapValueT> ||
@@ -937,21 +944,23 @@ struct DefaultProviders {
         }
 
 
-        ProviderPtr get_named_provider(Substitution & substitution) override {
-
-            if (substitution.get_name().empty()) {
-                throw TemplateException("Map Provider::get_named_provider called but no name specified");
-            }
-
-            MapT & map = this->map_holder;
-
-            auto i = map.find(substitution.get_name());
-            if (i == map.end()) {
-                throw TemplateException("Map provider doesn't contain value for name: " + substitution.get_name());
-            } else {
-                return make_provider(i->second);
-            }
-        }
+//        ProviderPtr get_named_provider(Substitution & substitution) override {
+//            auto name_optional = substitution.get_name();
+//            
+//            
+//            if (.empty()) {
+//                throw TemplateException("Map Provider::get_named_provider called but no name specified");
+//            }
+//
+//            MapT & map = this->map_holder;
+//
+//            auto i = map.find(substitution.get_name());
+//            if (i == map.end()) {
+//                throw TemplateException("Map provider doesn't contain value for name: " + substitution.get_name());
+//            } else {
+//                return make_provider(i->second);
+//            }
+//        }
 
 
         bool is_fillable_provider() const override {

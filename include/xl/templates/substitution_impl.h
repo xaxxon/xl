@@ -389,8 +389,8 @@ inline CompiledTemplate const * SubstitutionState::get_template() {
     if (template_iterator == this->fill_state.templates->end()) {
         if (this->fill_state.templates->empty()) {
             throw TemplateException(
-                "ContainerProvider received empty template map so it can't possibly find a template for its members" +
-                this->substitution->get_name());
+                "ContainerProvider received empty template map so it can't possibly find a template for its members {}",
+                this->substitution->get_name().value_or("<NO NAME AVAILABLE>"));
         }
         throw TemplateException(
             fmt::format("ContainerProvider couldn't find template named: '{}' from template {}", this->substitution->parameters, this->current_template->source_template->c_str()));
@@ -405,24 +405,18 @@ inline CompiledTemplate const * SubstitutionState::get_template() {
 
 
 
-inline std::string const & Substitution::get_name(bool required) const {
+inline std::optional<std::string> Substitution::get_name() const {
 
     if (this->name_entries.size() > 1) {
         std::cerr << fmt::format("too many name entries: {}\n", xl::join(this->name_entries));
-        assert(false);
+        return {};
     }
 
     if (this->name_entries.size() == 0) {
         if (!this->final_data.template_name.empty()) {
             return this->final_data.template_name;
         } else {
-            static std::string bogus = "BOGUS";
-
-            if (required) {
-                throw TemplateException("Name required but not available in substitution: {}", this->raw_text);
-            } else {
-                return bogus;
-            }
+            return {};
         }
     } else {
         return this->name_entries.front();

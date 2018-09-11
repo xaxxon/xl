@@ -37,9 +37,9 @@ public:
     virtual bool provides_named_lookup() const {return false;}
 
 
-    virtual ProviderPtr get_named_provider(Substitution &) {
-        throw TemplateException("Provider does not support get_named_provider call");
-    };
+//    virtual ProviderPtr get_named_provider(Substitution &) {
+//        throw TemplateException("Provider does not support get_named_provider call");
+//    };
 
     virtual bool is_fillable_provider() const {
         return false;

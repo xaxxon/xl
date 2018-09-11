@@ -76,7 +76,7 @@ struct Substitution {
     // basically every substitution except ones created by a name1.name2 name construct
     Substitution * parent_substitution = nullptr;
 
-    std::string const & get_name(bool required = false) const;
+    std::optional<std::string> get_name() const;
     
     Template const * tmpl = nullptr;
 

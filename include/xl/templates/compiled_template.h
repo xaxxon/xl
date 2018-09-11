@@ -115,18 +115,20 @@ inline std::optional<std::string> CompiledTemplate::rewind_results(SubstitutionS
             std::cerr << substitution_state.fill_state.provider_stack;
 
             // only rewind on "core" providers
-            if (provider->is_rewind_point()) {
-                rewind_count++;
-            }
+            
 
-            std::cerr << fmt::format("is rewind point: {} new rewind count: {}/{}\n",
-                                     provider->is_rewind_point(),
-                                     rewind_count,
-                                     substitution_state.substitution->initial_data.rewind_provider_count
-            ) << std::endl;
+            
 
             // if rewind count is set, rewind at least that many levels
             if (rewind_count < substitution_state.substitution->initial_data.rewind_provider_count) {
+                if (provider->is_rewind_point()) {
+                    rewind_count++;
+                }
+                std::cerr << fmt::format("is rewind point: {} new rewind count: {}/{}\n",
+                                         provider->is_rewind_point(),
+                                         rewind_count,
+                                         substitution_state.substitution->initial_data.rewind_provider_count
+                ) << std::endl;
                 continue;
             }
 
@@ -137,10 +139,12 @@ inline std::optional<std::string> CompiledTemplate::rewind_results(SubstitutionS
             copy.searching_provider_stack = true;
             copy.fill_state.provider_stack.clear();
 
+            substitution_state.substitution->initial_data.rewound = true;
+            Defer(substitution_state.substitution->initial_data.rewound = false);
+
             try {
-                Defer(substitution_state.substitution->initial_data.rewound = false);
-                substitution_state.substitution->initial_data.rewound = true;
-                return provider->operator()(copy);
+                auto result = provider->operator()(copy);
+                return result;
             } catch (TemplateException const & e) {
                 std::cerr << fmt::format("tried rewound provider, got exception: {}\n", e.what());
                 continue;
@@ -177,7 +181,7 @@ std::optional<std::string> CompiledTemplate::fill(FillState const & fill_state) 
 
 
             XL_TEMPLATE_LOG("grabbed data for compiled_subsitution '{}' - it has name '{}' and inline template: '{}'",
-                            i, current_substitution.substitution->get_name(), (void*)current_substitution.substitution->final_data.inline_template.get());
+                            i, current_substitution.substitution->get_name().value_or("<NO NAME AVAILABLE>"), (void*)current_substitution.substitution->final_data.inline_template.get());
             current_substitution.current_template = this;
 
             // substituting another template in with {{!template_name}}

@@ -103,7 +103,7 @@ TEST(template, MultipleSubstitutionsDifferentNameTemplate) {
 //    {
 //        auto result = Template("{{set|!{{}}}}").fill(
 //           make_provider(std::pair("set", [](){return std::set<string>{"a", "b", "c"};})));
-//        EXPECT_EQ(result, "a\nb\nc");
+//        EXPECT_EQ(*result, "a\nb\nc");
 //    }
 //}
 
@@ -156,28 +156,28 @@ TEST(template, EmptyVectorReplacementIgnored) {
     {
         std::vector<std::string> v{"a", "", "c"};
         auto result = Template("{{name|!{{}}}}").fill(make_provider(std::pair("name", v)));
-        EXPECT_EQ(result, "a\n\nc");
+        EXPECT_EQ(*result, "a\n\nc");
     }
     {
         std::vector<std::string> v{"a", "", "c"};
         Template t("{{<name|!{{<}}}}");
         auto result = t.fill(make_provider(std::pair("name", v)));
-        EXPECT_EQ(result, "a\nc");
+        EXPECT_EQ(*result, "a\nc");
     }
     {
         std::vector<std::string> v{"", "", ""};
         auto result = Template("{{<name|!{{<}}}}").fill(make_provider(std::pair("name", v)));
-        EXPECT_EQ(result, "");
+        EXPECT_EQ(*result, "");
     }
     {
         std::vector<std::string> v{"", "", ""};
         auto result = Template("before\n{{<name|!{{<}}}}\nafter").fill(make_provider(std::pair("name", v)));
-        EXPECT_EQ(result, "before\nafter");
+        EXPECT_EQ(*result, "before\nafter");
     }
     {
         std::vector<std::string> v{"", "", ""};
         auto result = Template("before\n{{<name|!!\n{{<}}}}\nafter").fill(make_provider(std::pair("name", v)));
-        EXPECT_EQ(result, "before\nafter");
+        EXPECT_EQ(*result, "before\nafter");
     }
 }
 
@@ -397,7 +397,7 @@ This is a normal template REPLACEMENT
 This is more normal template
 )";
 
-    EXPECT_EQ(result, expected_result);
+    EXPECT_EQ(*result, expected_result);
 }
 
 
@@ -427,7 +427,7 @@ TEST(template, TemplateSubstitutionTemplate) {
 
     auto result = Template("{{!a}} {{!b}}").fill("", std::move(templates));
 
-    EXPECT_EQ(result, "a.template contents b.template contents");
+    EXPECT_EQ(*result, "a.template contents b.template contents");
 
     EXPECT_THROW(Template("{{!a}} {{!c}}").fill("", std::move(templates)), TemplateException);
 }
@@ -499,14 +499,14 @@ TEST(template, UncopyableVectorProvider) {
 
     auto result = Template("{{uncopyable_vector|!{{A}}}}").fill(provider);
 
-    EXPECT_EQ(result, "B\nB");
+    EXPECT_EQ(*result, "B\nB");
 }
 
 
 TEST(template, ExpandInline) {
     auto provider = make_provider(std::pair("uncopyable", Uncopyable()));
     auto result = Template("{{uncopyable|!{{A}}{{C}}}}").fill(provider);
-    EXPECT_EQ(result, "BD");
+    EXPECT_EQ(*result, "BD");
 }
 
 
@@ -522,7 +522,7 @@ TEST(template, ExpandVectorInline) {
     // v - vector of Uncopyable objects
     // uncopyable - name of external template to fill with each element in v  
     auto result = Template("{{v|uncopyable}}").fill(UncopyableHolder(), std::move(templates));
-    EXPECT_EQ(result, "string1\nstring2\nstring1\nstring2");
+    EXPECT_EQ(*result, "string1\nstring2\nstring1\nstring2");
 }
 
 
@@ -545,7 +545,7 @@ TEST(template, VectorOfUniquePointer){
     auto result = Template("{{vector|!!\n"
                  " * @param \\{{{A}}\\} {{C}}}}").fill(make_provider(std::pair("vector", std::ref(cvupc))));
 
-    EXPECT_EQ(result, " * @param {B} D\n * @param {B} D");
+    EXPECT_EQ(*result, " * @param {B} D\n * @param {B} D");
 }
 
 
@@ -589,14 +589,14 @@ TEST(template, ProviderContainers) {
             std::pair("A", ProviderContainerTypeA()),
             std::pair("B", ProviderContainerTypeB())
         ));
-        EXPECT_EQ(result, "Impl1 for A Impl1 for B");
+        EXPECT_EQ(*result, "Impl1 for A Impl1 for B");
     }
     {
         auto result = Template("{{A}} {{B}}").fill<Impl2>(make_provider<Impl2>(
             std::pair("A", ProviderContainerTypeA()),
             std::pair("B", ProviderContainerTypeB())
         ));
-        EXPECT_EQ(result, "Impl2 for A Impl2 for B");
+        EXPECT_EQ(*result, "Impl2 for A Impl2 for B");
     }
 }
 
@@ -608,7 +608,7 @@ TEST(template, ProviderContainersReUse) {
             std::pair("container2", std::vector<std::string>{"one", "two", "three"}),
             std::pair("container", std::vector<std::string>{"one", "two", "three"})
         ));
-        EXPECT_EQ(result, "one\ntwo\nthree one\ntwo\nthree");
+        EXPECT_EQ(*result, "one\ntwo\nthree one\ntwo\nthree");
     }
    
 }
@@ -638,7 +638,7 @@ TEST(template, ContainerOfPointers) {
 
     auto result = Template("{{vector% |!{{string}}}}").fill(make_provider(std::pair("vector", v)));
 
-    EXPECT_EQ(result, "a b c d");
+    EXPECT_EQ(*result, "a b c d");
 }
 
 
@@ -652,7 +652,7 @@ TEST(template, EmptyContainerContingentContent) {
         // newline after trailing contingent substitution shouldn't be contingent
         auto result = Template("BEFORE\nX{{<VECTOR|!!\n{{DUMMY}}>}}Y\nAFTER").fill(std::pair("VECTOR", std::ref(v)));
 
-        EXPECT_EQ(result, "BEFORE\nAFTER");
+        EXPECT_EQ(*result, "BEFORE\nAFTER");
     }
     {
 
@@ -671,27 +671,27 @@ asdf{{asdf}}}}
         
                                  )").fill(std::pair("v", std::ref(v)));
 
-        EXPECT_EQ(result, "");
+        EXPECT_EQ(*result, "");
     }
     {
         // second should be taken by {{empty>}} not {{<not_empty}}
         auto result = Template("ONE\nA {{<empty>}} B\nTWO").fill(make_provider(
             std::pair("empty", "")
         ));
-        EXPECT_EQ(result, "ONE\nTWO");
+        EXPECT_EQ(*result, "ONE\nTWO");
     } {
         // second should be taken by {{empty>}} not {{<not_empty}}
         auto result = Template("ONE\n\nA {{<<empty>>}} B\n\nTWO").fill(make_provider(
             std::pair("empty", "")
         ));
-        EXPECT_EQ(result, "");
+        EXPECT_EQ(*result, "");
     }
     {
         // second should be taken by {{empty>}} not {{<not_empty}}
         auto result = Template("ONE\n\nA {{<<empty>>}} B\n\nC {{<<empty>>}} D\n\nTWO").fill(make_provider(
             std::pair("empty", "")
         ));
-        EXPECT_EQ(result, "");
+        EXPECT_EQ(*result, "");
     }
     
 }
@@ -705,7 +705,7 @@ TEST(template, ContingentContentPrecedence) {
             std::pair("empty", ""),
             std::pair("not_empty", "NOT_EMPTY")
         ));
-        EXPECT_EQ(result, "FIRST NOT_EMPTY THIRD");
+        EXPECT_EQ(*result, "FIRST NOT_EMPTY THIRD");
     }
     {
         // second should be taken by {{empty>}} not {{<not_empty}}
@@ -713,7 +713,7 @@ TEST(template, ContingentContentPrecedence) {
             std::pair("empty", ""),
             std::pair("not_empty", "NOT_EMPTY")
         ));
-        EXPECT_EQ(result, "FIRST\nNOT_EMPTY\nTHIRD");
+        EXPECT_EQ(*result, "FIRST\nNOT_EMPTY\nTHIRD");
     }
     {
         // second should be taken by {{not_empty>}} not {{<empty}}
@@ -721,7 +721,7 @@ TEST(template, ContingentContentPrecedence) {
             std::pair("empty", ""),
             std::pair("not_empty", "NOT_EMPTY")
         ));
-        EXPECT_EQ(result, "FIRST NOT_EMPTY SECOND  THIRD");
+        EXPECT_EQ(*result, "FIRST NOT_EMPTY SECOND  THIRD");
     }
     {
         // second should be taken by {{not_empty>}} not {{<empty}}
@@ -729,7 +729,7 @@ TEST(template, ContingentContentPrecedence) {
             std::pair("empty", ""),
             std::pair("not_empty", "NOT_EMPTY")
         ));
-        EXPECT_EQ(result, "FIRST NOT_EMPTY SECOND\n\n\n\n THIRD");
+        EXPECT_EQ(*result, "FIRST NOT_EMPTY SECOND\n\n\n\n THIRD");
     }
 }
 
@@ -768,14 +768,14 @@ TEST(template, VectorOfGetProviderableObjects) {
 
     {
         auto result = Template("{{has_provider|!{{string}}}}").fill(HasProvider2("hp2"));
-        EXPECT_EQ(result, "hp2hp2\nhp2hp2");
+        EXPECT_EQ(*result, "hp2hp2\nhp2hp2");
     }
 
     {
         HasProvider2 hp2("hp2-2");
         auto result = Template("{{has_provider_copy|!!\n{{string}}}}").fill(std::ref(hp2));
 
-        EXPECT_EQ(result, "hp2-2hp2-2\nhp2-2hp2-2");
+        EXPECT_EQ(*result, "hp2-2hp2-2\nhp2-2hp2-2");
     }
 }
 
@@ -799,7 +799,7 @@ TEST(template, RefToGetProviderableWithVectorOfGetProviderable) {
         VectorOfUniquePtrToHasProvider hp2("hp2-2");
         auto result = Template("{{has_provider|!!\nAAA {{string}}}}").fill(std::ref(hp2));
 
-        EXPECT_EQ(result, "AAA hp2-2hp2-2\nAAA hp2-2hp2-2");
+        EXPECT_EQ(*result, "AAA hp2-2hp2-2\nAAA hp2-2hp2-2");
     }
 }
 
@@ -811,22 +811,22 @@ TEST(template, MissingCloseCurlyBrace) {
 TEST(template, Comments) {
     {
         auto result = Template("{{#This is a comment}}").fill("BOGUS");
-        EXPECT_EQ(result, "");
+        EXPECT_EQ(*result, "");
     }
     {
         auto result = Template("BEFORE {{#This is a comment}} AFTER").fill("BOGUS");
-        EXPECT_EQ(result, "BEFORE  AFTER");
+        EXPECT_EQ(*result, "BEFORE  AFTER");
     }
     {
         auto result = Template("{{early}} BEFORE {{#This is a comment}} AFTER {{late}}").fill(make_provider(
             std::pair("early", "EARLY"),
             std::pair("late", "LATE")
         ));
-        EXPECT_EQ(result, "EARLY BEFORE  AFTER LATE");
+        EXPECT_EQ(*result, "EARLY BEFORE  AFTER LATE");
     }
     {
         auto result = Template("{{#classes|!{{}}}}").fill("BOGUS");
-        EXPECT_EQ(result, "");
+        EXPECT_EQ(*result, "");
     }
     
     
@@ -864,7 +864,7 @@ TEST(template, PeriodSeparatedNames) {
     {
         auto result = Template("{{simple_provider.has_provider.string}}").
             fill(std::pair("simple_provider", SimpleProviderProvider("simple_provider")));
-        EXPECT_EQ(result, "simple_providersimple_provider");
+        EXPECT_EQ(*result, "simple_providersimple_provider");
     }
 }
 
@@ -872,15 +872,15 @@ TEST(template, PeriodSeparatedNames) {
 TEST(template, PeriodSeparatedNamesWithContainers) {
     {
         auto result = Template("{{has_provider2|!{{has_provider|!{{string}}}}}}").fill(std::pair("has_provider2", HasProvider2("hp2")));
-        EXPECT_EQ(result, "hp2hp2\nhp2hp2");
+        EXPECT_EQ(*result, "hp2hp2\nhp2hp2");
     }
     {
         auto result = Template("{{has_provider2.has_provider|!{{string}}}}").fill(std::pair("has_provider2", HasProvider2("hp2")));
-        EXPECT_EQ(result, "hp2hp2\nhp2hp2");
+        EXPECT_EQ(*result, "hp2hp2\nhp2hp2");
     }
     {
         auto result = Template("{{has_provider2.has_provider.string}}").fill(std::pair("has_provider2", HasProvider2("hp2")));
-        EXPECT_EQ(result, "hp2hp2\nhp2hp2");
+        EXPECT_EQ(*result, "hp2hp2\nhp2hp2");
     }
 }
 
@@ -894,7 +894,7 @@ TEST(template, RewindDots) {
             )
         );
 
-        EXPECT_EQ(result, "bad");
+        EXPECT_EQ(*result, "bad");
     }
     {
         // one dot doesn't do anything
@@ -905,7 +905,7 @@ TEST(template, RewindDots) {
             )
         );
 
-        EXPECT_EQ(result, "bad");
+        EXPECT_EQ(*result, "bad");
     }
     {
         // should rewind back to provider with keys: "a" and "b"
@@ -916,7 +916,7 @@ TEST(template, RewindDots) {
             )
         );
 
-        EXPECT_EQ(result, "good");
+        EXPECT_EQ(*result, "good");
     }
     {
         // should rewind "once" - but through non-"core" has-provider provider
@@ -927,7 +927,7 @@ TEST(template, RewindDots) {
             )
         );
 
-        EXPECT_EQ(result, "good");
+        EXPECT_EQ(*result, "good");
     }
     
 }
@@ -948,7 +948,7 @@ TEST(template, RewindToContainerElement) {
             std::ref(v)
         );
 
-        EXPECT_EQ(result, "bad1bad2");
+        EXPECT_EQ(*result, "bad1bad2");
     }
     {
         // baseline no rewind 
@@ -965,7 +965,7 @@ TEST(template, RewindToContainerElement) {
             std::ref(v)
         );
 
-        EXPECT_EQ(result, "bad1bad2");
+        EXPECT_EQ(*result, "bad1bad2");
     }
     {
         // baseline no rewind 
@@ -982,7 +982,7 @@ TEST(template, RewindToContainerElement) {
             std::ref(v)
         );
 
-        EXPECT_EQ(result, "good1good2");
+        EXPECT_EQ(*result, "good1good2");
     }
 }
 
@@ -992,17 +992,17 @@ TEST(template, FallBackToParentProviderForMissingNames) {
     { 
         auto result = Template("{{has_provider2|!{{has_provider|!{{string}}{{five}}}}}}").fill(
             std::pair("has_provider2", HasProvider2("hp2")));
-        EXPECT_EQ(result, "hp2hp2five\nhp2hp2five");
+        EXPECT_EQ(*result, "hp2hp2five\nhp2hp2five");
     } 
     {
         auto result = Template("{{has_provider2.has_provider|!{{string}}{{five}}}}").fill(
             std::pair("has_provider2", HasProvider2("hp2")));
-        EXPECT_EQ(result, "hp2hp2five\nhp2hp2five");
+        EXPECT_EQ(*result, "hp2hp2five\nhp2hp2five");
     }
     {
         auto result = Template("{{has_provider2.has_provider|!{{has_provider2.five}}}}").fill(
             std::pair("has_provider2", HasProvider2("hp2")));
-        EXPECT_EQ(result, "five\nfive");
+        EXPECT_EQ(*result, "five\nfive");
     }
 }
 
