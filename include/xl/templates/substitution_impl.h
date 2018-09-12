@@ -93,7 +93,7 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
 (?(DEFINE)(?<UntilEndOfLine>[^\n]*\n))
 
 
-(?(DEFINE)(?<PretendMatch>([^{}]+|{(?!{)|}(?!})|{{(?&PretendMatch)}}|)))
+(?(DEFINE)(?<PretendMatch>([^{}]+|{(?!{)|}(?!})|{{(?&PretendMatch)}})*))
 
 
 
@@ -258,6 +258,7 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
         // if no substitution found, everything was a literal and is handled as a "trailing literal" outside
         //   this loop
         if (!matches.has("Substitution")) {
+            XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "No substitution found in: '{}', moving on", matches[0]);
             break;
         }
 
@@ -311,6 +312,7 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
                 XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "parsed name into {}",
                                 xl::join(data->name_entries));
             } else {
+                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "Got template insertion marker for template named: {}", matches["SubstitutionName"]);
                 data->final_data.template_name = matches["SubstitutionName"];
             }
 

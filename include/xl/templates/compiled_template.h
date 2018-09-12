@@ -197,6 +197,7 @@ xl::expected<std::string, std::string> CompiledTemplate::fill(FillState const & 
                 }
                 auto inline_template_result = template_iterator->second.fill(fill_state);
                 if (!inline_template_result) {
+                    XL_TEMPLATE_LOG("About to start rewind because: {}", inline_template_result.error());
                     auto inline_template_result = this->rewind_results(current_substitution);
                     if (!inline_template_result) {
                         return inline_template_result;
@@ -226,6 +227,8 @@ xl::expected<std::string, std::string> CompiledTemplate::fill(FillState const & 
                     auto substitution_result = provider(current_substitution);
                     
                     if (!substitution_result) {
+                        XL_TEMPLATE_LOG("About to start rewind because: {}", substitution_result.error());
+
                         substitution_result = this->rewind_results(current_substitution);
                         if (!substitution_result) {
                             return substitution_result;

@@ -829,7 +829,10 @@ TEST(template, Comments) {
         auto result = Template("{{#classes|!{{}}}}").fill("BOGUS");
         EXPECT_EQ(*result, "");
     }
-    
+    {
+        // complex comment - regression test
+        EXPECT_NO_THROW(Template("{{#comment_name|{{foo{{}}}}}}").fill(""));
+    }
     
 }
 
