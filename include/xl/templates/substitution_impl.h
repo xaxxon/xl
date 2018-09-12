@@ -23,7 +23,8 @@ inline void Substitution::split() {
 
     // if there are more than one value in name_entries, then split off the last one
     if (this->name_entries.size() > 1) {
-        auto new_template = std::make_unique<CompiledTemplate>(this->tmpl);
+        auto new_non_compiled_template = std::make_unique<Template>("");
+        auto new_template = new_non_compiled_template->compile(); // bogus compile just to create CompiledTemplate object
         
         auto new_substitution = std::make_unique<Substitution>();
         new_substitution->raw_text = fmt::format("Split off of {}", this->raw_text);
@@ -51,7 +52,7 @@ inline void Substitution::split() {
         
         new_template->add_substitution(std::move(new_substitution));
         
-        this->final_data.inline_template = std::move(new_template);
+        this->final_data.inline_template = std::move(new_non_compiled_template);
 
     }
     
@@ -262,7 +263,7 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
 
 
         auto data = std::make_unique<Substitution>(*this);
-        data->raw_text = matches[0];
+        data->raw_text = matches["Substitution"];
 
         // if the substition is a comment, nothing else matters
         if (matches.has("Comment")) {
@@ -339,7 +340,10 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
                 log.info(TemplateSubjects::Subjects::Compile,
                          "inline template text: " + std::string(inline_template_text));
 //                data->final_data.inline_template = std::make_shared<Template>(inline_template_text);
-                data->final_data.inline_template = Template(inline_template_text).compile();
+
+                data->final_data.inline_template = std::make_shared<Template>(inline_template_text);
+                
+                
             } else {
                 data->parameters = matches["SubstitutionData"];
             }
@@ -368,9 +372,9 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
 inline CompiledTemplate const * SubstitutionState::get_template() {
 
     // initialize with inline_template then look up by name if no inline template
-    CompiledTemplate const * result = this->substitution->final_data.inline_template.get();
-    if (result != nullptr) {
-        return result;
+    auto tmpl = this->substitution->final_data.inline_template;
+    if (tmpl) {
+        return tmpl->compile().get();
     }
 
     // if no inline template provided and no named template is requested, return empty template

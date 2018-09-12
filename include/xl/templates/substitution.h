@@ -38,7 +38,7 @@ struct Substitution {
     
     struct FinalSplit {
         /// an inline template, if specified
-        std::shared_ptr<CompiledTemplate> inline_template;
+        std::shared_ptr<Template> inline_template;
 
         // name to look up in template map to get template to insert in place - useful to insert long literal strings
         std::string template_name = ""; 

@@ -41,14 +41,19 @@ XL_PRIVATE_UNLESS_TESTING:
     // full, unprocessed template string
     std::string _tmpl;
     
-    mutable std::shared_ptr<CompiledTemplate> compiled_template;
+    mutable std::shared_ptr<CompiledTemplate> 
+        compiled_template;
 
 public:
     
     explicit Template(std::string tmpl = "{{}}") : _tmpl(std::move(tmpl)) {}
     Template(Template const &) = default;
-
-    inline char const * c_str() const { return this->_tmpl.c_str(); }
+    ~Template() {
+        std::cerr << fmt::format("deleting template at {}\n", (void*)this);
+    }
+    inline char const * c_str() const {
+        return this->_tmpl.c_str(); 
+    }
 
     
     template <typename ProviderContainer = void>

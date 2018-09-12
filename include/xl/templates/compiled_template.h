@@ -45,9 +45,7 @@ public:
     inline static std::shared_ptr<CompiledTemplate> empty_compiled_template = 
         Template::empty_template->compile();
 
-
-
-
+    
     CompiledTemplate(Template const * const source_template) :
         source_template(source_template) 
     {}
@@ -156,7 +154,10 @@ inline xl::expected<std::string, std::string> CompiledTemplate::rewind_results(S
 //    if (substitution_state.current_template != nullptr) {
 //        template_text = substitution_state.current_template->source_template->c_str();
 //    }
-    return xl::make_unexpected("no valid template expansion found during rewind");
+    return xl::make_unexpected(fmt::format("Couldn't find substitute for '{}' in template '{}'", 
+        substitution_state.substitution->raw_text,
+        substitution_state.current_template->source_template->c_str()
+        ));
 }
 
 

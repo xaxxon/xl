@@ -72,7 +72,9 @@ TEST(template, EscapedCurlyBraceTemplate) {
     EXPECT_EQ(*Template("replace: {{TEST}}\\}").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT}");
 }
 TEST(template, MissingNameInProviderSubstitutionTemplate) {
-    EXPECT_FALSE(Template("replace: {{TEST}}").fill(make_provider(std::pair{"XXX", "REPLACEMENT"})));
+    auto result = Template("replace: {{TEST}}").fill(make_provider(std::pair{"XXX", "REPLACEMENT"}));
+    EXPECT_FALSE(result);
+    EXPECT_EQ(result.error(), "Couldn't find substitute for '{{TEST}}' in template 'replace: {{TEST}}'");
 }
 TEST(template, InvalidTemplateSyntax_OpenedButNotClosed_Template) {
     EXPECT_THROW(Template("replace: {{TEST").fill(),
