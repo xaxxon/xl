@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
         if (all_level_status || all_subject_status) {
             auto filename = parser.value("status-filename").toStdString();
             if (filename.empty()) {
-                std::cerr << fmt::format("Must specify a filename in order to set level or subject statuses") << std::endl;
+//                std::cerr << fmt::format("Must specify a filename in order to set level or subject statuses") << std::endl;
                 exit(1);
             }
             xl::log::LogStatusFile status_file(filename, true);

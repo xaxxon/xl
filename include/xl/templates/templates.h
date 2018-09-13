@@ -49,7 +49,6 @@ public:
     explicit Template(std::string tmpl = "{{}}") : _tmpl(std::move(tmpl)) {}
     Template(Template const &) = default;
     ~Template() {
-        std::cerr << fmt::format("deleting template at {}\n", (void*)this);
     }
     inline char const * c_str() const {
         return this->_tmpl.c_str(); 

@@ -6,7 +6,7 @@ void update_master_checkbox(QCheckBox * checkbox, std::variant<bool, std::vector
 
     int check_state = -1;
     if (bool * all_status = std::get_if<bool>(&variant)) {
-        std::cerr << fmt::format("updating master checkbox to {}", *all_status) << std::endl;
+//        std::cerr << fmt::format("updating master checkbox to {}", *all_status) << std::endl;
         check_state = *all_status ? Qt::CheckState::Checked : Qt::CheckState::Unchecked;
     } else {
 
@@ -55,7 +55,7 @@ LogStatus::LogStatus(QString const & filename, QWidget *parent) :
         this->ui->allLevels->setTristate(false);
         if (std::get_if<bool>(&this->status_file->levels)) {
             bool status = checked == Qt::CheckState::Checked;
-            std::cerr << fmt::format("setting levels to {}", status) << std::endl;
+//            std::cerr << fmt::format("setting levels to {}", status) << std::endl;
             this->status_file->levels = status;
         } else {
             checked = this->ui->allLevels->checkState() == Qt::CheckState::Checked;
@@ -82,7 +82,7 @@ LogStatus::LogStatus(QString const & filename, QWidget *parent) :
 
         if (std::get_if<bool>(&this->status_file->subjects)) {
             bool status = checked == Qt::CheckState::Checked;
-            std::cerr << fmt::format("setting subjects to {} - check state: {}", status, checked) << std::endl;
+//            std::cerr << fmt::format("setting subjects to {} - check state: {}", status, checked) << std::endl;
             this->status_file->subjects = status;
         } else {
             checked = this->ui->allSubjects->checkState() == Qt::CheckState::Checked;
