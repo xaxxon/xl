@@ -519,7 +519,7 @@ struct is_unexpected< unexpected_type<E> > : std::true_type {};
 // keep make_unexpected() removed in p0323r2 for pre-C++17:
 
 template< typename E>
-nsel_constexpr14 auto
+[[nodiscard]] nsel_constexpr14 auto 
 make_unexpected( E && v) -> unexpected_type< typename std::decay<E>::type >
 {
     return unexpected_type< typename std::decay<E>::type >( v );
@@ -527,7 +527,7 @@ make_unexpected( E && v) -> unexpected_type< typename std::decay<E>::type >
 
 #if nsel_P0323R <= 3
 
-/*nsel_constexpr14*/ auto inline
+/*nsel_constexpr14*/ [[nodiscard]] auto inline
 make_unexpected_from_current_exception() -> unexpected_type< std::exception_ptr >
 {
     return unexpected_type< std::exception_ptr >( std::current_exception() );
@@ -1030,6 +1030,7 @@ std::is_nothrow_move_constructible<E>::value && std::is_nothrow_swappable<E&>::v
 
     value_type & operator *() &
     {
+
         return assert( has_value() ), contained.value();
     }
 

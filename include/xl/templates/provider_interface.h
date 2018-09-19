@@ -22,7 +22,7 @@ public:
     
     virtual ~Provider_Interface() = default;
     
-    virtual xl::expected<std::string, std::string> operator()(SubstitutionState & data) const = 0;
+    virtual xl::expected<std::string, ErrorList> operator()(SubstitutionState & data) const = 0;
 
     /**
      * A string useful for a human to figure out what Provider this is
@@ -46,7 +46,7 @@ public:
     }
 
     virtual ProviderPtr get_fillable_provider() {
-        throw TemplateException("Called get_fillable_provider on Provider which doesn't override it");
+        return ProviderPtr{};
     }
     
     virtual bool needs_raw_template() const {

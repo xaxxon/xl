@@ -26,7 +26,7 @@ XL_PRIVATE_UNLESS_TESTING:
     mutable size_t minimum_result_length = 0;
     
     // attempt to find a match in providers already on the provider stack
-    xl::expected<std::string, std::string> rewind_results(SubstitutionState &) const;
+    xl::expected<std::string, ErrorList> rewind_results(SubstitutionState &) const;
     
 
 public:
@@ -34,16 +34,16 @@ public:
     Template const * const source_template;
 
     template <typename ProviderContainer = void>
-    xl::expected<std::string, std::string> fill(SubstitutionState &) const;
+    xl::expected<std::string, ErrorList> fill(SubstitutionState &) const;
     
     template<typename ProviderContainer = void>
-    xl::expected<std::string, std::string> fill(FillState const &) const;
+    xl::expected<std::string, ErrorList> fill(FillState const &) const;
 
     template<typename ProviderContainer, class T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, FillState>>>
-    xl::expected<std::string, std::string> fill(T && source, std::map<std::string, Template> template_map) const;
+    xl::expected<std::string, ErrorList> fill(T && source, std::map<std::string, Template> template_map) const;
 
     inline static std::shared_ptr<CompiledTemplate> empty_compiled_template = 
-        Template::empty_template->compile();
+        *Template::empty_template->compile();
 
     
     CompiledTemplate(Template const * const source_template) :
@@ -93,9 +93,12 @@ public:
 
 namespace xl::templates {
 
-inline xl::expected<std::string, std::string> CompiledTemplate::rewind_results(SubstitutionState & substitution_state) const {
+inline xl::expected<std::string, ErrorList> CompiledTemplate::rewind_results(SubstitutionState & substitution_state) const {
 
-    unsigned int rewind_count = 0;
+    // first level has already been rewound before entering this function
+    unsigned int rewind_count = 1;
+    
+    ErrorList error_list;
 
     if (!substitution_state.fill_state.searching_provider_stack && !substitution_state.fill_state.provider_stack.empty()) {
 
@@ -108,9 +111,9 @@ inline xl::expected<std::string, std::string> CompiledTemplate::rewind_results(S
 
         for (auto * provider : substitution_state.fill_state.provider_stack) {
 
-//            std::cerr << fmt::format("going through provider stack, current provider:{}\n",
+//            XL_TEMPLATE_LOG("rewinding through provider stack, current provider:{} \n",
 //                                     provider->get_name());
-//            std::cerr << substitution_state.fill_state.provider_stack;
+//            XL_TEMPLATE_LOG(substitution_state.fill_state.provider_stack);
 
             // only rewind on "core" providers
             
@@ -143,6 +146,8 @@ inline xl::expected<std::string, std::string> CompiledTemplate::rewind_results(S
             auto result = provider->operator()(copy);
             if (result) {
                 return result;
+            } else {
+                error_list.append(result.error());
             }
 //            std::cerr << fmt::format("tried rewound provider, got failure: {}\n", result.error());
             continue;
@@ -154,15 +159,17 @@ inline xl::expected<std::string, std::string> CompiledTemplate::rewind_results(S
 //    if (substitution_state.current_template != nullptr) {
 //        template_text = substitution_state.current_template->source_template->c_str();
 //    }
-    return xl::make_unexpected(fmt::format("Couldn't find substitute for '{}' in template '{}'", 
+     error_list.append(fmt::format("Couldn't find substitute for '{}' in template '{}'", 
         substitution_state.substitution->raw_text,
         substitution_state.current_template->source_template->c_str()
         ));
+    
+    return xl::make_unexpected(error_list);
 }
 
 
 template<typename ProviderContainer>
-xl::expected<std::string, std::string> CompiledTemplate::fill(FillState const & fill_state) const {
+xl::expected<std::string, ErrorList> CompiledTemplate::fill(FillState const & fill_state) const {
 
     assert(!fill_state.provider_stack.empty());
     Provider_Interface const & provider = *fill_state.provider_stack.front();
@@ -189,15 +196,15 @@ xl::expected<std::string, std::string> CompiledTemplate::fill(FillState const & 
             // substituting another template in with {{!template_name}}
             if (current_substitution.substitution->final_data.template_name != "") {
                 if (fill_state.templates->empty()) {
-                    throw TemplateException("Cannot refer to another template if no other templates specified: " + current_substitution.substitution->final_data.template_name);
+                    return xl::make_unexpected(fmt::format("Cannot refer to another template if no other templates specified: " + current_substitution.substitution->final_data.template_name));
                 }
                 auto template_iterator = fill_state.templates->find(current_substitution.substitution->final_data.template_name);
                 if (template_iterator == fill_state.templates->end()) {
-                    throw TemplateException("No template found named: {}", current_substitution.substitution->final_data.template_name);
+                    return xl::make_unexpected(fmt::format("No template found named: {}", current_substitution.substitution->final_data.template_name));
                 }
                 auto inline_template_result = template_iterator->second.fill(fill_state);
                 if (!inline_template_result) {
-                    XL_TEMPLATE_LOG("About to start rewind because: {}", inline_template_result.error());
+                    XL_TEMPLATE_LOG("About to start rewind because: {}", xl::join(inline_template_result.error().get_error_strings()));
                     auto inline_template_result = this->rewind_results(current_substitution);
                     if (!inline_template_result) {
                         return inline_template_result;
@@ -226,12 +233,23 @@ xl::expected<std::string, std::string> CompiledTemplate::fill(FillState const & 
 //                                    (void *) current_substitution.substitution->final_data.inline_template.get());
                     auto substitution_result = provider(current_substitution);
                     
+                    
+                    
                     if (!substitution_result) {
                         XL_TEMPLATE_LOG("About to start rewind because: {}", substitution_result.error());
+                        
+                        // don't rewind on the same provider that was just tried
+                        current_substitution.fill_state.provider_stack.pop_front();
+                        
 
-                        substitution_result = this->rewind_results(current_substitution);
-                        if (!substitution_result) {
-                            return substitution_result;
+
+                        auto rewind_result = this->rewind_results(current_substitution);
+                        if (!rewind_result) {
+                            
+                            substitution_result.error().append(rewind_result.error());
+                            return xl::make_unexpected(substitution_result.error());
+                        } else {
+                            substitution_result = rewind_result;
                         }
                     }
 //                    XL_TEMPLATE_LOG("replacement for {} is: {}", this->source_template->c_str(), substitution_result);

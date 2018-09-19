@@ -31,8 +31,8 @@ struct SubstitutionState {
      * the TemplateMap in this SubstitutionState object
      * @return template associated with the substitution in this SubstitutionState
      */
-    
-    CompiledTemplate const * get_template();
+
+    xl::expected<CompiledTemplate const *, std::string> get_template();
     
 
 //    SubstitutionState(SubstititionState const &) = delete;

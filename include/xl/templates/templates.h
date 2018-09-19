@@ -28,6 +28,36 @@
 namespace xl::templates {
 
 
+class ErrorList {
+private:
+    std::vector<std::string> error_list;
+
+public:
+    ErrorList() = default;
+    ErrorList(std::string error_string) {
+        this->error_list.push_back(std::move(error_string));
+    }
+
+    ErrorList & append(std::string error_string) {
+        this->error_list.push_back(std::move(error_string));
+        return *this;
+    }
+
+    ErrorList & append(ErrorList & other) {
+        this->error_list.insert(this->error_list.end(), other.error_list.begin(), other.error_list.end());
+        return *this;
+    }
+
+    std::vector<std::string> const & get_error_strings() const {
+        return this->error_list;
+    }
+};
+
+inline std::ostream & operator<<(std::ostream & os, ErrorList const & error_list) {
+    os << xl::join(error_list.get_error_strings());
+    return os;
+}
+
 
 struct Substitution;
 struct SubstitutionState;
@@ -56,21 +86,21 @@ public:
 
     
     template <typename ProviderContainer = void>
-    xl::expected<std::string, std::string> fill(SubstitutionState &) const;
+    xl::expected<std::string, ErrorList> fill(SubstitutionState &) const;
 
     
     template <typename ProviderContainer = void>
-    xl::expected<std::string, std::string> fill(FillState const &) const;
+    xl::expected<std::string, ErrorList> fill(FillState const &) const;
 
 
     template<typename ProviderContainer = void, class T = char const *, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, FillState>>>
-    xl::expected<std::string, std::string> fill(T && source = "", std::map<std::string, Template> template_map = {}) const;
+    xl::expected<std::string, ErrorList> fill(T && source = "", std::map<std::string, Template> template_map = {}) const;
 
     
     
     // compiles the template for faster processing
     // benchmarks showed ~200x improvement when re-using templates 1000 times
-    inline std::shared_ptr<CompiledTemplate> & compile() const;
+    inline xl::expected<std::shared_ptr<CompiledTemplate>, std::string> compile() const;
 
     inline bool is_compiled() const;
     
@@ -94,7 +124,7 @@ class provider_data;
 
 
 template <typename ProviderContainer>
-xl::expected<std::string, std::string> Template::fill(FillState const & fill_state) const {
+xl::expected<std::string, ErrorList> Template::fill(FillState const & fill_state) const {
 
     if (!this->is_compiled()) {
         this->compile();
@@ -105,14 +135,18 @@ xl::expected<std::string, std::string> Template::fill(FillState const & fill_sta
 
 
 template<typename ProviderContainer, class T, typename>
-xl::expected<std::string, std::string> Template::fill(T && source, std::map<std::string, Template> template_map) const {
+xl::expected<std::string, ErrorList> Template::fill(T && source, std::map<std::string, Template> template_map) const {
 
-    return this->compile()->fill<ProviderContainer>(std::forward<T>(source), std::move(template_map));
+    auto compiled_template = this->compile();
+    if (!compiled_template) {
+        return xl::make_unexpected(compiled_template.error());
+    }
+    return (*compiled_template)->fill<ProviderContainer>(std::forward<T>(source), std::move(template_map));
 }
 
 
 template<typename ProviderContainer, class T, typename>
-xl::expected<std::string, std::string> CompiledTemplate::fill(T && source, std::map<std::string, Template> template_map) const {
+xl::expected<std::string, ErrorList> CompiledTemplate::fill(T && source, std::map<std::string, Template> template_map) const {
 
     XL_TEMPLATE_LOG(LogT::Subjects::Template, "Filling template: '{}'", this->source_template->c_str());
 
@@ -162,13 +196,17 @@ xl::expected<std::string, std::string> CompiledTemplate::fill(T && source, std::
 
 
 template<typename ProviderContainer>
-xl::expected<std::string, std::string> Template::fill(SubstitutionState & substitution_state) const {
-    return this->compile()->fill(substitution_state);
+xl::expected<std::string, ErrorList> Template::fill(SubstitutionState & substitution_state) const {
+    if (auto compiled_template = this->compile()) {
+        return compiled_template.error();
+    } else {
+        return (*compiled_template)->fill(substitution_state);
+    }
 }
     
 
 template<typename ProviderContainer>
-xl::expected<std::string, std::string> CompiledTemplate::fill(SubstitutionState & substitution_state) const {
+xl::expected<std::string, ErrorList> CompiledTemplate::fill(SubstitutionState & substitution_state) const {
 
         // if the top provider exists and wants the entire template as-is, provide it directly
     if (!substitution_state.fill_state.provider_stack.empty() && substitution_state.fill_state.provider_stack.front()->needs_raw_template()) {

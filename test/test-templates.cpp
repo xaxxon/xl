@@ -74,15 +74,14 @@ TEST(template, EscapedCurlyBraceTemplate) {
 TEST(template, MissingNameInProviderSubstitutionTemplate) {
     auto result = Template("replace: {{TEST}}").fill(make_provider(std::pair{"XXX", "REPLACEMENT"}));
     EXPECT_FALSE(result);
-    EXPECT_EQ(result.error(), "Couldn't find substitute for '{{TEST}}' in template 'replace: {{TEST}}'");
+    EXPECT_EQ(xl::join(result.error().get_error_strings()),
+              "Map Provider with keys: (XXX) does not provide name: 'TEST' or needs rewinding, Couldn't find substitute for '{{TEST}}' in template 'replace: {{TEST}}'");
 }
 TEST(template, InvalidTemplateSyntax_OpenedButNotClosed_Template) {
-    EXPECT_THROW(Template("replace: {{TEST").fill(),
-                 xl::templates::TemplateException);
+    EXPECT_FALSE(Template("replace: {{TEST").fill());
 }
 TEST(template, InvalidTemplateSyntax_ClosedButNotOpened_Template) {
-    EXPECT_THROW(Template("replace: TEST}}").fill(),
-                 xl::templates::TemplateException);
+    EXPECT_FALSE(Template("replace: TEST}}").fill());
 }
 TEST(template, SimpleSubstitutionTemplateWithSuffix) {
     EXPECT_EQ(*Template("replace: {{TEST}} and more").fill(make_provider(std::pair{"TEST", "REPLACEMENT"})), "replace: REPLACEMENT and more");
@@ -113,11 +112,11 @@ TEST(template, MultipleSubstitutionsDifferentNameTemplate) {
 TEST(template, SingleLineIgnoreEmpty) {
     {
         // cannot look up "name" inside "name" so template fails
-        auto result = Template("BEFORE {{name|!{{name}}}}").fill(make_provider(std::pair("name", "")));
+        auto result = Template("BEFORE {{name|!{{}}}}").fill(make_provider(std::pair("name", "")));
         EXPECT_EQ(*result, "BEFORE ");
     }
     {
-        auto result = Template("BEFORE {{<name|!{{name}}}}").fill(make_provider(std::pair("name", "")));
+        auto result = Template("BEFORE {{<name|!{{}}}}").fill(make_provider(std::pair("name", "")));
         EXPECT_EQ(*result, ""); // BEFORE is eaten by the <
     }
     {
@@ -194,13 +193,13 @@ struct A {
 
 class StringCallbackTest{
 public:
-    xl::expected<std::string, std::string> operator()(){return std::string();}
+    xl::expected<std::string, ErrorList> operator()(){return std::string();}
 };
 
 
 
 static_assert(DefaultProviders<void>::is_provider_type_v<std::string>);
-static_assert(std::is_same_v<xl::expected<std::string, std::string>, std::result_of_t<StringCallbackTest()>>);
+static_assert(std::is_same_v<xl::expected<std::string, ErrorList>, std::result_of_t<StringCallbackTest()>>);
 
 // this is no longer true
 //static_assert(DefaultProviders<void>::is_provider_type_v<std::remove_reference_t<std::result_of_t<StringCallbackTest()>>>);
@@ -403,7 +402,9 @@ This is more normal template
 
 
 TEST(template, LoadDirectoryOfTemplates) {
-    auto templates = load_templates("templates");
+    auto templates_maybe = load_templates("templates");
+    ASSERT_TRUE(templates_maybe);
+    auto templates = *templates_maybe;
 
     EXPECT_EQ(templates.size(), 2);
     EXPECT_NE(templates.find("a"), templates.end());
@@ -412,7 +413,9 @@ TEST(template, LoadDirectoryOfTemplates) {
     EXPECT_EQ(*templates["a"].fill(),"a.template contents");
     EXPECT_EQ(*templates["b"].fill(),"b.template contents");
 
-    templates = load_templates("templates/a.template");
+    templates_maybe = load_templates("templates/a.template");
+    ASSERT_TRUE(templates_maybe);
+    templates = *templates_maybe;
     EXPECT_EQ(templates.size(), 1);
     EXPECT_NE(templates.find("a"), templates.end());
     EXPECT_EQ(templates.find("b"), templates.end());
@@ -424,12 +427,13 @@ TEST(template, LoadDirectoryOfTemplates) {
 
 TEST(template, TemplateSubstitutionTemplate) {
     auto templates = load_templates("templates");
+    ASSERT_TRUE(templates);
 
-    auto result = Template("{{!a}} {{!b}}").fill("", std::move(templates));
+    auto result = Template("{{!a}} {{!b}}").fill("", std::move(*templates));
 
     EXPECT_EQ(*result, "a.template contents b.template contents");
 
-    EXPECT_THROW(Template("{{!a}} {{!c}}").fill("", std::move(templates)), TemplateException);
+    EXPECT_FALSE(Template("{{!a}} {{!c}}").fill("", std::move(*templates)));
 }
 
 
@@ -628,7 +632,7 @@ TEST(template, NullPointer)
 
 TEST(template, EmptyUniquePointer)
 {
-    EXPECT_THROW(Template("{{empty_unique_pointer}}").fill(make_provider(std::pair("empty_unique_pointer", std::unique_ptr<int>()))), TemplateException);
+    EXPECT_FALSE(Template("{{empty_unique_pointer}}").fill(make_provider(std::pair("empty_unique_pointer", std::unique_ptr<int>()))));
 }
 
 
@@ -806,7 +810,7 @@ TEST(template, RefToGetProviderableWithVectorOfGetProviderable) {
 
 
 TEST(template, MissingCloseCurlyBrace) {
-    EXPECT_THROW(Template("{{a}{{b}}").compile(), TemplateException);
+    EXPECT_FALSE(Template("{{a}{{b}}").compile());
 }
 
 TEST(template, Comments) {
@@ -853,18 +857,18 @@ public:
 };
 
 TEST(template, PeriodSeparatedNames) {
-//    {
-//        Template t("{{simple_provider.has_provider}}");
-//        EXPECT_THROW(t.fill(std::pair("simple_provider", SimpleProviderProvider("simple_provider"))), TemplateException);
-//    }
-//    {
-//        Template t("{{simple_provider}}");
-//        EXPECT_THROW(t.fill(std::pair("simple_provider", SimpleProviderProvider("simple_provider"))), xl::FormattedException);
-//    }
-//    {
-//        Template t("{{}}");
-//        EXPECT_THROW(t.fill(std::pair("simple_provider", SimpleProviderProvider("simple_provider"))), xl::FormattedException); // TODO: this is the wrong exception type for this error to be throwing
-//    }
+    {
+        Template t("{{simple_provider.has_provider}}");
+        EXPECT_FALSE(t.fill(std::pair("simple_provider", SimpleProviderProvider("simple_provider"))));
+    }
+    {
+        Template t("{{simple_provider}}");
+        EXPECT_FALSE(t.fill(std::pair("simple_provider", SimpleProviderProvider("simple_provider"))));
+    }
+    {
+        Template t("{{}}");
+        EXPECT_FALSE(t.fill(std::pair("simple_provider", SimpleProviderProvider("simple_provider"))));
+    }
     {
         auto result = Template("{{simple_provider.has_provider.string}}").
             fill(std::pair("simple_provider", SimpleProviderProvider("simple_provider")));
@@ -915,7 +919,7 @@ TEST(template, RewindDots) {
         // should rewind back to provider with keys: "a" and "b"
         auto result = Template("{{a|!{{..b}}}}").fill(
             make_provider(
-                std::pair("a", make_provider(std::pair("b", "bad"))),
+                std::pair("a", make_provider(std::pair("b", "bad"), std::pair("c", "bogus"))),
                 std::pair("b", "good")
             )
         );
@@ -1053,4 +1057,25 @@ TEST(template, RequireFullMatchOfDotSeparatedPartsDuringRewindSearch) {
         );
         EXPECT_EQ(*result, "a-c-cval-RIGHT");
     }
+}
+
+
+TEST(template, MultipleErrorStringsInErrorList) {
+    auto result = Template("{{a|!{{b|!{{a.c}}}}}}").fill(
+        make_provider(
+            std::pair{
+                "a",
+                make_provider(
+                    std::pair{
+                        "b", make_provider(std::pair("a", "a-b-a-value-WRONG"))}
+//                        , std::pair{
+//                        "c", "a-c-cval-RIGHT"}
+)
+            }
+        )
+    );
+    ASSERT_FALSE(result);
+    EXPECT_EQ(result.error().get_error_strings().size(), 14);
+    EXPECT_EQ(xl::join(result.error().get_error_strings()),
+              "string provider called with non-terminal substitution, string provider called with non-terminal substitution, Couldn't find substitute for 'Split off of {{a.c}}' in template '', Map Provider with keys: (b) does not provide name: 'a' or needs rewinding, Map Provider with keys: (b) does not provide name: 'c' or needs rewinding, Couldn't find substitute for 'Split off of {{a.c}}' in template '', Couldn't find substitute for '{{a.c}}' in template '', Map Provider with keys: (b) does not provide name: 'a' or needs rewinding, Map Provider with keys: (b) does not provide name: 'c' or needs rewinding, Couldn't find substitute for 'Split off of {{a.c}}' in template '', Couldn't find substitute for '{{a.c}}' in template '{{a.c}}', Map Provider with keys: (a) does not provide name: 'b' or needs rewinding, Couldn't find substitute for '{{b|!{{a.c}}}}' in template '{{b|!{{a.c}}}}', Couldn't find substitute for '{{a|!{{b|!{{a.c}}}}}}' in template '{{a|!{{b|!{{a.c}}}}}}'");
 }

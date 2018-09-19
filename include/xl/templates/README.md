@@ -340,11 +340,40 @@ A Substitution is the bit within a {{...}} and can contain Template objects
 which contain subsequent Substitution objects.   A complex name Substitution
 may also be broken down into implicit Template objects
 
-{{a.  b.  c|{{foo}} }}
+    {{a.  b.  c|!{{foo}} }}
 
-{{a|{{b.  c|{{foo}} }} }}
+    {{a|!{{b.  c|!{{foo}} }} }}
 
-{{a|{{b|{{c|{{foo}} }} }} }}
+    {{a|!{{b|!{{c|!{{foo}} }} }} }}
+
+
+## Rewind Substitutions
+
+If a name cannot be looked up in the current provider, previous providers will be searched
+for a match (most recent first).   If the name is in a 'dot pattern', then the entire dot
+pattern must be matched by sequential providers.
+
+    {{a|!{{b|!{{c}} }} }}
+
+will first look for `c` within `b`, but if it is not present, it will then look
+inside `a` for `c`.
+
+    {{a|!{{b|!{{c.d}}}}}}
+
+will look for `c.d` inside `b` but then look for `c.d` inside `a`.  However,
+if `b` contains `c` and `d` but `c` doesn't contain `d`, then it will not 
+match the `c` then rewind looking just for `d` and find it within `b`.   If `a`
+directly contains `c.d`, it will rewind and match to it.
+
+Rewinds may be specified by preceeding a name with dots.  More dots mean further
+rewind required.
+
+    {{a|!{{b|!{{c|!{{..d}} }} }} }}
+
+Requires that `d` not be found in `c`.   `...d` would require it not be in `b` 
+either.
+
+
 
 
 ## FAQ
@@ -355,4 +384,8 @@ Put an empty comment `{{#}}` substitution at the dividing point:
 
     {{not_empty>}} this shows {{#}} this doesn't show{{<empty}}
     
- 
+`<empty` only rewinds to the previous substitution, which in this case is
+the comment substitution.  Of course this means that you have to be careful
+where you put comments, which isn't great.   This may change in the future.
+
+

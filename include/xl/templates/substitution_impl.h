@@ -9,22 +9,13 @@
 namespace xl::templates {
 
 
-
-
-// careful where this is implemented because xl::log uses xl::templates and vice versa
-template<typename... Args>
-TemplateException::TemplateException(xl::zstring_view format_string, Args&&... args) :
-xl::FormattedException(format_string.c_str(), std::forward<Args>(args)...)
-{
-xl::templates::log.error(LogT::Subjects::Exception, this->what());
-}
-
 inline void Substitution::split() {
 
     // if there are more than one value in name_entries, then split off the last one
     if (this->name_entries.size() > 1) {
         auto new_non_compiled_template = std::make_unique<Template>("");
-        auto new_template = new_non_compiled_template->compile(); // bogus compile just to create CompiledTemplate object
+        auto new_template_maybe = new_non_compiled_template->compile(); // bogus compile just to create CompiledTemplate object
+        auto new_template = *new_template_maybe;
         
         auto new_substitution = std::make_unique<Substitution>();
         new_substitution->raw_text = fmt::format("Split off of {}", this->raw_text);
@@ -63,7 +54,7 @@ inline void Substitution::split() {
 
 
 
-inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
+inline xl::expected<std::shared_ptr<CompiledTemplate>, std::string> Template::compile() const {
 
     if (this->compiled_template) {
         return this->compiled_template;
@@ -172,10 +163,10 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
 
         // check for open but no close or incorrect brace type
         if (matches.length("UnmatchedOpen")) {
-            throw TemplateException("Unmatched Open");
+            return xl::make_unexpected(std::string("Unmatched Open"));
         }
         if (matches.length("UnmatchedClose")) {
-            throw TemplateException("Unmatched Close (missing opening '}}') in {}", last_matched_template_string);
+            return xl::make_unexpected(fmt::format("Unmatched Close (missing opening '}}') in {}", last_matched_template_string));
         }
 
 
@@ -371,12 +362,12 @@ inline std::shared_ptr<CompiledTemplate> & Template::compile() const {
 }
 
 
-inline CompiledTemplate const * SubstitutionState::get_template() {
+inline xl::expected<CompiledTemplate const *, std::string> SubstitutionState::get_template() {
 
     // initialize with inline_template then look up by name if no inline template
     auto tmpl = this->substitution->final_data.inline_template;
     if (tmpl) {
-        return tmpl->compile().get();
+        return (*tmpl->compile()).get();
     }
 
     // if no inline template provided and no named template is requested, return empty template
@@ -387,30 +378,28 @@ inline CompiledTemplate const * SubstitutionState::get_template() {
 
 
     if (this->fill_state.templates == nullptr) {
-        throw TemplateException("ContainerProvider received nullptr template map so it can't possibly find a template by name");
+        return xl::make_unexpected(std::string("ContainerProvider received nullptr template map so it can't possibly find a template by name"));
     }
 
     auto template_iterator = this->fill_state.templates->find(this->substitution->parameters);
     if (template_iterator == this->fill_state.templates->end()) {
         if (this->fill_state.templates->empty()) {
-            throw TemplateException(
-                "ContainerProvider received empty template map so it can't possibly find a template for its members {}",
-                this->substitution->get_name().value_or("<NO NAME AVAILABLE>"));
+            return xl::make_unexpected(fmt::format("ContainerProvider received empty template map so it can't possibly find a template for its members {}",
+                this->substitution->get_name().value_or("<NO NAME AVAILABLE>")));
         }
-        throw TemplateException(
-            fmt::format("ContainerProvider couldn't find template named: '{}' from template {}", this->substitution->parameters, this->current_template->source_template->c_str()));
+        return xl::make_unexpected(fmt::format("ContainerProvider couldn't find template named: '{}' from template {}", this->substitution->parameters, this->current_template->source_template->c_str()));
     }
 
     XL_TEMPLATE_LOG("Returning named template: {}", template_iterator->second.c_str());
     
-    return template_iterator->second.compile().get();
+    return (*template_iterator->second.compile()).get();
 
 
 }
 
 
 
-inline xl::expected<std::string, std::string> Substitution::get_name() const {
+inline xl::expected<std::string, ErrorList> Substitution::get_name() const {
 
     if (this->name_entries.size() > 1) {
         return xl::make_unexpected(fmt::format("too many name entries: {}\n", xl::join(this->name_entries)));
@@ -420,7 +409,7 @@ inline xl::expected<std::string, std::string> Substitution::get_name() const {
         if (!this->final_data.template_name.empty()) {
             return this->final_data.template_name;
         } else {
-            return xl::make_unexpected("no name_entries available to get name from");
+            return xl::make_unexpected(std::string("no name_entries available to get name from"));
         }
     } else {
         return this->name_entries.front();
