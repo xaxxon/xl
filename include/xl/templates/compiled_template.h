@@ -204,7 +204,7 @@ xl::expected<std::string, ErrorList> CompiledTemplate::fill(FillState const & fi
                 }
                 auto inline_template_result = template_iterator->second.fill(fill_state);
                 if (!inline_template_result) {
-                    XL_TEMPLATE_LOG("About to start rewind because: {}", xl::join(inline_template_result.error().get_error_strings()));
+                    XL_TEMPLATE_LOG("About to start rewind because: {}", inline_template_result.error().get_pretty_string());
                     auto inline_template_result = this->rewind_results(current_substitution);
                     if (!inline_template_result) {
                         return inline_template_result;

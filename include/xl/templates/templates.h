@@ -30,7 +30,7 @@ namespace xl::templates {
 
 class ErrorList {
 private:
-    std::vector<std::string> error_list;
+    std::vector<std::variant<std::string, ErrorList>> error_list;
 
 public:
     ErrorList() = default;
@@ -43,18 +43,30 @@ public:
         return *this;
     }
 
-    ErrorList & append(ErrorList & other) {
-        this->error_list.insert(this->error_list.end(), other.error_list.begin(), other.error_list.end());
+    ErrorList & append(ErrorList other) {
+        this->error_list.push_back(std::move(other));
         return *this;
     }
 
-    std::vector<std::string> const & get_error_strings() const {
+    std::vector<std::variant<std::string, ErrorList>> const & get_errors() const {
         return this->error_list;
+    }
+    
+    std::string get_pretty_string(std::string const & indentation = "") const {
+        std::string result = "";
+        for (auto const & error : this->error_list) {
+            if (auto const string_error = std::get_if<std::string>(&error)) {
+                result += indentation + *string_error + "\n";
+            } else if (auto const error_list_error = std::get_if<ErrorList>(&error)) {
+                result += error_list_error->get_pretty_string(indentation + "  ");
+            }
+        }
+        return result;
     }
 };
 
 inline std::ostream & operator<<(std::ostream & os, ErrorList const & error_list) {
-    os << xl::join(error_list.get_error_strings());
+    os << error_list.get_pretty_string();
     return os;
 }
 
