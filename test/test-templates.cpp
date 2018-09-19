@@ -75,7 +75,8 @@ TEST(template, MissingNameInProviderSubstitutionTemplate) {
     auto result = Template("replace: {{TEST}}").fill(make_provider(std::pair{"XXX", "REPLACEMENT"}));
     EXPECT_FALSE(result);
     EXPECT_EQ(result.error().get_pretty_string(),
-              "Map Provider with keys: (XXX) does not provide name: 'TEST' or needs rewinding\n  Couldn't find substitute for '{{TEST}}' in template 'replace: {{TEST}}'\n");
+              "Filling replace: {{TEST}}\n  Map Provider with keys: (XXX) does not provide name: 'TEST' or needs rewinding\n");
+//             "");
 }
 TEST(template, InvalidTemplateSyntax_OpenedButNotClosed_Template) {
     EXPECT_FALSE(Template("replace: {{TEST").fill());
@@ -1075,8 +1076,7 @@ TEST(template, MultipleErrorStringsInErrorList) {
         )
     );
     ASSERT_FALSE(result);
-    EXPECT_EQ(result.error().get_errors().size(), 5);
     EXPECT_EQ(result.error().get_pretty_string(),
-              "string provider called with non-terminal substitution\n    string provider called with non-terminal substitution\n      Couldn't find substitute for 'Split off of {{a.c}}' in template ''\n    Map Provider with keys: (b) does not provide name: 'a' or needs rewinding\n    Map Provider with keys: (b) does not provide name: 'c' or needs rewinding\n      Couldn't find substitute for 'Split off of {{a.c}}' in template ''\n  Couldn't find substitute for '{{a.c}}' in template ''\n    Map Provider with keys: (b) does not provide name: 'a' or needs rewinding\n    Map Provider with keys: (b) does not provide name: 'c' or needs rewinding\n      Couldn't find substitute for 'Split off of {{a.c}}' in template ''\n  Couldn't find substitute for '{{a.c}}' in template '{{a.c}}'\n    Map Provider with keys: (a) does not provide name: 'b' or needs rewinding\n  Couldn't find substitute for '{{b|!{{a.c}}}}' in template '{{b|!{{a.c}}}}'\n  Couldn't find substitute for '{{a|!{{b|!{{a.c}}}}}}' in template '{{a|!{{b|!{{a.c}}}}}}'\n");
+              "Filling {{a|!{{b|!{{a.c}}}}}}\n  Filling {{b|!{{a.c}}}}\n    Filling {{a.c}}\n      Filling \n        string provider called with non-terminal substitution\n            Filling \n              string provider called with non-terminal substitution\n            Map Provider with keys: (b) does not provide name: 'a' or needs rewinding\n            Filling \n              Map Provider with keys: (b) does not provide name: 'c' or needs rewinding\n          Map Provider with keys: (b) does not provide name: 'a' or needs rewinding\n          Filling \n            Map Provider with keys: (b) does not provide name: 'c' or needs rewinding\n        Map Provider with keys: (a) does not provide name: 'b' or needs rewinding\n");
 //            "");
 }

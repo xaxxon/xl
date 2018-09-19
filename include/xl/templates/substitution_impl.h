@@ -399,22 +399,5 @@ inline xl::expected<CompiledTemplate const *, std::string> SubstitutionState::ge
 
 
 
-inline xl::expected<std::string, ErrorList> Substitution::get_name() const {
-
-    if (this->name_entries.size() > 1) {
-        return xl::make_unexpected(fmt::format("too many name entries: {}\n", xl::join(this->name_entries)));
-    }
-
-    if (this->name_entries.size() == 0) {
-        if (!this->final_data.template_name.empty()) {
-            return this->final_data.template_name;
-        } else {
-            return xl::make_unexpected(std::string("no name_entries available to get name from"));
-        }
-    } else {
-        return this->name_entries.front();
-    }
-}
-
 
 } // end xl::templates

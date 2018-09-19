@@ -76,7 +76,6 @@ struct Substitution {
     // basically every substitution except ones created by a name1.name2 name construct
     Substitution * parent_substitution = nullptr;
 
-    xl::expected<std::string, ErrorList> get_name() const;
     
     Template const * tmpl = nullptr;
 
@@ -98,7 +97,26 @@ struct Substitution {
 
     
     void split();
-    
+
+
+    xl::expected<std::string, ErrorList> get_name() const {
+
+        if (this->name_entries.size() > 1) {
+            return xl::make_unexpected(fmt::format("too many name entries: {}\n", xl::join(this->name_entries)));
+        }
+
+        if (this->name_entries.size() == 0) {
+            if (!this->final_data.template_name.empty()) {
+                return this->final_data.template_name;
+            } else {
+                return xl::make_unexpected(std::string("no name_entries available to get name from"));
+            }
+        } else {
+            return this->name_entries.front();
+        }
+    }
+
+
 };
 
 inline std::ostream & operator<<(std::ostream & ostream, Substitution const & substitution) {

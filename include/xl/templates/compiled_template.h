@@ -159,10 +159,10 @@ inline xl::expected<std::string, ErrorList> CompiledTemplate::rewind_results(Sub
 //    if (substitution_state.current_template != nullptr) {
 //        template_text = substitution_state.current_template->source_template->c_str();
 //    }
-     error_list.append(fmt::format("Couldn't find substitute for '{}' in template '{}'", 
-        substitution_state.substitution->raw_text,
-        substitution_state.current_template->source_template->c_str()
-        ));
+//     error_list.append(fmt::format("Couldn't find substitute for '{}' in template '{}'", 
+//        substitution_state.substitution->raw_text,
+//        substitution_state.current_template->source_template->c_str()
+//        ));
     
     return xl::make_unexpected(error_list);
 }
@@ -178,7 +178,7 @@ xl::expected<std::string, ErrorList> CompiledTemplate::fill(FillState const & fi
 //    XL_TEMPLATE_LOG("just created variable 'result': '{}'", result);
     result.reserve(this->minimum_result_length);
 
-
+    ErrorList error_list(fmt::format("Filling {}", this->source_template->c_str()));
     for(size_t i = 0; i < this->static_strings.size(); i++) {
 
         result.insert(result.end(), this->static_strings[i].begin(), this->static_strings[i].end());
@@ -196,11 +196,11 @@ xl::expected<std::string, ErrorList> CompiledTemplate::fill(FillState const & fi
             // substituting another template in with {{!template_name}}
             if (current_substitution.substitution->final_data.template_name != "") {
                 if (fill_state.templates->empty()) {
-                    return xl::make_unexpected(fmt::format("Cannot refer to another template if no other templates specified: " + current_substitution.substitution->final_data.template_name));
+                    return xl::make_unexpected(error_list.append(fmt::format("Cannot refer to another template if no other templates specified: " + current_substitution.substitution->final_data.template_name)));
                 }
                 auto template_iterator = fill_state.templates->find(current_substitution.substitution->final_data.template_name);
                 if (template_iterator == fill_state.templates->end()) {
-                    return xl::make_unexpected(fmt::format("No template found named: {}", current_substitution.substitution->final_data.template_name));
+                    return xl::make_unexpected(error_list.append(fmt::format("No template found named: {}", current_substitution.substitution->final_data.template_name)));
                 }
                 auto inline_template_result = template_iterator->second.fill(fill_state);
                 if (!inline_template_result) {
@@ -247,7 +247,7 @@ xl::expected<std::string, ErrorList> CompiledTemplate::fill(FillState const & fi
                         if (!rewind_result) {
                             
                             substitution_result.error().append(rewind_result.error());
-                            return xl::make_unexpected(substitution_result.error());
+                            return xl::make_unexpected(error_list.append(substitution_result.error()));
                         } else {
                             substitution_result = rewind_result;
                         }
