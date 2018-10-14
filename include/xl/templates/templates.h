@@ -63,6 +63,22 @@ public:
         }
         return result;
     }
+    
+    /**
+     * Mostly for internal unit testing
+     * @return number of messages contained in the object
+     */
+    int get_error_string_count() const {
+        int result = 0;
+        for (auto const & error : this->error_list) {
+            if (auto const string_error = std::get_if<std::string>(&error)) {
+                result += 1;
+            } else if (auto const error_list_error = std::get_if<ErrorList>(&error)) {
+                result += error_list_error->get_error_string_count();
+            }
+        }
+        return result;
+    }
 };
 
 inline std::ostream & operator<<(std::ostream & os, ErrorList const & error_list) {
