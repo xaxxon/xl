@@ -1080,3 +1080,21 @@ TEST(template, MultipleErrorStringsInErrorList) {
               "Filling {{a|!{{b|!{{a.c}}}}}}\n  Filling {{b|!{{a.c}}}}\n    Filling {{a.c}}\n      Filling \n        string provider called with non-terminal substitution\n            Filling \n              string provider called with non-terminal substitution\n            Map Provider with keys: (b) does not provide name: 'a' or needs rewinding\n            Filling \n              Map Provider with keys: (b) does not provide name: 'c' or needs rewinding\n          Map Provider with keys: (b) does not provide name: 'a' or needs rewinding\n          Filling \n            Map Provider with keys: (b) does not provide name: 'c' or needs rewinding\n        Map Provider with keys: (a) does not provide name: 'b' or needs rewinding\n");
 //            "");
 }
+
+TEST(template, FailedTemplateFillRewind) {
+    
+    // after failing to fill template `b` it should not attempt to look up `b` as a name in
+    //   `a`
+    Template t("{{a|!{{b|!{{!c}} }} }}");
+
+    std::map<std::string, Template> templates = {
+        std::pair("c", Template("{{does_not_exist}}"))
+    };
+    
+    auto result = t.fill(make_provider(std::pair("a", make_provider(std::pair("b", "")))), templates);
+    
+    ASSERT_FALSE(result);
+    EXPECT_EQ(result.error().get_pretty_string(), 
+        "");
+
+}

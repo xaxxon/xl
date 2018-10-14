@@ -28,44 +28,19 @@ in the template.
 
 ### Template String Syntax
 
-Anything not a substitution definition is passed through to the final string literally.
-Substitutions are defined as everything between balanced pairs of {{ and }}'s.  
+A `Template` is a series of segments of literal text and `Substitutions`.  
+The literal text is passed through as-is, while `Substitutions` are filled in
+with `Provider` data to create the final results.
 
-#### Substitution Definition
+### Substitution
 
-A substitution is everything between balanced pairs of {{ and }}'s.   
-
-The format of a substitution is:
-
-* Opening delimiter: {{
-* Optional leading flags
-* Substitution name 
-* Optional join string 
-* `|` Pipe
-* Optional middle flags
-* Context-sensitive data
-* Closing delimiter: }}
+A substitution is everything between balanced pairs of {{ and }}'s.  There 
+are many different flags available to change the behavior of a Substition,
+but fundamentally they define how and where to take `Provider` data and 
+insert it into the resulting string.  
 
 
-
-### Leading Flags
-
-Available leading flags (each is optional, but if present must be in this
-order):
-
-* optional `<` to ignore empty substitutions
-* optional `!` to insert a named template here
-
-
-### Middle Flags
-
-Available middle flags (each is optional, but if present must be in this order):
-
-* optional `!` following data is an inline template
-* optional second `!` the inline template begins on the next line
-
-
-## Providers
+### Providers
 
 Substitution data can be just about anything.
 
@@ -78,20 +53,10 @@ Further Provider specializations may be added to the xl::templates namespace
 to extend the general functionality of the implementation, such as for supporting
 custom smart-pointer types, for example.
 
-### get_provider
 
-A user-defined type may specify how to produce a Provider object via a member instance function,
-a free function, or a static function within an explicitly provided class.
 
-Free/static functions have the signature:
 
-    std::unique_ptr<Provider_Interface> get_provider(T &);
-    
-Member functions have the signature:
 
-    std::unique_ptr<Provider_Interface> get_provider();
-    
-Note: ProviderPtr is a typedef for std::unique_ptr<Provider_Interface>
 
 ### Multiple values for the same template
 
@@ -389,3 +354,20 @@ the comment substitution.  Of course this means that you have to be careful
 where you put comments, which isn't great.   This may change in the future.
 
 
+
+
+
+### get_provider
+
+A user-defined type may specify how to produce a Provider object via a member instance function,
+a free function, or a static function within an explicitly provided class.
+
+Free/static functions have the signature:
+
+    std::unique_ptr<Provider_Interface> get_provider(T &);
+    
+Member functions have the signature:
+
+    std::unique_ptr<Provider_Interface> get_provider();
+    
+Note: ProviderPtr is a typedef for std::unique_ptr<Provider_Interface>

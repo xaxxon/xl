@@ -259,8 +259,8 @@ TEST(log, OstreamCallbackHelper) {
 
 
     log.info("test");
-    EXPECT_TRUE(Regex("\\[[^]]+\\] PREFIX: test").match(output.str()));
-    EXPECT_TRUE(Regex("\\[[^]]+\\] test").match(output2.str()));
+    EXPECT_TRUE(Regex("\\[[^]]+\\] default PREFIX: test").match(output.str()));
+    EXPECT_TRUE(Regex("\\[[^]]+\\] default test").match(output2.str()));
 }
 
 //int log_count = 0;

@@ -75,9 +75,9 @@ std::string & demangle() {
 
 #if defined HAVE_BOOST_TYPE_INDEX
 
-    cached_name = boost::typeindex::type_id<T>().pretty_name();
+    cached_name = boost::typeindex::type_id_with_cvr<T>().pretty_name();
     cache_set = true;
-    
+
 #elif defined XL_FORCE_NO_DEMANGLE_NAMES
     cached_name = "NO NAME MANGLING AVAILABLE";
 

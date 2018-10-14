@@ -111,9 +111,9 @@ inline xl::expected<std::string, ErrorList> CompiledTemplate::rewind_results(Sub
 
         for (auto * provider : substitution_state.fill_state.provider_stack) {
 
-//            XL_TEMPLATE_LOG("rewinding through provider stack, current provider:{} \n",
-//                                     provider->get_name());
-//            XL_TEMPLATE_LOG(substitution_state.fill_state.provider_stack);
+            XL_TEMPLATE_LOG("rewinding through provider stack, current provider:{}",
+                                     provider->get_name());
+            XL_TEMPLATE_LOG(fmt::format("{}", substitution_state.fill_state.provider_stack));
 
             // only rewind on "core" providers
             
@@ -131,6 +131,13 @@ inline xl::expected<std::string, ErrorList> CompiledTemplate::rewind_results(Sub
 //                                         substitution_state.substitution->initial_data.rewind_provider_count
 //                ) << std::endl;
                 continue;
+            }
+            
+            
+            if (!substitution_state.substitution->final_data.template_name.empty()) {
+                // not even sure what this would actually do
+                return xl::make_unexpected(ErrorList(fmt::format("Rewinding through a named template '{}' is not supported",
+                                                                 substitution_state.substitution->final_data.template_name)));
             }
 
             // start over from scratch
@@ -194,7 +201,7 @@ xl::expected<std::string, ErrorList> CompiledTemplate::fill(FillState const & fi
             current_substitution.fill_state.searching_provider_stack = fill_state.searching_provider_stack;
 
             // substituting another template in with {{!template_name}}
-            if (current_substitution.substitution->final_data.template_name != "") {
+            if (!current_substitution.substitution->final_data.template_name.empty()) {
                 if (fill_state.templates->empty()) {
                     return xl::make_unexpected(error_list.append(fmt::format("Cannot refer to another template if no other templates specified: " + current_substitution.substitution->final_data.template_name)));
                 }
@@ -203,13 +210,32 @@ xl::expected<std::string, ErrorList> CompiledTemplate::fill(FillState const & fi
                     return xl::make_unexpected(error_list.append(fmt::format("No template found named: {}", current_substitution.substitution->final_data.template_name)));
                 }
                 auto inline_template_result = template_iterator->second.fill(fill_state);
+
                 if (!inline_template_result) {
-                    XL_TEMPLATE_LOG("About to start rewind because: {}", inline_template_result.error().get_pretty_string());
-                    auto inline_template_result = this->rewind_results(current_substitution);
-                    if (!inline_template_result) {
-                        return inline_template_result;
-                    }
+                    return xl::make_unexpected(ErrorList(fmt::format("No-rewind path returning failure for named template: '{}'\n", 
+                        current_substitution.substitution->final_data.template_name)).
+                        append(inline_template_result.error()));
                 }
+//                if (!inline_template_result) {
+//                    XL_TEMPLATE_LOG("About to start rewind because: {}", inline_template_result.error().get_pretty_string());
+//                    
+//                    std::cerr << fmt::format("provider stack before rewind: {}\n", current_substitution.fill_state.provider_stack);
+//                    
+//                    // don't rewind on the same provider that was just tried
+//                    bool rewound_through_rewind_point = false;
+//                    while(!current_substitution.fill_state.provider_stack.empty() &&
+//                        !rewound_through_rewind_point) {
+//                        if (current_substitution.fill_state.provider_stack.front()->is_rewind_point()) {
+//                            rewound_through_rewind_point = true;
+//                        }
+//                        current_substitution.fill_state.provider_stack.pop_front();
+//                    }
+//
+//                    inline_template_result = this->rewind_results(current_substitution);
+//                    if (!inline_template_result) {
+//                        return xl::make_unexpected(inline_template_result.error());
+//                    }
+//                }
                 if (!inline_template_result->empty()) {
                     result.insert(result.end(), current_substitution.substitution->initial_data.contingent_leading_content.begin(), current_substitution.substitution->initial_data.contingent_leading_content.end());
                 }
@@ -236,11 +262,20 @@ xl::expected<std::string, ErrorList> CompiledTemplate::fill(FillState const & fi
                     
                     
                     if (!substitution_result) {
+
                         XL_TEMPLATE_LOG("About to start rewind because: {}", substitution_result.error());
-                        
+
+                        std::cerr << fmt::format("provider stack before rewind: {}\n", current_substitution.fill_state.provider_stack);
+
                         // don't rewind on the same provider that was just tried
-                        current_substitution.fill_state.provider_stack.pop_front();
-                        
+                        bool rewound_through_rewind_point = false;
+                        while(!current_substitution.fill_state.provider_stack.empty() &&
+                              !rewound_through_rewind_point) {
+                            if (current_substitution.fill_state.provider_stack.front()->is_rewind_point()) {
+                                rewound_through_rewind_point = true;
+                            }
+                            current_substitution.fill_state.provider_stack.pop_front();
+                        }                        
 
 
                         auto rewind_result = this->rewind_results(current_substitution);

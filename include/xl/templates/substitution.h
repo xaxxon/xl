@@ -90,11 +90,6 @@ struct Substitution {
     
     Substitution(Substitution const &) = default;
     Substitution(Substitution &&) = default;
-
-    ~Substitution(){
-//        std::cerr << fmt::format("providerdata destructor for {}", (void*)this) << std::endl;
-    }
-
     
     void split();
 
@@ -106,18 +101,17 @@ struct Substitution {
         }
 
         if (this->name_entries.size() == 0) {
-            if (!this->final_data.template_name.empty()) {
-                return this->final_data.template_name;
-            } else {
+//            if (!this->final_data.template_name.empty()) {
+//                return this->final_data.template_name;
+//            } else {
                 return xl::make_unexpected(std::string("no name_entries available to get name from"));
-            }
+//            }
         } else {
             return this->name_entries.front();
         }
     }
-
-
 };
+
 
 inline std::ostream & operator<<(std::ostream & ostream, Substitution const & substitution) {
     ostream << substitution.raw_text;

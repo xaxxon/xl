@@ -782,7 +782,10 @@ struct DefaultProviders {
             
 
             MapT const & map = this->map_holder;
-
+            if (!data.substitution->final_data.template_name.empty()) {
+                std::cerr << "unexpected template name: " << data.substitution->final_data.template_name << "\n";
+                assert(false);
+            }
             auto name_optional = data.substitution->get_name(); // keep a copy that isn't cleared
             if (!name_optional) {
                 return name_optional;
