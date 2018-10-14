@@ -12,7 +12,6 @@
 #include <sstream>
 #include <optional>
 
-#include "magic_ptr.h"
 #include "fmt/format.h"
 namespace xl {
 
@@ -204,6 +203,7 @@ auto copy_if(Container const & container, Callback && callback) {
 };
 
 
+
 /**
  * Takes a container and produces tuples with each value of the container and an associated counter
  */
@@ -217,18 +217,19 @@ public:
     std::tuple<Containers...> containers;
 public:
 
-    template<class... ConstructorContainers>
-    EachI(ConstructorContainers&&... containers) :
-        containers(std::forward<ConstructorContainers>(containers)...)
+    template <typename... ContainerTypes>
+    EachI(ContainerTypes&&... containers) :
+        containers(std::forward<ContainerTypes>(containers)...)
     {}
 
 
     struct iterator {
         int counter = 0;
-        using ResultTuple = std::tuple<typename Containers::value_type&..., int>;
-        std::tuple<typename Containers::iterator...> iterators;
+        using ResultTuple = std::tuple<typename std::remove_reference_t<Containers>::value_type&..., int>;
+        std::tuple<typename 
+            std::remove_reference_t<Containers>::iterator...> iterators;
 
-        iterator(typename Containers::iterator... i) :
+        iterator(typename std::remove_reference_t<Containers>::iterator... i) :
             iterators(i...)
         {}
 
@@ -257,9 +258,18 @@ public:
     }
 };
 
+
+/**
+ * Provides a range to an arbitrary number of equal-sized containers.
+ * For lvalues, it will store a reference to it, for rvalues, it will move the parameter value into the EachI object
+ * for (auto const & [container1_element, vector_int_element, ..., index] : each_i(container1, vector<int>{1, 2, 3}, ...) {
+ *     cout << "at position: " << index << container1_element << vector_int_element << ... << endl;
+ * }
+ * UB if the containers aren't the same length.   
+ */
 template<class... Containers>
 auto each_i(Containers&&... containers) {
-    return EachI<std::index_sequence_for<Containers...>, std::remove_reference_t<Containers>...>(std::forward<Containers>(containers)...);
+    return EachI<std::index_sequence_for<Containers...>, Containers...>{std::forward<Containers>(containers)...};
 }
 
 

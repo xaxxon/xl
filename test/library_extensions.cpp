@@ -52,17 +52,26 @@ TEST(LibraryExtensions, copy_if) {
 
 
 TEST(LibraryExtensions, each_i) {
-    vector<int> v1{1,2,3,4,5};
-    vector<int> v2{6,7,8,9,10};
+    {
+        vector<int> v1{1, 2, 3, 4, 5};
 
-    auto sum = 0;
-    for(auto [e1, e2, i] : each_i(v1, v2)) {
+        auto sum = 0;
+        for (auto [e1, e2, i] : each_i(v1, vector<int>{6, 7, 8, 9, 10})) {
 //        std::cerr << fmt::format("adding {} {} {}", e1, e2, i) << std::endl;
-        sum += e1 + e2 + i;
+            sum += e1 + e2 + i;
+        }
+
+        EXPECT_EQ(sum, 65);
     }
 
-    EXPECT_EQ(sum, 65);
-
+    {
+        // test uncopyable container to make sure no copies are being made
+        vector<unique_ptr<int>> v;
+        v.push_back(std::make_unique<int>(5));
+        for (auto [e1, i] : each_i(v)) {
+            EXPECT_EQ(e1.get(), v[0].get());
+        }
+    }
 }
 
 
