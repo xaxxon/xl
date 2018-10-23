@@ -18,7 +18,13 @@ namespace xl::json {
 inline xl::RegexPcre json_regex(R"REGEX(
 \A
 (?(DEFINE)(?<StringContents>(?:\\"|[^"])*))
-(?(DEFINE)(?<comment>(\s*(\/\/(?>[^\n]*$)\s*)?)*))
+(?(DEFINE)(?<comment>(\s*(
+    (?:
+        \/\/(?>[^\n]*$)|
+        \/\*.*?\*\/)? 
+    )
+)*
+))
 (?&comment)
 (?<any>\s*
    (?<number>(?:-?\d+\.?\d*|-?\.\d+)([Ee][+-]?\d+)?) |

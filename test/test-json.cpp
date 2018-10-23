@@ -73,6 +73,9 @@ TEST(json, boolean) {
 
 TEST(json, string) {
     EXPECT_EQ(*Json("\"string\"").get_string(), "string");
+    EXPECT_EQ(*Json("'string'").get_string(), "string");
+    EXPECT_THROW(*Json("'string\"").get_string(), JsonException);
+    EXPECT_THROW(*Json("\"string'").get_string(), JsonException);
     EXPECT_FALSE(Json("5").get_string());
     EXPECT_FALSE(Json("\"string\"")["bogus"].get_string());
     EXPECT_EQ(*Json("\"string\"")["bogus"].get_string("alternate string"), "alternate string");
@@ -138,7 +141,7 @@ TEST(json, array) {
 }
 
 
-TEST(Json, WalkingNonexistantElements) {
+TEST(json, WalkingNonexistantElements) {
     EXPECT_FALSE(Json()["Foo"]);
     EXPECT_FALSE(Json()[100]);
 
@@ -152,7 +155,7 @@ TEST(Json, WalkingNonexistantElements) {
 
 }
 
-TEST(Json, Comments) {
+TEST(json, Comments) {
     EXPECT_EQ(Json("//test\n4").get_number(), 4);
     EXPECT_EQ((*Json("[1\n// test\n]//another test\n").get_array())[0].get_number(), 1);
     EXPECT_EQ((*Json("// foo\n"
@@ -162,5 +165,16 @@ TEST(Json, Comments) {
                        "// test\n"
                        "} // test\n"
                        "// test").get_object())["4"].get_number(), 4);
+    
+    EXPECT_EQ(Json("/* multiline\ncomment*/4/*\nanother multiline comment */").get_number(), 4);
+}
+
+TEST(json, TrailingCommas) {
+    EXPECT_TRUE(Json("{a: 4}").get_object());
+    EXPECT_TRUE(Json("{a: 4,}").get_object());
+    
+    EXPECT_TRUE(Json("[1]").get_array());
+    EXPECT_TRUE(Json("[1,]").get_array());
+
 }
 
