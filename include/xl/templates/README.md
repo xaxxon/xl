@@ -1,5 +1,7 @@
 ## String Template Library
 
+#### Note: Requires PCRE library installed
+
 Create complex formatted strings based on a template string which is comprised of literal strings and substitution definitions.
 
 The two primary object types are `Template` and `Provider`.  

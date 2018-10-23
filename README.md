@@ -4,11 +4,12 @@ A bunch of general-purpose C++ utilities used across my different projects.
 
 ### Regexer
 
-std::regex and PCRE agnostic regex library with a very simple syntax.   Supports both matching and replacing.  
+std::regex and PCRE agnostic regex library with a very simple syntax.   
+Supports matching and replacing with either regex library.  Documentation in subfolder
 
 ### Template
 
-Powerful, expressive string template substitution engine
+Powerful, expressive string template substitution engine.  Documentation in subfolder
 
 ### AlignedString
 
@@ -28,12 +29,13 @@ Some handy type traits as well.  Also has many useful type traits, such as is_te
 
 Logging library which calls user defined callbacks when data is provided.   Has log levels and subjects which can be
 turned on/off at runtime.  When used in an upstream dependency, makes it very easy to hook into the logging framework of the executable (or downstream library).
+Documentation in subfolder.
 
 ### magic_ptr
 
 Smart pointer class which may or may not own the object it refers to.  Deleter is specified at runtime (like in shared_ptr), but magic_ptr is not copyable (like unique_ptr) and may inherit ownership from a unique_ptr.
 
-### Json
+### Json (requires PCRE library installed)
 
 JSON-ish parser.  Attempts to comply with JSON5 as described here: https://github.com/json5/json5
-Things like multi-line strings, comments, etc.
+Things like multi-line strings, comments, etc. 
