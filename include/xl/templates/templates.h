@@ -15,6 +15,7 @@
 #include "../library_extensions.h"
 #include "../expected.h"
 
+
 // All logging is compile-time disabled unless XL_TEMPLATE_LOG_ENABLE is specified
 #if defined XL_TEMPLATE_LOG_ENABLE
 #define XL_TEMPLATE_LOG(format_string, ...) \

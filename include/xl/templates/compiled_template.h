@@ -265,7 +265,7 @@ xl::expected<std::string, ErrorList> CompiledTemplate::fill(FillState const & fi
 
                         XL_TEMPLATE_LOG("About to start rewind because: {}", substitution_result.error());
 
-                        std::cerr << fmt::format("provider stack before rewind: {}\n", current_substitution.fill_state.provider_stack);
+                        XL_TEMPLATE_LOG("provider stack before rewind: {}", current_substitution.fill_state.provider_stack);
 
                         // don't rewind on the same provider that was just tried
                         bool rewound_through_rewind_point = false;

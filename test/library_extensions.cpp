@@ -28,12 +28,33 @@ TEST(LibraryExtensions, has_insertion_operator) {
 }
 
 TEST(LibraryExtensions, erase_if) {
-    vector<int> vi{1,2,3,4,5};
-    erase_if(vi, [](int i){return i % 2;});
-    EXPECT_EQ(vi.size(), 2ul);
+    {
+        vector<int> vi{1, 2, 3, 4, 5};
+        erase_if(vi, [](int i) { return i % 2; });
+        EXPECT_EQ(vi.size(), 2ul);
+    }
 
-    erase_if(vector<int>{1,2,3,4,5}, [](int i){return i % 2;});
-    EXPECT_EQ(vi.size(), 2ul);
+    {
+        auto size = erase_if(vector<int>{1,2,3,4,5}, [](int i){return i % 2;}).size();
+        EXPECT_EQ(size, 2ul);
+    }
+    {
+        auto size = erase_if(set<int>{1,2,3,4,5}, [](int i){return i % 2;}).size();
+        EXPECT_EQ(size, 2ul);
+    }
+    {
+        auto size = erase_if(xl::copy(set<int>{1,2,3,4,5}), [](int i){return i % 2;}).size();
+        EXPECT_EQ(size, 2ul);
+    }
+    {
+        // should compile
+        erase_if(set<unique_ptr<int>>{}, [](auto &){return false;});
+
+        set<unique_ptr<int>> v{};
+        erase_if(v, [](auto &){return false;});
+
+    }
+    
 }
 
 TEST(LibraryExtensions, copy_if) {

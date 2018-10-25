@@ -23,7 +23,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -ftemplate-backtrace-
 
 
 include_directories(../include/xl)
-add_definitions(-DXL_USE_LIB_FMT -DXL_TESTING -DXL_LOG_WITH_TEMPLATES -DXL_TEMPLATE_LOG_ENABLE)
+add_definitions(-DXL_USE_LIB_FMT -DXL_TESTING -DXL_LOG_WITH_TEMPLATES -DXL_TEMPLATE_LOG_ENABLE -DXL_USE_BOOST)
 add_definitions(-DXL_USE_PCRE) # on another line to easily add and remove during development
 
 add_executable(test-xl EXCLUDE_FROM_ALL ${TEST_SRC})

@@ -2,20 +2,26 @@
 
 #if !defined XL_FORCE_NO_DEMANGLE_NAMES
 // if it can be determined safely that cxxabi.h is available, include it for name demangling
-#if defined __has_include
-#if __has_include(<cxxabi.h>)
-#  define XL_DEMANGLE_NAMES
-#  include <cxxabi.h>
-#  include <mutex>
-#endif
-#endif
+
+#if defined XL_USE_CXX_ABI
+#include <cxxabi.h>
+#include <mutex>
+#undef XL_DEMANGLE_NAMES
+#define XL_DEMANGLE_NAMES
 #endif
 
 // Useful for when not RTTI available
-#if __has_include(<boost/type_index.hpp>)
-#define HAVE_BOOST_TYPE_INDEX
+#if defined XL_USE_BOOST
 #include <boost/type_index.hpp>
+#undef XL_DEMANGLE_NAMES
+#define XL_DEMANGLE_NAMES
 #endif
+
+#if !defined XL_DEMANGLE_NAMES
+static_assert(false, "name mangling not disabled but no mechanism specified");
+#endif
+
+#endif // !defined XL_FORCE_NO_DEMANGLE_NAMES
 
 
 // The windows function to demangle names appears to be: 
@@ -73,7 +79,7 @@ std::string & demangle() {
         return cached_name;
     }
 
-#if defined HAVE_BOOST_TYPE_INDEX
+#if defined XL_USE_BOOST
 
     cached_name = boost::typeindex::type_id_with_cvr<T>().pretty_name();
     cache_set = true;

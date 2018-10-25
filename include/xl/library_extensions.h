@@ -12,7 +12,8 @@
 #include <sstream>
 #include <optional>
 
-#include "fmt/format.h"
+
+
 namespace xl {
 
 #ifdef XL_TESTING
@@ -319,11 +320,11 @@ ContainerT<ValueT, Rest...> remove_copy_if(ContainerT<ValueT, Rest...> const & c
  * @return vector containing result of sending each element of the source container to the callback
  */
 template<class ValueT, class... Rest, template<class, class...> class ContainerT, class Callable>
-ContainerT<std::result_of_t<Callable(ValueT)>> transform(ContainerT<ValueT, Rest...> const & container, Callable callable) {
+ContainerT<std::result_of_t<Callable(ValueT)>> transform(ContainerT<ValueT, Rest...> const & container, Callable && callable) {
 
     ContainerT<std::result_of_t<Callable(ValueT)>> result;
 
-    std::transform(begin(container), end(container), std::inserter(result, std::end(result)), callable);
+    std::transform(begin(container), end(container), std::inserter(result, std::end(result)), std::forward<Callable>(callable));
 
     return result;
 }
@@ -376,16 +377,24 @@ auto get_pointer(T && t) {
  * @return same container passed in but without the rejected elements
  */
 template<class T, class Callable, int_t<decltype(std::remove_if(begin(std::declval<T>()), end(std::declval<T>()), std::declval<Callable>()))> = 0>
-auto & erase_if(T & container, Callable callable) {
-    auto end_of_keep_elements = std::remove_if(begin(container), end(container), callable);
-    container.erase(end_of_keep_elements, container.end());
-    return container;
+auto erase_if(T && container, Callable && callable) -> T {
+    
+    // for containers which cannot have their elements moved around, erase them directly 
+    if constexpr(std::is_const_v<std::remove_reference_t<decltype(*std::begin(container))>>) {
+        for (auto i = container.begin(); i != container.end(); /*blank*/) {
+            if (callable(*i)) {
+                i = container.erase(i);
+            } else {
+                i++;
+            }
+        }
+    } else {
+        auto end_of_keep_elements = std::remove_if(begin(container), end(container), callable);
+        container.erase(end_of_keep_elements, container.end());
+    }
+    return std::forward<T>(container);
 }
 
-template<class T, class Callable, int_t<decltype(std::remove_if(begin(std::declval<T>()), end(std::declval<T>()), std::declval<Callable>()))> = 0>
-auto && erase_if(T && container, Callable callable) {
-    return std::move(erase_if(container, std::move(callable)));
-}
 
 
 
@@ -405,7 +414,7 @@ T copy(T const & t) {
 template<class ValueT, class... Rest, template<class, class...> class ContainerT>
 auto copy(ContainerT<ValueT, Rest...> const & container) {
     if constexpr(std::is_copy_constructible_v<ValueT>) {
-        return ContainerT<ValueT, Rest...>();
+        return ContainerT<ValueT, Rest...>(container);
     } else {
         ContainerT<std::reference_wrapper<ValueT>> results;
         for (ValueT & e : const_cast<ContainerT<ValueT, Rest...>&>(container)) {
