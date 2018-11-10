@@ -8,6 +8,7 @@
 #include <mutex>
 #undef XL_DEMANGLE_NAMES
 #define XL_DEMANGLE_NAMES
+#define XL_CXXABI_DEMANGLE_NAMES
 #endif
 
 // Useful for when not RTTI available
@@ -15,6 +16,7 @@
 #include <boost/type_index.hpp>
 #undef XL_DEMANGLE_NAMES
 #define XL_DEMANGLE_NAMES
+#define XL_BOOST_DEMANGLE_NAMES
 #endif
 
 #if !defined XL_DEMANGLE_NAMES
@@ -35,7 +37,7 @@ namespace xl {
  */
 inline std::string demangle_typeid_name(const std::string & mangled_name) {
 
-#ifdef XL_DEMANGLE_NAMES
+#ifdef XL_CXXABI_DEMANGLE_NAMES
     //    printf("Starting name demangling\n");
     std::string result;
     int status;
@@ -79,7 +81,7 @@ std::string & demangle() {
         return cached_name;
     }
 
-#if defined XL_USE_BOOST
+#if defined XL_BOOST_DEMANGLE_NAMES
 
     cached_name = boost::typeindex::type_id_with_cvr<T>().pretty_name();
     cache_set = true;
