@@ -165,7 +165,7 @@ public:
                 auto name = subject.as_object()["name"].get_string();
                 auto status = subject.as_object()["status"].get_boolean();
                 if (!name || !status) {
-                    throw LogStatusFileException("Invalid log subject configuration");
+                    throw LogStatusFileException("Invalid log subject configuration: {}", subject.get_source());
                 }
                 std::get<Statuses>(this->subjects).emplace_back(*name, *status);
             }

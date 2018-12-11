@@ -4,7 +4,10 @@ project(xl)
 set(CMAKE_VERBOSE_MAKEFILE on )
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
+
+# Set up build triple early so dependencies get it too - required for distcc build
 include(clang-build-triple)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -target ${TARGET_TRIPLE}")
 
 
 set(XL_VERSION 0.1.0)
@@ -49,7 +52,6 @@ install(EXPORT XL_TARGETS
         DESTINATION
         ${CONFIG_PACKAGE_LOCATION}
         )
-
 
 
 include(CMakePackageConfigHelpers)

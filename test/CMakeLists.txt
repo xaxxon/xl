@@ -31,7 +31,7 @@ add_executable(test-xl EXCLUDE_FROM_ALL ${TEST_SRC})
 # Turn off unused variables because clang 5 complains on structured assignments
 target_compile_options(test-xl
         PRIVATE -Wall -Wextra -Werror -stdlib=libc++
-        PUBLIC -msse4.1 -Wno-aligned-allocation-unavailable -Wno-unused-variable
+        PUBLIC -msse4.1 -Wno-unused-variable
         )
 
 
@@ -50,3 +50,4 @@ add_custom_command(TARGET copy_test_resources PRE_BUILD
 
 add_dependencies(test-xl copy_test_resources)
 target_compile_definitions(test-xl PRIVATE -DXL_TEMPLATE_LOG_ENABLE)
+    
