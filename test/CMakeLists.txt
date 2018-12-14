@@ -6,6 +6,7 @@ project ("XL Test")
 set(CLANG_HOME $ENV{CLANG_HOME})
 link_directories(. ${CLANG_HOME}/lib)
 
+
 find_package(fmt REQUIRED)
 
 include_directories(${gtest_SOURCE_DIR}/include)
@@ -41,7 +42,7 @@ add_definitions(-DGOOGLE_TEST)
 
 add_subdirectory(googletest EXCLUDE_FROM_ALL)
 
-target_link_libraries(test-xl c++experimental fmt gmock gtest gmock_main xl::xl)
+target_link_libraries(test-xl c++experimental fmt gmock gtest gmock_main xl::xl c++fs)
 
 add_custom_target(copy_test_resources)
 add_custom_command(TARGET copy_test_resources PRE_BUILD

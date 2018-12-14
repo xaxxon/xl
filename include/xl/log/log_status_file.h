@@ -48,7 +48,7 @@ private:
     // store these locally because the user may not have access to a Log object
     //   so in that case, just populate from the file
     std::string filename;
-    std::chrono::time_point<file_clock_type> last_file_change_check_time;
+    decltype(std::chrono::system_clock::now()) last_file_change_check_time;
     std::experimental::filesystem::path status_file;
     file_clock_type::time_point last_seen_write_time_for_status_file;
 

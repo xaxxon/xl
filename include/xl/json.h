@@ -217,7 +217,7 @@ public:
     }
 
     std::optional<bool> get_boolean(std::optional<bool> alternate_bool = std::optional<bool>{}) const {
-        auto result = parse()["boolean"];
+        std::string result = parse()["boolean"];
         return result.empty() ? alternate_bool : result == "true";
     }
 
