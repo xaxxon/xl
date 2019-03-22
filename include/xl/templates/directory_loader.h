@@ -4,14 +4,14 @@
 #include <fstream>
 #include <regex>
 
-#include <experimental/filesystem>
+#include <filesystem>
 
 #include "templates.h"
 
 
 namespace xl::templates {
 
-namespace fs = std::experimental::filesystem;
+namespace fs = std::filesystem;
 
 
 template<class CharT, class Traits>

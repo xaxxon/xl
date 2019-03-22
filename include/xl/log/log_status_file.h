@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <experimental/filesystem>
+#include <filesystem>
 #include <chrono>
 #include <fmt/ostream.h>
 #include <fstream>
@@ -25,7 +25,7 @@ namespace xl::log {
 enum class StatusFile {RESET_FILE_CONTENTS = 0, USE_FILE_CONTENTS};
 
 
-namespace fs = std::experimental::filesystem;
+namespace fs = std::filesystem;
 using namespace std::chrono_literals;
 
 
@@ -49,7 +49,7 @@ private:
     //   so in that case, just populate from the file
     std::string filename;
     decltype(std::chrono::system_clock::now()) last_file_change_check_time;
-    std::experimental::filesystem::path status_file;
+    std::filesystem::path status_file;
     file_clock_type::time_point last_seen_write_time_for_status_file;
 
 public:
@@ -79,7 +79,7 @@ public:
 
 
     LogStatusFile(std::string filename, StatusFile status_file_flag) : filename(filename), status_file(filename) {
-        if (std::experimental::filesystem::exists(this->status_file) && status_file_flag == StatusFile::USE_FILE_CONTENTS) {
+        if (std::filesystem::exists(this->status_file) && status_file_flag == StatusFile::USE_FILE_CONTENTS) {
             this->read();
         } else {
             // write out default config
@@ -93,7 +93,7 @@ public:
     {
         // If the file doesn't exist or user specified not to use it then write out the current state of the log
         //   object this object is attached to
-        if (!std::experimental::filesystem::exists(this->status_file) || status_file_flag == StatusFile::RESET_FILE_CONTENTS) {
+        if (!std::filesystem::exists(this->status_file) || status_file_flag == StatusFile::RESET_FILE_CONTENTS) {
             this->initialize_from_log(log);
             this->write();
         }
@@ -224,7 +224,7 @@ public:
         }
         this->last_file_change_check_time = std::chrono::system_clock::now();
 
-        if (std::experimental::filesystem::exists(this->status_file)) {
+        if (std::filesystem::exists(this->status_file)) {
             auto last_write_time = fs::last_write_time(this->status_file);
             if (last_write_time > this->last_seen_write_time_for_status_file) {
                 // need to read the new values
