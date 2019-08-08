@@ -211,54 +211,53 @@ auto copy_if(Container const & container, Callback && callback) {
 template<class, class...>
 struct EachI;
 
+    template<size_t... Is, class... Containers>
+    struct EachI<std::index_sequence<Is...>, Containers...> {
+    public:
+        std::tuple<Containers...> containers;
+    public:
 
-template<size_t... Is, class... Containers>
-struct EachI<std::index_sequence<Is...>, Containers...> {
-public:
-    std::tuple<Containers...> containers;
-public:
-
-    template <typename... ContainerTypes>
-    EachI(ContainerTypes&&... containers) :
-        containers(std::forward<ContainerTypes>(containers)...)
-    {}
-
-
-    struct iterator {
-        int counter = 0;
-        using ResultTuple = std::tuple<typename std::remove_reference_t<Containers>::value_type&..., int>;
-
-        // MSVC workaround - not using remove_reference_t here
-        std::tuple<typename std::remove_reference<Containers>::type::iterator...> iterators;
-
-        iterator(typename std::remove_reference<Containers>::type::iterator... i) :
-            iterators(i...)
+        template <typename... ContainerTypes>
+        EachI(ContainerTypes&&... containers) :
+                containers(std::forward<ContainerTypes>(containers)...)
         {}
 
-        iterator(){}
+        struct iterator {
+            int counter = 0;
+            using ResultTuple = std::tuple<decltype(*begin(std::declval<Containers>()))..., int>;
 
-        void operator++() {
-            counter++;
-            (std::get<Is>(iterators)++,...);
+            // MSVC workaround - not using remove_reference_t here
+            std::tuple<decltype(begin(std::declval<Containers>()))...> iterators;
+
+            iterator(decltype(begin(std::declval<Containers>()))... i) :
+                    iterators(i...)
+            {}
+
+            iterator(){}
+
+            void operator++() {
+                    counter++;
+                    (std::get<Is>(iterators)++,...);
+            }
+
+            ResultTuple operator*(){
+                    return ResultTuple{*std::get<Is>(iterators)..., counter};
+            }
+            bool operator!=(iterator const & other) {
+                    return std::get<0>(this->iterators) != std::get<0>(other.iterators);
+            }
+        };
+
+        auto begin() {
+                using std::begin;
+                return iterator(begin(std::get<Is>(this->containers))...);
         }
 
-        ResultTuple operator*(){
-            return ResultTuple{*std::get<Is>(iterators)..., counter};
-        }
-        bool operator!=(iterator const & other) {
-            return std::get<0>(this->iterators) != std::get<0>(other.iterators);
+        auto end() {
+                using std::end;
+                return iterator(end(std::get<Is>(this->containers))...);
         }
     };
-
-
-    auto begin() {
-        return iterator(std::get<Is>(this->containers).begin()...);
-    }
-
-    auto end() {
-        return iterator(std::get<Is>(this->containers).end()...);
-    }
-};
 
 
 /**

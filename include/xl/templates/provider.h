@@ -653,9 +653,7 @@ struct DefaultProviders {
             // Iterate through the container
             XL_TEMPLATE_LOG(xl::make_string("provider iterator iterating through container of size ", t.size()));
             
-            int i = 0;
-            for (auto & element : t) {
-                i++;                
+            for (auto && [element, i] : xl::each_i(t)) {
                 auto p = Provider<make_reference_wrapper_t<
                     match_const_of_t<
                         remove_refs_and_wrapper_t<ValueT>,
