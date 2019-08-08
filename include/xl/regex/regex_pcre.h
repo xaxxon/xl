@@ -8,8 +8,13 @@
 #include <string_view>
 #include <string>
 
+#ifdef XL_USE_PCRE
 #include <pcre.h>
+#endif
+
+#ifdef XL_USE_LIB_FMT
 #include <fmt/format.h>
+#endif
 
 #include "../zstring_view.h"
 
@@ -344,7 +349,7 @@ public:
         ));
 
         if (compiled_regex == nullptr) {
-            throw RegexException("Invalid regex: {} - '{}'", error_string, regex_string);
+            throw RegexException(std::string("Invalid regex: ") + error_string + "-" + regex_string.c_str());
         }
 
         if (flags & OPTIMIZE) {
@@ -367,7 +372,7 @@ public:
      * @return
      */
     static std::string info(){
-        return fmt::format("PCRE Version: {}.{}", PCRE_MAJOR, PCRE_MINOR);
+        return std::string("PCRE Version: ") + std::to_string(PCRE_MAJOR) + "." + std::to_string(PCRE_MINOR);
     }
 
 

@@ -3,7 +3,10 @@
 
 #include <filesystem>
 #include <chrono>
+#ifdef XL_USE_LIB_FMT
 #include <fmt/ostream.h>
+#endif
+
 #include <fstream>
 #include <variant>
 
@@ -165,7 +168,7 @@ public:
                 auto name = subject.as_object()["name"].get_string();
                 auto status = subject.as_object()["status"].get_boolean();
                 if (!name || !status) {
-                    throw LogStatusFileException("Invalid log subject configuration: {}", subject.get_source());
+                    throw LogStatusFileException(std::string("Invalid log subject configuration: ") + subject.get_source());
                 }
                 std::get<Statuses>(this->subjects).emplace_back(*name, *status);
             }

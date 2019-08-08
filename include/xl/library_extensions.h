@@ -11,7 +11,7 @@
 #include <map>
 #include <sstream>
 #include <optional>
-
+#include <sstream>
 
 
 namespace xl {
@@ -227,10 +227,11 @@ public:
     struct iterator {
         int counter = 0;
         using ResultTuple = std::tuple<typename std::remove_reference_t<Containers>::value_type&..., int>;
-        std::tuple<typename 
-            std::remove_reference_t<Containers>::iterator...> iterators;
 
-        iterator(typename std::remove_reference_t<Containers>::iterator... i) :
+        // MSVC workaround - not using remove_reference_t here
+        std::tuple<typename std::remove_reference<Containers>::type::iterator...> iterators;
+
+        iterator(typename std::remove_reference<Containers>::type::iterator... i) :
             iterators(i...)
         {}
 
@@ -367,6 +368,33 @@ auto get_pointer(T && t) {
     }
 }
 
+
+/**
+ * Same as a std::stringstream except it takes a constructor that builds the stringstream
+ * and it's implicitly convertible to std::string
+ * Mostly for convenience of building up a string and then using it in place without multiple allocations
+ */
+class stringstream : public std::stringstream {
+public:
+
+    using std::stringstream::stringstream;
+
+    template<typename... Params>
+    stringstream(Params&&... params) {
+            (*this << ... << params);
+    }
+
+    operator std::string() const {
+            return this->str();
+    }
+};
+
+template<typename... Ts>
+std::string make_string(Ts&&... ts) {
+        std::stringstream stream;
+        (stream << ... << std::forward<Ts>(ts));
+        return stream.str();
+}
 
 /**
  * Similar to std::remove_if but the rejected elements are removed from the container

@@ -2,7 +2,10 @@
 #include <gmock/gmock.h>
 
 #include "destructive_move.h"
+
+#ifdef XL_USE_LIB_FMT
 #include "fmt/ostream.h"
+#endif
 
 using namespace xl;
 

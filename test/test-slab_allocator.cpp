@@ -3,7 +3,6 @@
 #include <gmock/gmock.h>
 
 #include "slab_allocator.h"
-#include "fmt/ostream.h"
 
 using namespace xl;
 

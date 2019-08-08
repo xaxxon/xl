@@ -3,7 +3,9 @@
 #include <exception>
 #include <string>
 
+#ifdef XL_USE_LIB_FMT
 #include <fmt/ostream.h>
+#endif
 
 #include "zstring_view.h"
 
@@ -36,11 +38,12 @@ public:
      * @param format_string format string for libfmt
      * @param args substitutions for the format string
      */
+#ifdef XL_USE_LIB_FMT
     template<typename... Args>
     FormattedException(xl::zstring_view format_string, Args&&... args) :
         what_string(fmt::format(format_string.c_str(), std::forward<Args>(args)...))
     {}
-
+#endif
 
     char const * what() const noexcept override  {
         return this->what_string.c_str();

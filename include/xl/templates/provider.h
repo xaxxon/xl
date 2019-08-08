@@ -235,16 +235,15 @@ struct DefaultProviders {
 
             if (!substitution_state.substitution->name_entries.empty() || // there can't be any more names
                 substitution_state.substitution->final_data.inline_template != nullptr) {
-                XL_TEMPLATE_LOG("name_entries: {}, inline template: {}", 
-                    xl::join(substitution_state.substitution->name_entries), 
-                    (void*)substitution_state.substitution->final_data.inline_template.get());
+                XL_TEMPLATE_LOG(xl::stringstream("name_entries: ", xl::join(substitution_state.substitution->name_entries), ", inline template: ",
+                    (void*)substitution_state.substitution->final_data.inline_template.get()).str());
                 return xl::make_unexpected(std::string("string provider called with non-terminal substitution"));
             } // else if (substitution_state.substitution.)
             return this->string;
         }
 
         std::string get_name() const override {
-            return fmt::format("Provider: {} is convertible to std::string: '{}'", demangle<T>(), string);
+            return xl::stringstream("Provider: ", demangle<T>(), " is convertible to std::string: '", string,"'");
         }
 
         bool provides_named_lookup() const override {
@@ -313,7 +312,7 @@ struct DefaultProviders {
         }
 
         std::string get_name() const override {
-            return fmt::format("Provider: Callback {} returning Providerable type {}", demangle<NoRefT>(), demangle<CallbackResultT>());
+            return xl::stringstream("Provider: Callback ", demangle<NoRefT>()," returning Providerable type ", demangle<CallbackResultT>());
         }
 
         ProviderPtr get_fillable_provider() override {
@@ -402,7 +401,7 @@ struct DefaultProviders {
             NoRefT const & t = this->t_holder;
 
             ProviderPtr provider = get_underlying_provider();
-            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "got underlying provider: {} => {}", this->get_name(), provider->get_name());
+            XL_TEMPLATE_LOG(LogT::Subjects::Provider, xl::make_string("got underlying provider: ", this->get_name() ," => ", provider->get_name()));
 
 
             assert(provider.get() != this);
@@ -433,7 +432,7 @@ struct DefaultProviders {
         }
 
         std::string get_name() const override {
-            return fmt::format("Provider: can_get_provider_for_type_v<{}>", demangle<T>());
+            return xl::stringstream("Provider: can_get_provider_for_type_v<", demangle<T>() ,">");
         }
 
         ProviderPtr get_fillable_provider() override {
@@ -467,7 +466,7 @@ struct DefaultProviders {
 
             UniquePtrT & unique_ptr = t;
             if (!unique_ptr) {
-                return xl::make_unexpected(fmt::format("unique_ptr provider '{}' has null pointer", this->get_name()));
+                return xl::make_unexpected(xl::stringstream("unique_ptr provider '", this->get_name(), "' has null pointer").str());
             }
 
             data.fill_state.provider_stack.push_front(this);
@@ -489,7 +488,7 @@ struct DefaultProviders {
             return Provider<make_reference_wrapper_t<PointeeT>>(*unique_ptr);
         }
         std::string get_name() const override {
-            return fmt::format("Provider: unique_ptr<{}> passthrough", xl::demangle<PointeeT>());
+            return xl::stringstream("Provider: unique_ptr<", xl::demangle<PointeeT>(),"> passthrough");
         }
 
         ProviderPtr get_fillable_provider() override {
@@ -512,7 +511,7 @@ struct DefaultProviders {
             return string_stream.str();
         }
         std::string get_name() const override {
-            return fmt::format("Number provider for {}: {}", xl::demangle<T>(), t);
+            return xl::stringstream("Number provider for ", xl::demangle<T>(), ": ", t);
         }
     };
     
@@ -547,18 +546,18 @@ struct DefaultProviders {
         xl::expected<std::string, ErrorList> operator()(SubstitutionState & data) const override {
             
             if (t == nullptr) {
-                return xl::make_unexpected(fmt::format("Pointer provider '{}' has null pointer", this->get_name()));
+                return xl::make_unexpected(xl::stringstream("Pointer provider '", this->get_name(), "' has null pointer").str());
             }
             
             data.fill_state.provider_stack.push_front(this);
             Defer(data.fill_state.provider_stack.pop_front());
-            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "Pointer provider {}", this->get_name());
+            XL_TEMPLATE_LOG(LogT::Subjects::Provider, xl::make_string("Pointer provider ", this->get_name()));
 
             return Provider<make_reference_wrapper_t<NoPtrT>>(*t)(data);
         }
 
         std::string get_name() const override {
-            return fmt::format("Pointer provider: {}", xl::demangle<T>());
+            return xl::stringstream("Pointer provider: ", xl::demangle<T>());
         }
 
         using XL_TEMPLATES_PASSTHROUGH_TYPE = T;
@@ -652,7 +651,7 @@ struct DefaultProviders {
             bool needs_join_string = data.substitution->shared_data->leading_join_string;
 
             // Iterate through the container
-            XL_TEMPLATE_LOG("provider iterator iterating through container of size {}", t.size());
+            XL_TEMPLATE_LOG(xl::make_string("provider iterator iterating through container of size ", t.size()));
             
             int i = 0;
             for (auto & element : t) {
@@ -695,11 +694,11 @@ struct DefaultProviders {
                     needs_join_string = false;
                 }
                 result << *fill_result;
-                XL_TEMPLATE_LOG(LogT::Subjects::Provider, "In container provider, after {} elements, result currently {}", i, result.str());
+                XL_TEMPLATE_LOG(LogT::Subjects::Provider, xl::make_string("In container provider, after ", i, " elements, result currently ", result.str()));
 
 
             }
-            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "Container provider result: '{}'", result.str());
+            XL_TEMPLATE_LOG(LogT::Subjects::Provider, xl::make_string("Container provider result: '", result.str(), "'"))
 
             return result.str();
         }
@@ -710,7 +709,7 @@ struct DefaultProviders {
 
 
         std::string get_name() const override {
-            return fmt::format("Provider: container of {}", demangle<T>());
+            return xl::stringstream("Provider: container of ", demangle<T>());
         }
 
         bool is_fillable_provider() const override {
@@ -792,7 +791,7 @@ struct DefaultProviders {
             }
             
             std::string name = std::move(*name_optional); 
-            XL_TEMPLATE_LOG(LogT::Subjects::Provider, "{} Map Provider looking up name {}", this->get_name(), name);
+            XL_TEMPLATE_LOG(LogT::Subjects::Provider, xl::make_string(this->get_name(), " Map Provider looking up name ", name));
 
 
             auto provider_iterator = map.find(name);
@@ -805,6 +804,7 @@ struct DefaultProviders {
             if (provider_iterator != map.end() && 
                 (data.substitution->initial_data.rewind_provider_count == 0 || 
                  data.substitution->initial_data.rewound)) {
+
 
                 if constexpr(
                     std::is_base_of_v<Provider_Interface, MapValueT> ||
@@ -848,8 +848,7 @@ struct DefaultProviders {
 
             }
             else {
-                return xl::make_unexpected(fmt::format("{} does not provide name: '{}' or needs rewinding", this->get_name(),
-                                                           name));
+                return xl::make_unexpected(xl::stringstream(this->get_name(), " does not provide name: '", name,"' or needs rewinding").str());
             }
             return result;
         }

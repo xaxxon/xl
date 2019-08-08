@@ -508,5 +508,5 @@ TEST(log, xl_string_views) {
     LogT log;
     auto logger = log.to(LogT::Levels::Warn, LogT::Subjects::Default);
 
-    logger("{}", xl::string_view("test xl stringview"));
+    logger(xl::make_string(xl::string_view("test xl stringview")));
 }

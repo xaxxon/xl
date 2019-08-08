@@ -2,8 +2,6 @@
 #include <gmock/gmock.h>
 
 #include "not_null.h"
-#include "fmt/ostream.h"
-
 using namespace xl;
 
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#if !defined XL_FORCE_NO_DEMANGLE_NAMES
+#ifndef XL_FORCE_NO_DEMANGLE_NAMES
 // if it can be determined safely that cxxabi.h is available, include it for name demangling
 
 #if defined XL_USE_CXX_ABI
@@ -11,7 +11,7 @@
 #define XL_CXXABI_DEMANGLE_NAMES
 #endif
 
-// Useful for when not RTTI available
+// Useful for when RTTI is not available
 #if defined XL_USE_BOOST
 #include <boost/type_index.hpp>
 #undef XL_DEMANGLE_NAMES

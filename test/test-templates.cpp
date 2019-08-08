@@ -212,8 +212,8 @@ auto l = [](){return StringCallbackTest();};
 
 std::unique_ptr<Provider_Interface> get_provider(A const & a) {
     return make_provider(
-        std::pair{"I", [a]()->std::string{
-            return fmt::format("{}", a.i);}
+        std::pair{"I", [a]() {
+            return xl::make_string(a.i);}
         }, 
         std::pair{"J", "6"});
 }

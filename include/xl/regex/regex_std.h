@@ -1,6 +1,9 @@
 #pragma once
 
+#ifdef XL_USE_LIB_FMT
 #include <fmt/format.h>
+#endif
+
 #include <iostream>
 
 #include <regex>

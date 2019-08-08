@@ -16,7 +16,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef XL_USE_LIB_FMT
 #include <fmt/ostream.h>
+#endif
+
 #include <exception>
 
 #include "../library_extensions.h"

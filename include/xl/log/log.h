@@ -72,11 +72,13 @@ public:
         log_object(log_object), level(level), subject(subject), message_prefix(message_prefix)
     {}
 
+#ifdef XL_USE_LIB_FMT
     template <typename... Ts>
     CopyLogger & operator()(xl::zstring_view format_string, Ts&&... args) {
         log_object.log(level, subject, fmt::format(format_string.c_str(), std::forward<Ts>(args)...));
         return *this;
     }
+#endif
 
     CopyLogger & operator()(xl::zstring_view log_message) {
         log_object.log(level, subject, log_message);
@@ -232,11 +234,11 @@ public:
 
         for(size_t i = 0; i < get(Levels::LOG_LAST_LEVEL); i++) {
             auto level = (Levels)i;
-            status << fmt::format("{}: {}", LevelsT::get_name(level), (bool)get_status(level));
+            status << LevelsT::get_name(level) << ": " << (bool)get_status(level);
         }
         for(size_t i = 0; i < get(Subjects::LOG_LAST_SUBJECT); i++) {
             auto subject = (Subjects)i;
-            status << fmt::format("{}: {}", SubjectsT::get_name(subject), (bool)get_status(subject));
+            status << SubjectsT::get_name(subject) << ": " << (bool)get_status(subject);
         }
         return status.str();
     }
@@ -405,7 +407,7 @@ public:
     
 
     template<class L = Levels, class S = Subjects,
-             std::enable_if_t<(int)L::Levels::Info >= 0 && (int)S::Default >= 0, int> = 0>
+             std::enable_if_t<(int)L::Info >= 0 && (int)S::Default >= 0, int> = 0>
     void info(xl::zstring_view message) {
         log(Levels::Info, Subjects::Default, message);
     }

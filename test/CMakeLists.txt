@@ -8,6 +8,10 @@ link_directories(. ${CLANG_HOME}/lib)
 
 
 find_package(fmt REQUIRED)
+IF(FMT_FOUND)
+    add_definitions(-DXL_USE_LIB_FMT)
+    target_link_libraries(test-xl fmt)
+ENDIF()
 
 include_directories(${gtest_SOURCE_DIR}/include)
 include_directories(${gmock_SOURCE_DIR}/include)
@@ -22,10 +26,32 @@ file(GLOB TEST_SRC
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -O3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -ftemplate-backtrace-limit=0")
 
+find_package(boost)
+IF(BOOST_FOUND)
+    add_definitions(-DXL_USE_BOOST)
+ENDIF()
+
+IF(WIN32 AND NOT BOOST_FOUND)
+    add_definition(-DXL_FORCE_NO_DEMANGLE_NAMES)
+ELSE()
+    IF(BOOST_FOUND)
+        add_definitions(-DXL_USE_BOOST)
+    ELSE()
+        add_definitions(-DXL_USE_CXX_ABI)
+    ENDIF()
+ENDIF()
+
+find_package(PCRE)
+IF(PCRE_FOUND)
+    include_directories(${PCRE_INCLUDE_DIRS})
+    message("USING PCRE" ${PCRE_INCLUDE_DIRS})
+    add_definitions(-DXL_USE_PCRE)
+ENDIF()
 
 include_directories(../include/xl)
-add_definitions(-DXL_USE_LIB_FMT -DXL_TESTING -DXL_LOG_WITH_TEMPLATES -DXL_TEMPLATE_LOG_ENABLE -DXL_USE_BOOST)
-add_definitions(-DXL_USE_PCRE) # on another line to easily add and remove during development
+add_definitions(-DXL_TESTING -DXL_LOG_WITH_TEMPLATES -DXL_TEMPLATE_LOG_ENABLE )
+
+
 
 add_executable(test-xl EXCLUDE_FROM_ALL ${TEST_SRC})
 
@@ -42,7 +68,7 @@ add_definitions(-DGOOGLE_TEST)
 
 add_subdirectory(googletest EXCLUDE_FROM_ALL)
 
-target_link_libraries(test-xl c++experimental fmt gmock gtest gmock_main xl::xl c++fs)
+target_link_libraries(test-xl c++experimental gmock gtest gmock_main xl::xl c++fs)
 
 add_custom_target(copy_test_resources)
 add_custom_command(TARGET copy_test_resources PRE_BUILD

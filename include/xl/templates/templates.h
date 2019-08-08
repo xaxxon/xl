@@ -9,7 +9,9 @@
 #include <type_traits>
 #include <functional>
 
+#ifdef XL_USE_LIB_FMT
 #include <fmt/ostream.h>
+#endif
 
 #include "../regex/regexer.h"
 #include "../library_extensions.h"
@@ -177,7 +179,7 @@ xl::expected<std::string, ErrorList> Template::fill(T && source, std::map<std::s
 template<typename ProviderContainer, class T, typename>
 xl::expected<std::string, ErrorList> CompiledTemplate::fill(T && source, std::map<std::string, Template> template_map) const {
 
-    XL_TEMPLATE_LOG(LogT::Subjects::Template, "Filling template: '{}'", this->source_template->c_str());
+    XL_TEMPLATE_LOG(LogT::Subjects::Template, xl::stringstream("Filling template: '", this->source_template,"'").str());
 
     // used for storing the provider if necessary
     std::unique_ptr<Provider_Interface> provider_interface_unique_pointer;

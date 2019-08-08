@@ -97,7 +97,7 @@ struct Substitution {
     xl::expected<std::string, ErrorList> get_name() const {
 
         if (this->name_entries.size() > 1) {
-            return xl::make_unexpected(fmt::format("too many name entries: {}\n", xl::join(this->name_entries)));
+            return xl::make_unexpected(std::string("too many name entries: ") + xl::join(this->name_entries));
         }
 
         if (this->name_entries.size() == 0) {

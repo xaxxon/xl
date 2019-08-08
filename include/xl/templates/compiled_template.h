@@ -62,8 +62,7 @@ public:
     std::string details_string() {
         std::stringstream details_string;
 
-        details_string << fmt::format("static strings: {}, substitutions: {}", this->static_strings.size(),
-                                      this->substitutions.size());
+        details_string << "static strings: " << this->static_strings.size() << ", substitutions: " << this->substitutions.size();
 
         for (decltype(static_strings.size()) i = 0; i < static_strings.size(); i++) {
 
@@ -111,9 +110,8 @@ inline xl::expected<std::string, ErrorList> CompiledTemplate::rewind_results(Sub
 
         for (auto * provider : substitution_state.fill_state.provider_stack) {
 
-            XL_TEMPLATE_LOG("rewinding through provider stack, current provider:{}",
-                                     provider->get_name());
-            XL_TEMPLATE_LOG(fmt::format("{}", substitution_state.fill_state.provider_stack));
+            XL_TEMPLATE_LOG(std::string("rewinding through provider stack, current provider: ") + provider->get_name());
+            XL_TEMPLATE_LOG([&](){std::stringstream message; message << substitution_state.fill_state.provider_stack; return message.str();}());
 
             // only rewind on "core" providers
             
@@ -136,8 +134,9 @@ inline xl::expected<std::string, ErrorList> CompiledTemplate::rewind_results(Sub
             
             if (!substitution_state.substitution->final_data.template_name.empty()) {
                 // not even sure what this would actually do
-                return xl::make_unexpected(ErrorList(fmt::format("Rewinding through a named template '{}' is not supported",
-                                                                 substitution_state.substitution->final_data.template_name)));
+                std::stringstream error_list;
+                error_list <<"Rewinding through a named template '" << substitution_state.substitution->final_data.template_name << "' is not supported";
+                return xl::make_unexpected(ErrorList(error_list.str()));
             }
 
             // start over from scratch
@@ -185,35 +184,35 @@ xl::expected<std::string, ErrorList> CompiledTemplate::fill(FillState const & fi
 //    XL_TEMPLATE_LOG("just created variable 'result': '{}'", result);
     result.reserve(this->minimum_result_length);
 
-    ErrorList error_list(fmt::format("Filling {}", this->source_template->c_str()));
+    ErrorList error_list(std::string("Filling {}", this->source_template->c_str()));
     for(size_t i = 0; i < this->static_strings.size(); i++) {
 
         result.insert(result.end(), this->static_strings[i].begin(), this->static_strings[i].end());
-        XL_TEMPLATE_LOG(LogT::Subjects::Template, "fill: just added static section {}: '{}'", i, this->static_strings[i]);
+        XL_TEMPLATE_LOG(LogT::Subjects::Template, xl::stringstream("fill: just added static section ", i, ": '", this->static_strings[i], "'").str());
 
         if (this->substitutions.size() > i) {
             SubstitutionState current_substitution(*this, fill_state, this->substitutions[i].get());
 
 
-            XL_TEMPLATE_LOG("grabbed data for compiled_subsitution '{}' - it has name '{}' and inline template: '{}'",
-                            i, current_substitution.substitution->get_name().value_or("<NO NAME AVAILABLE>"), (void*)current_substitution.substitution->final_data.inline_template.get());
+            XL_TEMPLATE_LOG(xl::stringstream("grabbed data for compiled_subsitution '", i, "' - it has name '", current_substitution.substitution->get_name().value_or("<NO NAME AVAILABLE>"), "' and inline template: '",
+                            (void*)current_substitution.substitution->final_data.inline_template.get(), "'").str())
             current_substitution.current_template = this;
             current_substitution.fill_state.searching_provider_stack = fill_state.searching_provider_stack;
 
             // substituting another template in with {{!template_name}}
             if (!current_substitution.substitution->final_data.template_name.empty()) {
                 if (fill_state.templates->empty()) {
-                    return xl::make_unexpected(error_list.append(fmt::format("Cannot refer to another template if no other templates specified: " + current_substitution.substitution->final_data.template_name)));
+                    return xl::make_unexpected(error_list.append(xl::stringstream("Cannot refer to another template if no other templates specified: ", current_substitution.substitution->final_data.template_name).str()));
                 }
                 auto template_iterator = fill_state.templates->find(current_substitution.substitution->final_data.template_name);
                 if (template_iterator == fill_state.templates->end()) {
-                    return xl::make_unexpected(error_list.append(fmt::format("No template found named: {}", current_substitution.substitution->final_data.template_name)));
+                    return xl::make_unexpected(error_list.append(xl::stringstream("No template found named: ", current_substitution.substitution->final_data.template_name).str()));
                 }
                 auto inline_template_result = template_iterator->second.fill(fill_state);
 
                 if (!inline_template_result) {
-                    return xl::make_unexpected(ErrorList(fmt::format("No-rewind path returning failure for named template: '{}'\n", 
-                        current_substitution.substitution->final_data.template_name)).
+                    return xl::make_unexpected(ErrorList(xl::stringstream("No-rewind path returning failure for named template: ",
+                        current_substitution.substitution->final_data.template_name).str()).
                         append(inline_template_result.error()));
                 }
 //                if (!inline_template_result) {
@@ -263,9 +262,9 @@ xl::expected<std::string, ErrorList> CompiledTemplate::fill(FillState const & fi
                     
                     if (!substitution_result) {
 
-                        XL_TEMPLATE_LOG("About to start rewind because: {}", substitution_result.error());
+                        XL_TEMPLATE_LOG(xl::stringstream("About to start rewind because: ", substitution_result.error()).str());
 
-                        XL_TEMPLATE_LOG("provider stack before rewind: {}", current_substitution.fill_state.provider_stack);
+                        XL_TEMPLATE_LOG(xl::stringstream("provider stack before rewind: ", current_substitution.fill_state.provider_stack).str());
 
                         // don't rewind on the same provider that was just tried
                         bool rewound_through_rewind_point = false;
@@ -288,13 +287,13 @@ xl::expected<std::string, ErrorList> CompiledTemplate::fill(FillState const & fi
                         }
                     }
 //                    XL_TEMPLATE_LOG("replacement for {} is: {}", this->source_template->c_str(), substitution_result);
-                    XL_TEMPLATE_LOG("provider() named {} returned: '{}'", provider.get_name(), *substitution_result);
+                    XL_TEMPLATE_LOG(xl::stringstream("provider() named ", provider.get_name(), "returned: '", *substitution_result ,"'").str());
                     
                     
                     if (!current_substitution.substitution->initial_data.contingent_leading_content.empty() &&
                         !substitution_result->empty()) {
-                        XL_TEMPLATE_LOG("adding contingent leading content: {}",
-                                        current_substitution.substitution->initial_data.contingent_leading_content);
+                        XL_TEMPLATE_LOG(xl::stringstream("adding contingent leading content: ",
+                                        current_substitution.substitution->initial_data.contingent_leading_content).str());
 
                         result.insert(result.end(),
                                       current_substitution.substitution->initial_data.contingent_leading_content.begin(),
@@ -303,8 +302,8 @@ xl::expected<std::string, ErrorList> CompiledTemplate::fill(FillState const & fi
                     result.insert(result.end(), substitution_result->begin(), substitution_result->end());
                     if (!current_substitution.substitution->initial_data.contingent_trailing_content.empty() &&
                         !substitution_result->empty()) {
-                        XL_TEMPLATE_LOG("inserting contingent trailing content: {}",
-                                        current_substitution.substitution->initial_data.contingent_trailing_content);
+                        XL_TEMPLATE_LOG(xl::stringstream("inserting contingent trailing content: ",
+                                        current_substitution.substitution->initial_data.contingent_trailing_content).str());
                         result.insert(result.end(),
                                       current_substitution.substitution->initial_data.contingent_trailing_content.begin(),
                                       current_substitution.substitution->initial_data.contingent_trailing_content.end());

@@ -172,7 +172,7 @@ public:
                 if (!object_entry_match.has("ObjectTail")) {
                     break;
                 }
-                object_string = fmt::format("{{{}}}", object_entry_match["ObjectTail"]);
+                object_string = std::string("{") + std::string(object_entry_match["ObjectTail"]) + "}";
             }
             return results;
         } else {
@@ -200,7 +200,7 @@ public:
                 if (!array_entry_match.has("ArrayTail")) {
                     break;
                 }
-                array_string = fmt::format("[{}]", array_entry_match["ArrayTail"]);
+                array_string = std::string("[" +  std::string(array_entry_match["ArrayTail"]) + "]");
             }
             return results;
         } else {

@@ -18,7 +18,7 @@ inline void Substitution::split() {
         auto new_template = *new_template_maybe;
         
         auto new_substitution = std::make_unique<Substitution>();
-        new_substitution->raw_text = fmt::format("Split off of {}", this->raw_text);
+        new_substitution->raw_text = xl::stringstream("Split off of ", this->raw_text);
         
         // this follows the new substitution object until the end of the split so only
         //   the last one has this data
@@ -60,7 +60,7 @@ inline xl::expected<std::shared_ptr<CompiledTemplate>, std::string> Template::co
         return this->compiled_template;
     }
 
-    XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "Compiling: {}", this->_tmpl);
+    XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, xl::stringstream("Compiling: ", this->_tmpl).str());
 
     this->compiled_template = std::make_shared<CompiledTemplate>(this);
 
@@ -153,9 +153,7 @@ inline xl::expected<std::shared_ptr<CompiledTemplate>, std::string> Template::co
 //                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "{}: '{}'", i, s);
 //            }
 //        }
-        XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "literal: '{}', substutition: '{}'",
-                        matches["Literal"],
-                        matches["Substitution"]);
+        XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, xl::stringstream("literal: '",matches["Literal"],"', substutition: '", matches["Substitution"], "'").str());
 //        for (size_t i = 0; i < matches.size(); i++) {
 //            XL_TEMPLATE_LOG("match[{}]: '{}'", i, matches[i]);
 //        }
@@ -166,7 +164,7 @@ inline xl::expected<std::shared_ptr<CompiledTemplate>, std::string> Template::co
             return xl::make_unexpected(std::string("Unmatched Open"));
         }
         if (matches.length("UnmatchedClose")) {
-            return xl::make_unexpected(fmt::format("Unmatched Close (missing opening '}}') in {}", last_matched_template_string));
+            return xl::make_unexpected(xl::stringstream("Unmatched Close (missing opening '}}') in ", last_matched_template_string).str());
         }
 
 
@@ -187,7 +185,7 @@ inline xl::expected<std::shared_ptr<CompiledTemplate>, std::string> Template::co
 
         // if the current literal string has contingent data for the previous substitution, grab it off now
         if (first_line_belongs_to_last_substitution) {
-            XL_TEMPLATE_LOG("trailing contingent ({}) on: '{}'\n", first_line_belongs_to_last_substitution, literal_string);
+            XL_TEMPLATE_LOG(xl::stringstream("trailing contingent (", first_line_belongs_to_last_substitution,") on: '", literal_string,"'\n").str());
             static Regex first_line_regex(R"(^([^\n]*)(.*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
 //            static Regex first_line_and_empty_lines_regex(R"(^([^\n]*\n*)(.*)$)", xl::DOTALL | xl::DOLLAR_END_ONLY);
 
@@ -197,7 +195,7 @@ inline xl::expected<std::shared_ptr<CompiledTemplate>, std::string> Template::co
                 if (auto results = first_line_regex.match(literal_string)) {
     
                     XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile,
-                                    "contingent trailing content '{}' and literal string '{}'", results[1], results[2]);
+                                    xl::stringstream("contingent trailing content '", results[1],"' and literal string '", results[2],"'").str());
     
                     
                         substitutions.back()->initial_data.contingent_trailing_content = results[1];
@@ -229,7 +227,7 @@ inline xl::expected<std::shared_ptr<CompiledTemplate>, std::string> Template::co
                 auto results = last_line_regex.match(literal_string);
                 if (results) {
                     XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile,
-                                    "literal_string '{}' contingent_leading_content '{}'", results[1], results[2]);
+                                    xl::stringstream("literal_string '", results[1], "' contingent_leading_content '", results[2], "'").str());
                     literal_string = results[1];
                     contingent_leading_content = results[2];
                 }
@@ -242,14 +240,14 @@ inline xl::expected<std::shared_ptr<CompiledTemplate>, std::string> Template::co
         this->compiled_template->static_strings.push_back(literal_string);
 
         first_line_belongs_to_last_substitution = matches.length("IgnoreEmptyAfterMarker");
-        XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "ignore empty after marker: {}", matches["IgnoreEmptyAfterMarker"]);
-        XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "setting first line belongs to last substitution to {} on {}", first_line_belongs_to_last_substitution, matches["Substitution"]);
+        XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, xl::stringstream("ignore empty after marker: ", matches["IgnoreEmptyAfterMarker"]).str());
+        XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, xl::stringstream("setting first line belongs to last substitution to ", first_line_belongs_to_last_substitution," on ", matches["Substitution"]).str());
 
 
         // if no substitution found, everything was a literal and is handled as a "trailing literal" outside
         //   this loop
         if (!matches.has("Substitution")) {
-            XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "No substitution found in: '{}', moving on", matches[0]);
+            XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, xl::stringstream("No substitution found in: '", matches[0], "', moving on").str());
             break;
         }
 
@@ -270,7 +268,7 @@ inline xl::expected<std::shared_ptr<CompiledTemplate>, std::string> Template::co
 
             if (!matches.has("TemplateInsertionMarker")) {
                 auto substitution_name = matches["SubstitutionName"];
-                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "substitution name: {}", substitution_name);
+                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, xl::stringstream("substitution name: ", substitution_name).str());
                 if (!substitution_name.empty()) {
 
                     // split it on . and add each to name_entries
@@ -291,8 +289,8 @@ inline xl::expected<std::shared_ptr<CompiledTemplate>, std::string> Template::co
 
                         data->name_entries.emplace_front(substitution_name.data(), position, new_position - position);
 
-                        XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "substitution sub-name: {}",
-                                        data->name_entries.front());
+                        XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, xl::make_string("substitution sub-name: ",
+                                        data->name_entries.front()));
 
                         position = new_position + 1;
                     }
@@ -300,21 +298,19 @@ inline xl::expected<std::shared_ptr<CompiledTemplate>, std::string> Template::co
                                                     substitution_name.length() - position);
                     std::reverse(data->name_entries.begin(), data->name_entries.end());
                 }
-                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "parsed name into {}",
-                                xl::join(data->name_entries));
+                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, xl::make_string("parsed name into ",
+                                xl::join(data->name_entries)));
             } else {
-                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "Got template insertion marker for template named: {}", matches["SubstitutionName"]);
+                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, make_string("Got template insertion marker for template named: ", matches["SubstitutionName"]));
                 data->final_data.template_name = matches["SubstitutionName"];
             }
 
             if (matches.has("JoinStringMarker")) {
                 data->shared_data->join_string = matches["JoinString"];
-                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, "Join string for '{}' set to: '{}'\n",
-                                this->c_str(), data->shared_data->join_string);
+                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, xl::make_string("Join string for '", this->c_str(),"' set to: '", data->shared_data->join_string,"'\n"));
             } else {
-                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile,
-                                "join string not found in '{}', using default: '{}'\n", this->c_str(),
-                                data->shared_data->join_string);
+                XL_TEMPLATE_LOG(TemplateSubjects::Subjects::Compile, xl::make_string(
+                                "join string not found in '", this->c_str(),"', using default: '", data->shared_data->join_string,"'\n"));
             }
 
             if (matches.has("LeadingJoinStringMarker")) {
@@ -353,7 +349,7 @@ inline xl::expected<std::shared_ptr<CompiledTemplate>, std::string> Template::co
            this->compiled_template->static_strings.size() == this->compiled_template->substitutions.size() + 1);
 
 
-    XL_TEMPLATE_LOG("compiled template:\n{}\n", this->compiled_template->details_string());
+    XL_TEMPLATE_LOG(xl::make_string("compiled template:\n", this->compiled_template->details_string() ,"\n"));
 
     assert(remaining_template.empty());
 
@@ -384,13 +380,13 @@ inline xl::expected<CompiledTemplate const *, std::string> SubstitutionState::ge
     auto template_iterator = this->fill_state.templates->find(this->substitution->parameters);
     if (template_iterator == this->fill_state.templates->end()) {
         if (this->fill_state.templates->empty()) {
-            return xl::make_unexpected(fmt::format("ContainerProvider received empty template map so it can't possibly find a template for its members {}",
+            return xl::make_unexpected(xl::make_string("ContainerProvider received empty template map so it can't possibly find a template for its members ",
                 this->substitution->get_name().value_or("<NO NAME AVAILABLE>")));
         }
-        return xl::make_unexpected(fmt::format("ContainerProvider couldn't find template named: '{}' from template {}", this->substitution->parameters, this->current_template->source_template->c_str()));
+        return xl::make_unexpected(xl::make_string("ContainerProvider couldn't find template named: '", this->substitution->parameters, "' from template ", this->current_template->source_template->c_str()));
     }
 
-    XL_TEMPLATE_LOG("Returning named template: {}", template_iterator->second.c_str());
+    XL_TEMPLATE_LOG(xl::make_string("Returning named template: ", template_iterator->second.c_str()));
     
     return (*template_iterator->second.compile()).get();
 

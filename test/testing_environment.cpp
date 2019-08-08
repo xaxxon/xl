@@ -2,7 +2,10 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#ifdef XL_USE_LIB_FMT
 #include <fmt/format.h>
+#endif
+
 #include "../include/xl/log.h"
 
 #include "../include/xl/templates/exceptions.h"
@@ -21,7 +24,7 @@ public:
 
         xl::templates::log.add_callback([](xl::templates::LogT::LogMessage const & message) {
             // If you don't want see the messages, just turn off the log status for them
-           std::cout << fmt::format("xl::templates ({}): '{}'", xl::templates::log.get_name(message.subject), message.string) << std::endl;
+           std::cout << "xl::templates (" << xl::templates::log.get_name(message.subject) << "): '" << message.string << "'"  << std::endl;
         });
 
         // use status file settings if they exist, otherwise create it with the current settings
